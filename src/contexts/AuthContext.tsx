@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Escuchar cambios en la autenticación
     const { data: { subscription } } = AuthService.onAuthStateChange((user) => {
+      console.log('AuthContext - Auth state changed:', user)
       setState(prev => ({ ...prev, user, loading: false }))
     })
 

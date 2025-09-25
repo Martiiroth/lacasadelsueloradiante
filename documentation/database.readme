@@ -1,362 +1,302 @@
--- ============================================================
--- EXTENSIONES NECESARIAS
--- ============================================================
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "citext";
-
--- ============================================================
--- FUNCIONES AUXILIARES
--- ============================================================
-CREATE OR REPLACE FUNCTION trigger_set_updated_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- ============================================================
--- ROLES DE CLIENTES
--- ============================================================
-CREATE TABLE customer_roles (
-  id SERIAL PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL, -- 'admin', 'sat', 'instalador', 'guest'
-  description TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.backorders (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+variant_id uuid,
+client_id uuid,
+qty integer,
+requested_at timestamp with time zone DEFAULT now(),
+fulfilled_at timestamp with time zone,
+CONSTRAINT backorders_pkey PRIMARY KEY (id),
+CONSTRAINT backorders_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id),
+CONSTRAINT backorders_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
 );
-
--- ============================================================
--- CLIENTES (LIGADO A SUPABASE AUTH)
--- ============================================================
-CREATE TABLE clients (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  auth_uid UUID UNIQUE NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
-  role_id INT REFERENCES customer_roles(id) ON DELETE SET NULL,
-  first_name TEXT NOT NULL,
-  last_name TEXT NOT NULL,
-  phone TEXT,
-  email CITEXT UNIQUE NOT NULL,
-  nif_cif TEXT,
-  region TEXT,
-  city TEXT,
-  address_line1 TEXT,
-  address_line2 TEXT,
-  postal_code TEXT,
-  activity TEXT,
-  company_name TEXT,
-  company_position TEXT,
-  is_active BOOLEAN DEFAULT TRUE,
-  deleted_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now(),
-  last_login TIMESTAMPTZ
+CREATE TABLE public.cart_items (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+cart_id uuid,
+variant_id uuid,
+qty integer NOT NULL DEFAULT 1,
+price_at_addition_cents integer NOT NULL,
+added_at timestamp with time zone DEFAULT now(),
+CONSTRAINT cart_items_pkey PRIMARY KEY (id),
+CONSTRAINT cart_items_cart_id_fkey FOREIGN KEY (cart_id) REFERENCES public.carts(id),
+CONSTRAINT cart_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id)
 );
-
-CREATE INDEX idx_clients_email ON clients ((lower(email)));
-
-CREATE TRIGGER trg_clients_updated
-  BEFORE UPDATE ON clients
-  FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at();
-
--- ============================================================
--- CATEGORÍAS Y SUBCATEGORÍAS
--- ============================================================
-CREATE TABLE categories (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  parent_id UUID REFERENCES categories(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.cart_logs (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+cart_id uuid,
+action text,
+details jsonb,
+performed_by uuid,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT cart_logs_pkey PRIMARY KEY (id),
+CONSTRAINT cart_logs_cart_id_fkey FOREIGN KEY (cart_id) REFERENCES public.carts(id),
+CONSTRAINT cart_logs_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES public.clients(id)
 );
-
--- ============================================================
--- PRODUCTOS
--- ============================================================
-CREATE TABLE products (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug TEXT UNIQUE NOT NULL,
-  title TEXT NOT NULL,
-  short_description TEXT,
-  description TEXT,
-  is_new BOOLEAN DEFAULT FALSE,
-  is_on_sale BOOLEAN DEFAULT FALSE,
-  meta_title TEXT,
-  meta_description TEXT,
-  og_image TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.carts (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+client_id uuid,
+currency text DEFAULT 'EUR'::text,
+created_at timestamp with time zone DEFAULT now(),
+updated_at timestamp with time zone DEFAULT now(),
+CONSTRAINT carts_pkey PRIMARY KEY (id),
+CONSTRAINT carts_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
 );
-
-CREATE TABLE product_variants (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  sku TEXT,
-  title TEXT,
-  price_public_cents INT NOT NULL,
-  stock INT NOT NULL DEFAULT 0,
-  weight_grams INT,
-  dimensions JSONB,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.categories (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+name text NOT NULL,
+slug text NOT NULL UNIQUE,
+parent_id uuid,
+created_at timestamp with time zone DEFAULT now(),
+updated_at timestamp with time zone DEFAULT now(),
+CONSTRAINT categories_pkey PRIMARY KEY (id),
+CONSTRAINT categories_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.categories(id)
 );
-
-CREATE TABLE role_prices (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  variant_id UUID REFERENCES product_variants(id) ON DELETE CASCADE,
-  role_id INT REFERENCES customer_roles(id) ON DELETE CASCADE,
-  price_cents INT NOT NULL,
-  UNIQUE (variant_id, role_id)
+CREATE TABLE public.clients (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+auth_uid uuid NOT NULL UNIQUE,
+role_id integer,
+first_name text NOT NULL,
+last_name text NOT NULL,
+phone text,
+email USER-DEFINED NOT NULL UNIQUE,
+nif_cif text,
+region text,
+city text,
+address_line1 text,
+address_line2 text,
+postal_code text,
+activity text,
+company_name text,
+company_position text,
+is_active boolean DEFAULT true,
+deleted_at timestamp with time zone,
+created_at timestamp with time zone DEFAULT now(),
+updated_at timestamp with time zone DEFAULT now(),
+last_login timestamp with time zone,
+CONSTRAINT clients_pkey PRIMARY KEY (id),
+CONSTRAINT clients_auth_uid_fkey FOREIGN KEY (auth_uid) REFERENCES auth.users(id),
+CONSTRAINT clients_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.customer_roles(id)
 );
-
-CREATE TABLE product_categories (
-  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
-  PRIMARY KEY (product_id, category_id)
+CREATE TABLE public.coupon_redemptions (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+coupon_id uuid,
+client_id uuid,
+order_id uuid,
+redeemed_at timestamp with time zone DEFAULT now(),
+CONSTRAINT coupon_redemptions_pkey PRIMARY KEY (id),
+CONSTRAINT coupon_redemptions_coupon_id_fkey FOREIGN KEY (coupon_id) REFERENCES public.coupons(id),
+CONSTRAINT coupon_redemptions_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
+CONSTRAINT coupon_redemptions_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
 );
-
--- ============================================================
--- IMÁGENES
--- ============================================================
-CREATE TABLE product_images (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  url TEXT NOT NULL,
-  alt TEXT,
-  position INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.coupons (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+code text NOT NULL UNIQUE,
+description text,
+discount_type text CHECK (discount_type = ANY (ARRAY['percentage'::text, 'fixed'::text])),
+discount_value integer NOT NULL,
+applies_to text CHECK (applies_to = ANY (ARRAY['product'::text, 'category'::text, 'order'::text])),
+target_id uuid,
+usage_limit integer,
+used_count integer DEFAULT 0,
+valid_from timestamp with time zone,
+valid_to timestamp with time zone,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT coupons_pkey PRIMARY KEY (id)
 );
-
-CREATE TABLE variant_images (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  variant_id UUID REFERENCES product_variants(id) ON DELETE CASCADE,
-  url TEXT NOT NULL,
-  alt TEXT,
-  position INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.customer_roles (
+id integer NOT NULL DEFAULT nextval('customer_roles_id_seq'::regclass),
+name text NOT NULL UNIQUE,
+description text,
+created_at timestamp with time zone DEFAULT now(),
+updated_at timestamp with time zone DEFAULT now(),
+CONSTRAINT customer_roles_pkey PRIMARY KEY (id)
 );
-
--- ============================================================
--- RECURSOS DE PRODUCTOS
--- ============================================================
-CREATE TABLE product_resources (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  type TEXT CHECK (type IN ('manual','pdf','video','file')),
-  url TEXT NOT NULL,
-  label TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.invoice_counters (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+prefix text DEFAULT ''::text,
+suffix text DEFAULT ''::text,
+next_number integer DEFAULT 1,
+CONSTRAINT invoice_counters_pkey PRIMARY KEY (id)
 );
-
--- ============================================================
--- CARRITOS
--- ============================================================
-CREATE TABLE carts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
-  currency TEXT DEFAULT 'EUR',
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.invoices (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+client_id uuid,
+order_id uuid,
+invoice_number integer NOT NULL,
+prefix text DEFAULT ''::text,
+suffix text DEFAULT ''::text,
+total_cents integer NOT NULL,
+currency text DEFAULT 'EUR'::text,
+created_at timestamp with time zone DEFAULT now(),
+due_date timestamp with time zone,
+status text DEFAULT 'pending'::text,
+CONSTRAINT invoices_pkey PRIMARY KEY (id),
+CONSTRAINT invoices_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
+CONSTRAINT invoices_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id)
 );
-
-CREATE TABLE cart_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  cart_id UUID REFERENCES carts(id) ON DELETE CASCADE,
-  variant_id UUID REFERENCES product_variants(id),
-  qty INT NOT NULL DEFAULT 1,
-  price_at_addition_cents INT NOT NULL,
-  added_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.notifications (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+client_id uuid,
+type text,
+content text,
+read boolean DEFAULT false,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT notifications_pkey PRIMARY KEY (id),
+CONSTRAINT notifications_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
 );
-
--- ============================================================
--- PEDIDOS
--- ============================================================
-CREATE TABLE orders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
-  status TEXT DEFAULT 'pending',
-  total_cents INT,
-  shipping_address JSONB,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.order_items (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+order_id uuid,
+variant_id uuid,
+qty integer NOT NULL,
+price_cents integer NOT NULL,
+CONSTRAINT order_items_pkey PRIMARY KEY (id),
+CONSTRAINT order_items_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
+CONSTRAINT order_items_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id)
 );
-
-CREATE TABLE order_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
-  variant_id UUID REFERENCES product_variants(id),
-  qty INT NOT NULL,
-  price_cents INT NOT NULL
+CREATE TABLE public.order_logs (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+order_id uuid,
+action text,
+details jsonb,
+performed_by uuid,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT order_logs_pkey PRIMARY KEY (id),
+CONSTRAINT order_logs_order_id_fkey FOREIGN KEY (order_id) REFERENCES public.orders(id),
+CONSTRAINT order_logs_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES public.clients(id)
 );
-
--- ============================================================
--- REVIEWS
--- ============================================================
-CREATE TABLE product_reviews (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
-  rating INT CHECK (rating >= 1 AND rating <= 5),
-  comment TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.orders (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+client_id uuid,
+status text DEFAULT 'pending'::text,
+total_cents integer,
+shipping_address jsonb,
+created_at timestamp with time zone DEFAULT now(),
+updated_at timestamp with time zone DEFAULT now(),
+CONSTRAINT orders_pkey PRIMARY KEY (id),
+CONSTRAINT orders_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
 );
-
--- ============================================================
--- LOGS
--- ============================================================
-CREATE TABLE product_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  product_id UUID REFERENCES products(id) ON DELETE CASCADE,
-  action TEXT,
-  changes JSONB,
-  performed_by UUID REFERENCES clients(id),
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.payment_methods (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+name text NOT NULL,
+provider text,
+active boolean DEFAULT true,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT payment_methods_pkey PRIMARY KEY (id)
 );
-
-CREATE TABLE cart_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  cart_id UUID REFERENCES carts(id) ON DELETE CASCADE,
-  action TEXT,
-  details JSONB,
-  performed_by UUID REFERENCES clients(id),
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.product_categories (
+product_id uuid NOT NULL,
+category_id uuid NOT NULL,
+CONSTRAINT product_categories_pkey PRIMARY KEY (product_id, category_id),
+CONSTRAINT product_categories_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
+CONSTRAINT product_categories_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)
 );
-
-CREATE TABLE order_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
-  action TEXT,
-  details JSONB,
-  performed_by UUID REFERENCES clients(id),
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.product_images (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+product_id uuid,
+url text NOT NULL,
+alt text,
+position integer DEFAULT 0,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT product_images_pkey PRIMARY KEY (id),
+CONSTRAINT product_images_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
 );
-
--- ============================================================
--- CUPONES / PROMOCIONES
--- ============================================================
-CREATE TABLE coupons (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL,
-  description TEXT,
-  discount_type TEXT CHECK (discount_type IN ('percentage','fixed')),
-  discount_value INT NOT NULL,
-  applies_to TEXT CHECK (applies_to IN ('product','category','order')),
-  target_id UUID,
-  usage_limit INT,
-  used_count INT DEFAULT 0,
-  valid_from TIMESTAMPTZ,
-  valid_to TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.product_logs (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+product_id uuid,
+action text,
+changes jsonb,
+performed_by uuid,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT product_logs_pkey PRIMARY KEY (id),
+CONSTRAINT product_logs_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
+CONSTRAINT product_logs_performed_by_fkey FOREIGN KEY (performed_by) REFERENCES public.clients(id)
 );
-
-CREATE TABLE coupon_redemptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  coupon_id UUID REFERENCES coupons(id),
-  client_id UUID REFERENCES clients(id),
-  order_id UUID REFERENCES orders(id),
-  redeemed_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.product_resources (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+product_id uuid,
+type text CHECK (type = ANY (ARRAY['manual'::text, 'pdf'::text, 'video'::text, 'file'::text])),
+url text NOT NULL,
+label text,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT product_resources_pkey PRIMARY KEY (id),
+CONSTRAINT product_resources_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
 );
-
--- ============================================================
--- INVENTARIO
--- ============================================================
-CREATE TABLE stock_history (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  variant_id UUID REFERENCES product_variants(id),
-  change_qty INT,
-  reason TEXT,
-  previous_stock INT,
-  new_stock INT,
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.product_reviews (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+product_id uuid,
+client_id uuid,
+rating integer CHECK (rating >= 1 AND rating <= 5),
+comment text,
+created_at timestamp with time zone DEFAULT now(),
+updated_at timestamp with time zone DEFAULT now(),
+CONSTRAINT product_reviews_pkey PRIMARY KEY (id),
+CONSTRAINT product_reviews_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id),
+CONSTRAINT product_reviews_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
 );
-
-CREATE TABLE backorders (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  variant_id UUID REFERENCES product_variants(id),
-  client_id UUID REFERENCES clients(id),
-  qty INT,
-  requested_at TIMESTAMPTZ DEFAULT now(),
-  fulfilled_at TIMESTAMPTZ
+CREATE TABLE public.product_variants (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+product_id uuid,
+sku text,
+title text,
+price_public_cents integer NOT NULL,
+stock integer NOT NULL DEFAULT 0,
+weight_grams integer,
+dimensions jsonb,
+created_at timestamp with time zone DEFAULT now(),
+updated_at timestamp with time zone DEFAULT now(),
+CONSTRAINT product_variants_pkey PRIMARY KEY (id),
+CONSTRAINT product_variants_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id)
 );
-
--- ============================================================
--- ENVÍOS Y PAGOS
--- ============================================================
-CREATE TABLE shipping_methods (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  price_cents INT NOT NULL,
-  estimated_days INT,
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.products (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+slug text NOT NULL UNIQUE,
+title text NOT NULL,
+short_description text,
+description text,
+is_new boolean DEFAULT false,
+is_on_sale boolean DEFAULT false,
+meta_title text,
+meta_description text,
+og_image text,
+created_at timestamp with time zone DEFAULT now(),
+updated_at timestamp with time zone DEFAULT now(),
+CONSTRAINT products_pkey PRIMARY KEY (id)
 );
-
-CREATE TABLE payment_methods (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  provider TEXT,
-  active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.role_prices (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+variant_id uuid,
+role_id integer,
+price_cents integer NOT NULL,
+CONSTRAINT role_prices_pkey PRIMARY KEY (id),
+CONSTRAINT role_prices_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id),
+CONSTRAINT role_prices_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.customer_roles(id)
 );
-
--- ============================================================
--- NOTIFICACIONES
--- ============================================================
-CREATE TABLE notifications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID REFERENCES clients(id),
-  type TEXT,
-  content TEXT,
-  read BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE public.shipping_methods (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+name text NOT NULL,
+price_cents integer NOT NULL,
+estimated_days integer,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT shipping_methods_pkey PRIMARY KEY (id)
 );
-
--- ============================================================
--- FACTURAS
--- ============================================================
-CREATE TABLE invoices (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  client_id UUID REFERENCES clients(id),
-  order_id UUID REFERENCES orders(id),
-  invoice_number INT NOT NULL,
-  prefix TEXT DEFAULT '',
-  suffix TEXT DEFAULT '',
-  total_cents INT NOT NULL,
-  currency TEXT DEFAULT 'EUR',
-  created_at TIMESTAMPTZ DEFAULT now(),
-  due_date TIMESTAMPTZ,
-  status TEXT DEFAULT 'pending',
-  UNIQUE (prefix, invoice_number, suffix)
+CREATE TABLE public.stock_history (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+variant_id uuid,
+change_qty integer,
+reason text,
+previous_stock integer,
+new_stock integer,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT stock_history_pkey PRIMARY KEY (id),
+CONSTRAINT stock_history_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id)
 );
-
-CREATE TABLE invoice_counters (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  prefix TEXT DEFAULT '',
-  suffix TEXT DEFAULT '',
-  next_number INT DEFAULT 1,
-  UNIQUE (prefix, suffix)
+CREATE TABLE public.variant_images (
+id uuid NOT NULL DEFAULT gen_random_uuid(),
+variant_id uuid,
+url text NOT NULL,
+alt text,
+position integer DEFAULT 0,
+created_at timestamp with time zone DEFAULT now(),
+CONSTRAINT variant_images_pkey PRIMARY KEY (id),
+CONSTRAINT variant_images_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.product_variants(id)
 );
-
--- ============================================================
--- TRIGGER: CREAR CLIENTE TRAS SIGNUP EN SUPABASE AUTH
--- ============================================================
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO clients (auth_uid, email, first_name, last_name)
-  VALUES (
-    NEW.id,
-    NEW.email,
-    split_part(COALESCE(NEW.raw_user_meta_data->>'full_name',''),' ',1),
-    split_part(COALESCE(NEW.raw_user_meta_data->>'full_name',''),' ',2)
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-AFTER INSERT ON auth.users
-FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();

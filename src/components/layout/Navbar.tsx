@@ -58,17 +58,21 @@ export default function Navbar() {
             
             {user ? (
               <>
-                {/* Información del usuario */}
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-700">
-                    Hola, {user.email}
-                  </span>
+                {/* Botón del Panel de Cliente */}
+                <Link
+                  href="/dashboard"
+                  className="flex items-center space-x-2 bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span>Mi Panel</span>
                   {user.client?.customer_role && (
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                    <span className="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded-full">
                       {user.client.customer_role.name}
                     </span>
                   )}
-                </div>
+                </Link>
 
                 {/* Botón de cerrar sesión */}
                 <button

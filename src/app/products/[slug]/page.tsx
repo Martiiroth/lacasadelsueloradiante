@@ -12,12 +12,15 @@ import Reviews from '../../../components/products/Reviews'
 import ResourcesList from '../../../components/products/ResourcesList'
 import { TestDataService } from '../../../lib/test-data'
 import { VariantImageService } from '../../../lib/variantImageService'
+import { useHydration } from '../../../hooks/useHydration'
+import { LoadingState } from '../../../components/ui/LoadingState'
 
 export default function ProductPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
   const slug = params?.slug as string
+  const isHydrated = useHydration()
 
   const [product, setProduct] = useState<ProductWithVariants | null>(null)
   const [selectedVariantId, setSelectedVariantId] = useState<string>('')
@@ -26,12 +29,18 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1)
   const [variantImages, setVariantImages] = useState<VariantImage[]>([])
   const [loadingVariantImages, setLoadingVariantImages] = useState(false)
+  const [retryTrigger, setRetryTrigger] = useState(0)
+
+  // Función para reintentar carga
+  const retryLoad = () => {
+    setRetryTrigger(prev => prev + 1)
+  }
 
   // Cargar producto
   useEffect(() => {
-    if (!slug) return
+    if (!slug || !isHydrated) return
 
-    const loadProduct = async () => {
+    const loadProduct = async (retryCount = 0) => {
       setLoading(true)
       setError(null)
       
@@ -60,15 +69,19 @@ export default function ProductPage() {
           console.log('🔧 Selected variant:', firstAvailable.title || firstAvailable.sku)
         }
       } catch (err) {
-        setError('Error al cargar el producto')
         console.error('❌ Error loading product:', err)
+        if (retryCount < 3) {
+          setTimeout(() => loadProduct(retryCount + 1), 1000 * Math.pow(2, retryCount))
+        } else {
+          setError('Error al cargar el producto')
+        }
       } finally {
         setLoading(false)
       }
     }
 
     loadProduct()
-  }, [slug, user?.client?.customer_role?.name])
+  }, [slug, user?.client?.customer_role?.name, isHydrated, retryTrigger])
 
   // Cargar imágenes de la variante seleccionada
   useEffect(() => {

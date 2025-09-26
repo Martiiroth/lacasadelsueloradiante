@@ -11,6 +11,8 @@ import {
 import { useAuth } from '../../contexts/AuthContext'
 import { ClientService } from '../../lib/clientService'
 import type { ClientOrder, OrderFilters, OrderStatus } from '../../types/client'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState } from '../ui/LoadingState'
 
 interface OrdersListProps {
   showFilters?: boolean
@@ -28,11 +30,13 @@ const ORDER_STATUSES: { value: OrderStatus; label: string }[] = [
 
 export default function OrdersList({ showFilters = true, limit }: OrdersListProps) {
   const { user } = useAuth()
+  const isHydrated = useHydration()
   const [orders, setOrders] = useState<ClientOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalOrders, setTotalOrders] = useState(0)
   const [showFilterPanel, setShowFilterPanel] = useState(false)
+  const [retryTrigger, setRetryTrigger] = useState(0)
   
   const ordersPerPage = limit || 10
   
@@ -74,9 +78,14 @@ export default function OrdersList({ showFilters = true, limit }: OrdersListProp
     }
   }
 
+  const retryLoad = () => {
+    setRetryTrigger(prev => prev + 1)
+  }
+
   useEffect(() => {
+    if (!isHydrated) return
     loadOrders(currentPage)
-  }, [user?.client?.id, filters, currentPage])
+  }, [user?.client?.id, filters, currentPage, isHydrated, retryTrigger])
 
   const handleFilterChange = (newFilters: Partial<OrderFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }))

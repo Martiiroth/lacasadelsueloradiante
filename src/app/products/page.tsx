@@ -6,6 +6,8 @@ import type { ProductCardData, Category } from '../../types/products'
 import { ProductService } from '../../lib/products'
 import ProductCard from '../../components/products/ProductCard'
 import Pagination from '../../components/ui/Pagination'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState, ProductSkeleton } from '../../components/ui/LoadingState'
 
 // Componente auxiliar para mostrar categorías de forma hierárquica
 interface CategoryFilterListProps {
@@ -77,10 +79,12 @@ function FilterBadge({ label, onRemove }: FilterBadgeProps) {
 
 export default function ProductsPage() {
   const searchParams = useSearchParams()
+  const isHydrated = useHydration()
   const [products, setProducts] = useState<ProductCardData[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [retryTrigger, setRetryTrigger] = useState(0)
   
   // Estados para filtros
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
@@ -100,22 +104,34 @@ export default function ProductsPage() {
   const [totalProducts, setTotalProducts] = useState(0)
   const itemsPerPage = 12
 
+  // Función para reintentar carga
+  const retryLoad = () => {
+    setRetryTrigger(prev => prev + 1)
+  }
+
   // Cargar categorías
   useEffect(() => {
-    const loadCategories = async () => {
+    if (!isHydrated) return
+
+    const loadCategories = async (retryCount = 0) => {
       try {
         const categoriesData = await ProductService.getCategories()
         setCategories(categoriesData)
       } catch (err) {
         console.error('Error loading categories:', err)
+        if (retryCount < 3) {
+          setTimeout(() => loadCategories(retryCount + 1), 1000 * Math.pow(2, retryCount))
+        }
       }
     }
     loadCategories()
-  }, [])
+  }, [isHydrated, retryTrigger])
 
   // Cargar productos con filtros
   useEffect(() => {
-    const loadProducts = async () => {
+    if (!isHydrated) return
+
+    const loadProducts = async (retryCount = 0) => {
       setLoading(true)
       setError(null)
       
@@ -161,15 +177,19 @@ export default function ProductsPage() {
           setError('No se pudieron cargar los productos')
         }
       } catch (err) {
-        setError('Error al cargar los productos')
         console.error('❌ [ProductsPage] Error loading products:', err)
+        if (retryCount < 3) {
+          setTimeout(() => loadProducts(retryCount + 1), 1000 * Math.pow(2, retryCount))
+        } else {
+          setError('Error al cargar los productos')
+        }
       } finally {
         setLoading(false)
       }
     }
 
     loadProducts()
-  }, [searchTerm, selectedCategory, minPrice, maxPrice, sortBy, sortOrder, currentPage])
+  }, [isHydrated, searchTerm, selectedCategory, minPrice, maxPrice, sortBy, sortOrder, currentPage, retryTrigger])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -412,55 +432,59 @@ export default function ProductsPage() {
 
             {/* Contenido de productos */}
             {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <div className="text-red-600 mb-4">{error}</div>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Intentar de nuevo
-            </button>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-500 mb-4">
-              {hasActiveFilters 
-                ? 'No se encontraron productos con los filtros aplicados'
-                : 'No hay productos disponibles'
-              }
-            </div>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              <LoadingState
+                fallback={<ProductSkeleton count={12} />}
               >
-                Ver todos los productos
-              </button>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* Grid de productos */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+                <div></div>
+              </LoadingState>
+            ) : error ? (
+              <div className="text-center py-12">
+                <div className="text-red-600 mb-4">{error}</div>
+                <button
+                  onClick={retryLoad}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Intentar de nuevo
+                </button>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="text-gray-500 mb-4">
+                  {hasActiveFilters 
+                    ? 'No se encontraron productos con los filtros aplicados'
+                    : 'No hay productos disponibles'
+                  }
+                </div>
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    Ver todos los productos
+                  </button>
+                )}
+              </div>
+            ) : (
+              <LoadingState>
+                <>
+                  {/* Grid de productos */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                    {products.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
 
-            {/* Paginación */}
-            {totalPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
+                  {/* Paginación */}
+                  {totalPages > 1 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  )}
+                </>
+              </LoadingState>
             )}
-          </>
-        )}
           </div>
         </div>
       </div>

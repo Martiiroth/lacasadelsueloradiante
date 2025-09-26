@@ -1,0 +1,415 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { AdminOrder, AdminFilters } from '@/types/admin'
+import { AdminService } from '@/lib/adminService'
+import AdminLayout from '@/components/admin/AdminLayout'
+import {
+  ShoppingBagIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  EyeIcon,
+  PencilIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  TruckIcon,
+  XCircleIcon,
+  PlusIcon,
+  TrashIcon
+} from '@heroicons/react/24/outline'
+
+export default function AdminOrders() {
+  const router = useRouter()
+  const [orders, setOrders] = useState<AdminOrder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filters, setFilters] = useState<AdminFilters>({})
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState<string>('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+
+  useEffect(() => {
+    loadOrders()
+  }, [filters])
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true)
+      const data = await AdminService.getAllOrders(filters)
+      setOrders(data)
+    } catch (err) {
+      console.error('Error loading orders:', err)
+      setError('Error al cargar los pedidos')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setFilters({
+      ...filters,
+      order_client_search: searchTerm || undefined
+    })
+  }
+
+  const handleFilterChange = () => {
+    setFilters({
+      ...filters,
+      order_status: selectedStatus ? [selectedStatus as any] : undefined,
+      order_date_from: dateFrom || undefined,
+      order_date_to: dateTo || undefined
+    })
+  }
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const success = await AdminService.updateOrderStatus(orderId, {
+        status: newStatus as any
+      })
+      
+      if (success) {
+        // Recargar pedidos
+        loadOrders()
+      } else {
+        alert('Error al actualizar el estado del pedido')
+      }
+    } catch (err) {
+      console.error('Error updating order status:', err)
+      alert('Error al actualizar el estado del pedido')
+    }
+  }
+
+  const deleteOrder = async (orderId: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar este pedido? Esta acción no se puede deshacer.')) {
+      return
+    }
+
+    try {
+      const success = await AdminService.deleteOrder(orderId)
+      
+      if (success) {
+        // Recargar pedidos
+        loadOrders()
+        alert('Pedido eliminado correctamente')
+      } else {
+        alert('Error al eliminar el pedido')
+      }
+    } catch (err) {
+      console.error('Error deleting order:', err)
+      alert('Error al eliminar el pedido')
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <ClockIcon className="h-4 w-4" />
+      case 'confirmed':
+        return <CheckCircleIcon className="h-4 w-4" />
+      case 'processing':
+        return <ClockIcon className="h-4 w-4" />
+      case 'shipped':
+        return <TruckIcon className="h-4 w-4" />
+      case 'delivered':
+        return <CheckCircleIcon className="h-4 w-4" />
+      case 'cancelled':
+        return <XCircleIcon className="h-4 w-4" />
+      default:
+        return <ClockIcon className="h-4 w-4" />
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      'pending': 'Pendiente',
+      'confirmed': 'Confirmado',
+      'processing': 'Procesando',
+      'shipped': 'Enviado',
+      'delivered': 'Entregado',
+      'cancelled': 'Cancelado'
+    }
+    return labels[status] || status
+  }
+
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'confirmed': 'bg-blue-100 text-blue-800',
+      'processing': 'bg-purple-100 text-purple-800',
+      'shipped': 'bg-indigo-100 text-indigo-800',
+      'delivered': 'bg-green-100 text-green-800',
+      'cancelled': 'bg-red-100 text-red-800'
+    }
+    return colors[status] || 'bg-gray-100 text-gray-800'
+  }
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="bg-red-50 border border-red-200 rounded-md p-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <XCircleIcon className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  return (
+    <AdminLayout>
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+                <ShoppingBagIcon className="h-8 w-8 mr-3 text-indigo-600" />
+                Gestión de Pedidos
+              </h1>
+              <p className="mt-2 text-gray-600">Administra todos los pedidos de la plataforma</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-sm text-gray-500">
+                Total: {orders.length} pedidos
+              </div>
+              <button
+                onClick={() => router.push('/admin/orders/create')}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Nuevo Pedido
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-white shadow rounded-lg mb-6">
+          <div className="px-6 py-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+              {/* Search */}
+              <form onSubmit={handleSearch} className="lg:col-span-2">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Buscar por cliente..."
+                  />
+                </div>
+              </form>
+
+              {/* Status Filter */}
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">Todos los estados</option>
+                <option value="pending">Pendiente</option>
+                <option value="confirmed">Confirmado</option>
+                <option value="processing">Procesando</option>
+                <option value="shipped">Enviado</option>
+                <option value="delivered">Entregado</option>
+                <option value="cancelled">Cancelado</option>
+              </select>
+
+              {/* Date From */}
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+
+              {/* Date To */}
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+
+              {/* Apply Filters Button */}
+              <div className="lg:col-span-5">
+                <button
+                  type="button"
+                  onClick={handleFilterChange}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <FunnelIcon className="h-4 w-4 mr-2" />
+                  Aplicar Filtros
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Orders Table */}
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Pedido
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Cliente
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Estado
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Fecha
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {orders.map((order) => (
+                  <tr key={order.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <ShoppingBagIcon className="h-8 w-8 text-gray-400 mr-3" />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            #{order.id.slice(-8)}
+                          </div>
+                          {order.invoice && (
+                            <div className="text-sm text-gray-500">
+                              Factura: {order.invoice.prefix}{order.invoice.invoice_number}{order.invoice.suffix}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.client ? (
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {order.client.first_name} {order.client.last_name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {order.client.email}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">Cliente no encontrado</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <select
+                          value={order.status}
+                          onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border-0 bg-transparent cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getStatusColor(order.status)}`}
+                        >
+                          <option value="pending">Pendiente</option>
+                          <option value="confirmed">Confirmado</option>
+                          <option value="processing">Procesando</option>
+                          <option value="shipped">Enviado</option>
+                          <option value="delivered">Entregado</option>
+                          <option value="cancelled">Cancelado</option>
+                        </select>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        €{(order.total_cents / 100).toFixed(2)}
+                      </div>
+                      {order.order_items && (
+                        <div className="text-sm text-gray-500">
+                          {order.order_items.length} artículos
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div>
+                        {new Date(order.created_at).toLocaleDateString('es-ES')}
+                      </div>
+                      <div className="text-xs">
+                        {new Date(order.created_at).toLocaleTimeString('es-ES', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => router.push(`/admin/orders/${order.id}`)}
+                          className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                          title="Ver detalles"
+                        >
+                          <EyeIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => router.push(`/admin/orders/${order.id}/edit`)}
+                          className="text-gray-600 hover:text-gray-900 flex items-center"
+                          title="Editar"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteOrder(order.id)}
+                          className="text-red-600 hover:text-red-900 flex items-center"
+                          title="Eliminar"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {orders.length === 0 && (
+            <div className="text-center py-12">
+              <ShoppingBagIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay pedidos</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm || selectedStatus || dateFrom || dateTo
+                  ? 'No se encontraron pedidos que coincidan con los filtros aplicados.'
+                  : 'Aún no hay pedidos registrados en la plataforma.'
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </AdminLayout>
+  )
+}

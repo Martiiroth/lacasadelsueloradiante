@@ -154,7 +154,8 @@ export interface ProductCardData {
 }
 
 export interface ProductFilters {
-  categories?: string[]
+  category?: string // Filtro por una categoría específica
+  categories?: string[] // Filtro por múltiples categorías
   min_price?: number
   max_price?: number
   in_stock_only?: boolean

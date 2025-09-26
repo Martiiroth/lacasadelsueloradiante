@@ -24,6 +24,29 @@ yarn-error.log*
 
 # Local env files
 .env*.local
+.env.production
+.env.development
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary folders
+.tmp
+.temp
 
 # Vercel
 .vercel
@@ -31,3 +54,12 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Backup files
+*.bak
+*.orig
+
+# SSL certificates (para producción)
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt

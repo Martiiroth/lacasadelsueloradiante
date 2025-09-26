@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import type { ProductImage, VariantImage } from '../../types/products'
 
@@ -15,13 +15,23 @@ export default function ImageGallery({
   variantImages = [], 
   productTitle 
 }: ImageGalleryProps) {
-  const allImages = [
-    ...productImages.map(img => ({ ...img, type: 'product' as const })),
-    ...variantImages.map(img => ({ ...img, type: 'variant' as const }))
-  ].sort((a, b) => a.position - b.position)
+  // Si hay imágenes de variante, usar solo esas. Si no, usar las del producto
+  const imagesToShow = variantImages.length > 0 ? variantImages : productImages
+  const allImages = imagesToShow
+    .map(img => ({ 
+      ...img, 
+      type: variantImages.length > 0 ? 'variant' as const : 'product' as const 
+    }))
+    .sort((a, b) => a.position - b.position)
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isZoomed, setIsZoomed] = useState(false)
+
+  // Reset selected image when variant images change
+  useEffect(() => {
+    setSelectedImageIndex(0)
+    setIsZoomed(false)
+  }, [variantImages.length]) // Solo cuando cambia el número de imágenes de variante
 
   if (allImages.length === 0) {
     return (

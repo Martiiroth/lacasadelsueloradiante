@@ -1,0 +1,52 @@
+# Ignorar archivos innecesarios para Docker
+.next
+node_modules
+npm-debug.log*
+.npm
+.env*.local
+.env.production
+.env.development
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Temporary folders
+tmp
+temp
+
+# Build artifacts
+dist
+build
+
+# Documentation
+README.md
+docs/
+
+# Scripts de desarrollo
+scripts/
+*.sh
+
+# Archivos de backup
+*.bak
+*.orig
+
+# Coverage reports
+coverage/

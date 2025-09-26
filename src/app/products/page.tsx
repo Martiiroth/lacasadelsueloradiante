@@ -7,6 +7,74 @@ import { ProductService } from '../../lib/products'
 import ProductCard from '../../components/products/ProductCard'
 import Pagination from '../../components/ui/Pagination'
 
+// Componente auxiliar para mostrar categorías de forma hierárquica
+interface CategoryFilterListProps {
+  categories: Category[]
+  selectedCategory: string
+  onSelectCategory: (categoryId: string) => void
+}
+
+function CategoryFilterList({ categories, selectedCategory, onSelectCategory }: CategoryFilterListProps) {
+  const parentCategories = categories.filter(cat => !cat.parent_id)
+  const childCategories = categories.filter(cat => cat.parent_id)
+
+  const renderCategory = (category: Category, level: number = 0) => {
+    const children = childCategories.filter(child => child.parent_id === category.id)
+    const isSelected = selectedCategory === category.id
+    const hasChildren = children.length > 0
+
+    return (
+      <div key={category.id} className={`${level > 0 ? 'ml-4' : ''}`}>
+        <button
+          type="button"
+          onClick={() => onSelectCategory(category.id)}
+          className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+            isSelected
+              ? 'bg-blue-50 text-blue-700 border border-blue-200'
+              : 'text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          <span className="flex items-center">
+            {category.name}
+          </span>
+        </button>
+        {hasChildren && (
+          <div className="mt-1">
+            {children.map(child => renderCategory(child, level + 1))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-1">
+      {parentCategories.map(category => renderCategory(category))}
+    </div>
+  )
+}
+
+// Componente auxiliar para mostrar badges de filtros activos
+interface FilterBadgeProps {
+  label: string
+  onRemove: () => void
+}
+
+function FilterBadge({ label, onRemove }: FilterBadgeProps) {
+  return (
+    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+      {label}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="ml-2 inline-flex items-center justify-center w-4 h-4 rounded-full text-blue-400 hover:bg-blue-200 hover:text-blue-600"
+      >
+        ×
+      </button>
+    </span>
+  )
+}
+
 export default function ProductsPage() {
   const searchParams = useSearchParams()
   const [products, setProducts] = useState<ProductCardData[]>([])
@@ -133,135 +201,217 @@ export default function ProductsPage() {
           </p>
         </div>
 
-        {/* Filtros */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-          <form onSubmit={handleSearchSubmit} className="space-y-4">
-            {/* Búsqueda */}
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
-                  Buscar productos
-                </label>
-                <input
-                  id="search"
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por nombre, marca, código..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="flex items-end">
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-                >
-                  Buscar
-                </button>
-              </div>
+        {/* Layout con sidebar de filtros */}
+        <div className="flex gap-8">
+          {/* Sidebar de filtros */}
+          <div className="w-80 flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                Filtros de búsqueda
+              </h3>
+
+              <form onSubmit={handleSearchSubmit} className="space-y-6">
+                {/* Búsqueda por texto */}
+                <div>
+                  <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+                    Buscar productos
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="search"
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Buscar por nombre, marca, código..."
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    Buscar
+                  </button>
+                </div>
+
+                {/* Filtro por categorías con jerarquía */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Categorías
+                  </h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory('')
+                        setCurrentPage(1)
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        selectedCategory === ''
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      Todas las categorías
+                    </button>
+                    
+                    <CategoryFilterList
+                      categories={categories}
+                      selectedCategory={selectedCategory}
+                      onSelectCategory={(categoryId) => {
+                        setSelectedCategory(categoryId)
+                        setCurrentPage(1)
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Filtro de precios */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Rango de precios
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="minPrice" className="block text-xs text-gray-500 mb-1">
+                        Precio mínimo
+                      </label>
+                      <input
+                        id="minPrice"
+                        type="number"
+                        value={minPrice}
+                        onChange={(e) => {
+                          setMinPrice(e.target.value)
+                          setCurrentPage(1)
+                        }}
+                        placeholder="€ 0"
+                        min="0"
+                        step="0.01"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="maxPrice" className="block text-xs text-gray-500 mb-1">
+                        Precio máximo
+                      </label>
+                      <input
+                        id="maxPrice"
+                        type="number"
+                        value={maxPrice}
+                        onChange={(e) => {
+                          setMaxPrice(e.target.value)
+                          setCurrentPage(1)
+                        }}
+                        placeholder="€ 9999"
+                        min="0"
+                        step="0.01"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ordenamiento */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Ordenar por
+                  </h4>
+                  <select
+                    value={`${sortBy}-${sortOrder}`}
+                    onChange={(e) => {
+                      const [field, order] = e.target.value.split('-')
+                      setSortBy(field)
+                      setSortOrder(order as 'asc' | 'desc')
+                      setCurrentPage(1)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  >
+                    <option value="name-asc">Nombre A-Z</option>
+                    <option value="name-desc">Nombre Z-A</option>
+                    <option value="price-asc">Precio menor</option>
+                    <option value="price-desc">Precio mayor</option>
+                    <option value="created_at-desc">Más recientes</option>
+                    <option value="created_at-asc">Más antiguos</option>
+                  </select>
+                </div>
+
+                {/* Filtros activos y limpiar */}
+                {hasActiveFilters && (
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Filtros activos
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Limpiar todo
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {searchTerm && (
+                        <FilterBadge
+                          label={`"${searchTerm}"`}
+                          onRemove={() => setSearchTerm('')}
+                        />
+                      )}
+                      {selectedCategory && (
+                        <FilterBadge
+                          label={categories.find(c => c.id === selectedCategory)?.name || 'Categoría'}
+                          onRemove={() => setSelectedCategory('')}
+                        />
+                      )}
+                      {minPrice && (
+                        <FilterBadge
+                          label={`Min: €${minPrice}`}
+                          onRemove={() => setMinPrice('')}
+                        />
+                      )}
+                      {maxPrice && (
+                        <FilterBadge
+                          label={`Max: €${maxPrice}`}
+                          onRemove={() => setMaxPrice('')}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </form>
             </div>
+          </div>
 
-            {/* Filtros adicionales */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {/* Categoría */}
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                  Categoría
-                </label>
-                <select
-                  id="category"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Todas las categorías</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Precio mínimo */}
-              <div>
-                <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">
-                  Precio mínimo
-                </label>
-                <input
-                  id="minPrice"
-                  type="number"
-                  value={minPrice}
-                  onChange={(e) => setMinPrice(e.target.value)}
-                  placeholder="€ Min"
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Precio máximo */}
-              <div>
-                <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-1">
-                  Precio máximo
-                </label>
-                <input
-                  id="maxPrice"
-                  type="number"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  placeholder="€ Max"
-                  min="0"
-                  step="0.01"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Ordenar por */}
-              <div>
-                <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-1">
-                  Ordenar por
-                </label>
-                <select
-                  id="sort"
-                  value={`${sortBy}-${sortOrder}`}
-                  onChange={(e) => {
-                    const [field, order] = e.target.value.split('-')
-                    setSortBy(field)
-                    setSortOrder(order as 'asc' | 'desc')
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="name-asc">Nombre (A-Z)</option>
-                  <option value="name-desc">Nombre (Z-A)</option>
-                  <option value="price-asc">Precio (menor a mayor)</option>
-                  <option value="price-desc">Precio (mayor a menor)</option>
-                  <option value="created_at-desc">Más recientes</option>
-                  <option value="created_at-asc">Más antiguos</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Limpiar filtros */}
-            {hasActiveFilters && (
-              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                <span className="text-sm text-gray-600">
-                  {totalProducts} producto{totalProducts !== 1 ? 's' : ''} encontrado{totalProducts !== 1 ? 's' : ''}
-                </span>
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                >
-                  Limpiar filtros
-                </button>
+          {/* Contenido principal */}
+          <div className="flex-1">
+            {/* Encabezado de resultados */}
+            {!loading && (
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900">
+                    {totalProducts} producto{totalProducts !== 1 ? 's' : ''} encontrado{totalProducts !== 1 ? 's' : ''}
+                  </h2>
+                  {hasActiveFilters && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Resultados filtrados
+                    </p>
+                  )}
+                </div>
+                {totalPages > 1 && (
+                  <div className="text-sm text-gray-500">
+                    Página {currentPage} de {totalPages}
+                  </div>
+                )}
               </div>
             )}
-          </form>
-        </div>
 
-        {/* Contenido principal */}
-        {loading ? (
+            {/* Contenido de productos */}
+            {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
@@ -311,6 +461,8 @@ export default function ProductsPage() {
             )}
           </>
         )}
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import { AuthProvider } from '../contexts/AuthContext'
 import { CartProvider } from '../contexts/CartContext'
 import Navbar from '../components/layout/Navbar'
+import WhatsAppButton from '../components/ui/WhatsAppButton'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,6 +25,7 @@ export default function RootLayout({
           <CartProvider>
             <Navbar />
             {children}
+            <WhatsAppButton />
           </CartProvider>
         </AuthProvider>
       </body>

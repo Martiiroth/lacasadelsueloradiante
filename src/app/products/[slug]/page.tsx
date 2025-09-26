@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '../../../contexts/AuthContext'
-import type { ProductWithVariants } from '../../../types/products'
+import type { ProductWithVariants, VariantImage } from '../../../types/products'
 import { ProductService } from '../../../lib/products'
 import ImageGallery from '../../../components/products/ImageGallery'
 import VariantSelector from '../../../components/products/VariantSelector'
@@ -11,6 +11,7 @@ import AddToCartButton from '../../../components/products/AddToCartButton'
 import Reviews from '../../../components/products/Reviews'
 import ResourcesList from '../../../components/products/ResourcesList'
 import { TestDataService } from '../../../lib/test-data'
+import { VariantImageService } from '../../../lib/variantImageService'
 
 export default function ProductPage() {
   const params = useParams()
@@ -23,6 +24,8 @@ export default function ProductPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
+  const [variantImages, setVariantImages] = useState<VariantImage[]>([])
+  const [loadingVariantImages, setLoadingVariantImages] = useState(false)
 
   // Cargar producto
   useEffect(() => {
@@ -66,6 +69,37 @@ export default function ProductPage() {
 
     loadProduct()
   }, [slug, user?.client?.customer_role?.name])
+
+  // Cargar imágenes de la variante seleccionada
+  useEffect(() => {
+    const loadVariantImages = async () => {
+      if (!selectedVariantId) {
+        setVariantImages([])
+        return
+      }
+
+      setLoadingVariantImages(true)
+      try {
+        const images = await VariantImageService.getVariantImages(selectedVariantId)
+        const variantImages: VariantImage[] = images.map(img => ({
+          id: img.id || '',
+          variant_id: img.variant_id,
+          url: img.url,
+          alt: img.alt || '',
+          position: img.position,
+          created_at: new Date().toISOString() // Placeholder since we don't store created_at in VariantImageData
+        }))
+        setVariantImages(variantImages)
+      } catch (error) {
+        console.error('Error loading variant images:', error)
+        setVariantImages([])
+      } finally {
+        setLoadingVariantImages(false)
+      }
+    }
+
+    loadVariantImages()
+  }, [selectedVariantId])
 
   if (loading) {
     return (
@@ -164,7 +198,7 @@ export default function ProductPage() {
             {product.images && product.images.length > 0 ? (
               <ImageGallery 
                 productImages={product.images}
-                variantImages={selectedVariant?.images || []}
+                variantImages={variantImages}
                 productTitle={product.title}
               />
             ) : (

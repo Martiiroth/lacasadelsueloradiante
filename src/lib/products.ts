@@ -127,10 +127,29 @@ export class ProductService {
         query = query.ilike('title', `%${filters.search}%`)
       }
 
-      if (filters.categories && filters.categories.length > 0) {
-        console.log('🔍 Applying categories filter:', filters.categories)
-        // Necesitamos usar un join para filtrar por categorías
-        query = query.in('product_categories.category_id', filters.categories)
+      // Filtro por categoría (individual o múltiple)
+      const categoriesToFilter = filters.category ? [filters.category] : filters.categories
+      if (categoriesToFilter && categoriesToFilter.length > 0) {
+        console.log('🔍 Applying category filter:', categoriesToFilter)
+        // Usamos una subconsulta para filtrar por categorías
+        const { data: productIds } = await supabase
+          .from('product_categories')
+          .select('product_id')
+          .in('category_id', categoriesToFilter)
+        
+        if (productIds && productIds.length > 0) {
+          const ids = productIds.map(item => item.product_id)
+          query = query.in('id', ids)
+        } else {
+          // No hay productos con estas categorías, devolver resultado vacío
+          return {
+            products: [],
+            total: 0,
+            page,
+            per_page: perPage,
+            total_pages: 0
+          }
+        }
       }
 
       if (filters.is_new) {
@@ -267,25 +286,30 @@ export class ProductService {
       console.log(`🔧 Variants found: ${data.product_variants?.length || 0}`)
       console.log(`🖼️ Images found: ${data.product_images?.length || 0}`)
 
-      // Procesar role prices para el usuario actual
-      if (data.product_variants && userRole) {
+      // Procesar role prices y mantener estructura completa
+      if (data.product_variants) {
         data.product_variants = data.product_variants.map((variant: any) => {
-          const rolePrice = variant.role_prices?.find((rp: any) => 
-            rp.customer_roles?.name === userRole
+          // Transformar role_prices para que tenga la estructura correcta
+          const rolePrices = variant.role_prices?.map((rp: any) => ({
+            id: rp.id,
+            variant_id: rp.variant_id,
+            role_id: rp.role_id,
+            price_cents: rp.price_cents,
+            role: rp.customer_roles
+          })) || []
+          
+          // Encontrar precio específico para el usuario actual
+          const userRolePrice = rolePrices.find((rp: any) => 
+            rp.role?.name === userRole
           )
           
           return {
             ...variant,
-            role_price_cents: rolePrice?.price_cents,
+            role_prices: rolePrices,
+            role_price_cents: userRolePrice?.price_cents,
             images: variant.variant_images || []
           }
         })
-      } else if (data.product_variants) {
-        // Asegurar que siempre tenemos la propiedad images
-        data.product_variants = data.product_variants.map((variant: any) => ({
-          ...variant,
-          images: variant.variant_images || []
-        }))
       }
 
       const processedData = {
@@ -306,12 +330,19 @@ export class ProductService {
     }
   }
 
-  // Obtener categorías
+  // Obtener categorías con relaciones padre-hijo
   static async getCategories(): Promise<Category[]> {
     try {
       const { data, error } = await supabase
         .from('categories')
-        .select('*')
+        .select(`
+          id,
+          name,
+          slug,
+          parent_id,
+          created_at,
+          updated_at
+        `)
         .order('name')
 
       if (error) {

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { CartService } from '../lib/cart'
 import { useAuth } from './AuthContext'
+import { useHydration } from '../hooks/useHydration'
 import type { Cart, CartItem, AddToCartData, UpdateCartItemData, CartContextType } from '../types/cart'
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -13,20 +14,23 @@ interface CartProviderProps {
 
 export function CartProvider({ children }: CartProviderProps) {
   const { user } = useAuth()
+  const isHydrated = useHydration()
   const [cart, setCart] = useState<Cart | null>(null)
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Inicializar carrito
+  // Inicializar carrito - solo después de hidratación
   useEffect(() => {
+    if (!isHydrated) return
+    
     if (user?.client?.id) {
       initializeCart()
     } else {
       // Cargar carrito desde localStorage para usuarios no autenticados
       loadLocalCart()
     }
-  }, [user?.client?.id])
+  }, [isHydrated, user?.client?.id])
 
   // Cargar carrito desde localStorage
   const loadLocalCart = () => {

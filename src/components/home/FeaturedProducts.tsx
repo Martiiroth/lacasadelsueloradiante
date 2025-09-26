@@ -5,6 +5,8 @@ import Link from 'next/link'
 import type { ProductCardData, Category } from '../../types/products'
 import { ProductService } from '../../lib/products'
 import ProductCard from '../products/ProductCard'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState, ProductSkeleton, FilterSkeleton } from '../ui/LoadingState'
 
 // Componente para filtro de categoría individual (con subcategorías)
 interface CategoryFilterProps {
@@ -73,9 +75,10 @@ interface ProductGridProps {
   error: string | null
   limit: number
   onSaleOnly: boolean
+  onRetry?: () => void
 }
 
-function ProductGrid({ products, loading, error, limit, onSaleOnly }: ProductGridProps) {
+function ProductGrid({ products, loading, error, limit, onSaleOnly, onRetry }: ProductGridProps) {
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -99,12 +102,20 @@ function ProductGrid({ products, loading, error, limit, onSaleOnly }: ProductGri
         <div className="text-red-500 mb-4">
           {error}
         </div>
-        <button 
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Reintentar
-        </button>
+        <div className="space-x-4">
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Recargar página
+          </button>
+          <button 
+            onClick={onRetry}
+            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
       </div>
     )
   }
@@ -167,9 +178,20 @@ export default function FeaturedProducts({
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [searchTerm, setSearchTerm] = useState('')
+  const isHydrated = useHydration()
 
-  // Cargar categorías con jerarquía
+  // Función para reintentar carga
+  const handleRetry = () => {
+    setError(null)
+    setLoading(true)
+    // Force re-trigger del useEffect cambiando un state
+    setSearchTerm(prev => prev + '')
+  }
+
+  // Cargar categorías con jerarquía - solo después de hidratación
   useEffect(() => {
+    if (!isHydrated || !showFilters) return
+
     const loadCategories = async () => {
       try {
         const allCategories = await ProductService.getCategories()
@@ -190,15 +212,17 @@ export default function FeaturedProducts({
       }
     }
     
-    if (showFilters) {
-      loadCategories()
-    }
-  }, [showFilters])
+    loadCategories()
+  }, [isHydrated, showFilters])
 
-  // Cargar productos
+  // Cargar productos con retry automático
   useEffect(() => {
-    const loadProducts = async () => {
-      console.log(`🔄 FeaturedProducts: Cargando ${limit} productos...`)
+    if (!isHydrated) return
+
+    const loadProducts = async (retryCount = 0) => {
+      const maxRetries = 3
+      
+      console.log(`🔄 FeaturedProducts: Cargando ${limit} productos... (intento ${retryCount + 1})`)
       
       setLoading(true)
       setError(null)
@@ -220,44 +244,47 @@ export default function FeaturedProducts({
           limit
         )
 
-        if (result) {
+        if (result && result.products.length > 0) {
           setProducts(result.products)
           console.log(`✅ FeaturedProducts: ${result.products.length} productos cargados`)
+          setLoading(false)
+        } else if (retryCount < maxRetries) {
+          // Retry después de un delay incremental
+          setTimeout(() => loadProducts(retryCount + 1), (retryCount + 1) * 1000)
+          return
         } else {
-          setError('No se pudieron cargar los productos')
+          setError('No se encontraron productos')
           setProducts([])
+          setLoading(false)
         }
       } catch (err) {
-        console.error('❌ FeaturedProducts error:', err)
-        setError('Error al cargar los productos')
-        setProducts([])
-      } finally {
-        setLoading(false)
+        console.error(`❌ FeaturedProducts error (intento ${retryCount + 1}):`, err)
+        
+        if (retryCount < maxRetries) {
+          // Retry después de un delay incremental
+          setTimeout(() => loadProducts(retryCount + 1), (retryCount + 1) * 1000)
+          return
+        } else {
+          setError('Error al cargar los productos. Por favor, recarga la página.')
+          setProducts([])
+          setLoading(false)
+        }
       }
     }
 
-    loadProducts()
-  }, [selectedCategory, sortBy, sortOrder, onSaleOnly, limit, searchTerm])
+    // Agregar un delay inicial para evitar problemas de renderizado
+    const timeoutId = setTimeout(() => loadProducts(), 200)
+    return () => clearTimeout(timeoutId)
+  }, [isHydrated, selectedCategory, sortBy, sortOrder, onSaleOnly, limit, searchTerm])
 
-  return (
-    <section className="py-16 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            {title}
-          </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            {onSaleOnly 
-              ? "Aprovecha nuestras ofertas especiales en productos de calidad premium"
-              : "Descubre nuestra selección de productos para sistemas de calefacción por suelo radiante"
-            }
-          </p>
-        </div>
-
-        {/* Layout con sidebar de filtros */}
-        {showFilters && !onSaleOnly ? (
-          <div className="flex gap-8">
+  const renderContent = () => {
+    if (showFilters && !onSaleOnly) {
+      return (
+        <div className="flex gap-8">
+          <LoadingState 
+            fallback={<FilterSkeleton />}
+            delay={100}
+          >
             {/* Sidebar de filtros */}
             <div className="w-64 flex-shrink-0">
               <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
@@ -381,32 +408,73 @@ export default function FeaturedProducts({
                 )}
               </div>
             </div>
+          </LoadingState>
 
-            {/* Contenido principal */}
-            <div className="flex-1">
-              {/* Grid de productos con el contenido actual */}
-              <ProductGrid 
-                products={products}
-                loading={loading}
-                error={error}
-                limit={limit}
-                onSaleOnly={onSaleOnly}
-              />
-            </div>
+          {/* Contenido principal */}
+          <div className="flex-1">
+            <ProductGrid 
+              products={products}
+              loading={loading}
+              error={error}
+              limit={limit}
+              onSaleOnly={onSaleOnly}
+              onRetry={handleRetry}
+            />
           </div>
-        ) : (
-          /* Layout sin filtros para productos en oferta */
-          <ProductGrid 
-            products={products}
-            loading={loading}
-            error={error}
-            limit={limit}
-            onSaleOnly={onSaleOnly}
-          />
-        )}
+        </div>
+      )
+    } else {
+      return (
+        <ProductGrid 
+          products={products}
+          loading={loading}
+          error={error}
+          limit={limit}
+          onSaleOnly={onSaleOnly}
+          onRetry={handleRetry}
+        />
+      )
+    }
+  }
 
+  return (
+    <LoadingState 
+      fallback={
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">{title}</h2>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                {onSaleOnly 
+                  ? "Aprovecha nuestras ofertas especiales en productos de calidad premium"
+                  : "Descubre nuestra selección de productos para sistemas de calefacción por suelo radiante"
+                }
+              </p>
+            </div>
+            <ProductSkeleton count={limit} />
+          </div>
+        </section>
+      }
+      delay={150}
+    >
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              {title}
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              {onSaleOnly 
+                ? "Aprovecha nuestras ofertas especiales en productos de calidad premium"
+                : "Descubre nuestra selección de productos para sistemas de calefacción por suelo radiante"
+              }
+            </p>
+          </div>
 
-      </div>
-    </section>
+          {renderContent()}
+        </div>
+      </section>
+    </LoadingState>
   )
 }

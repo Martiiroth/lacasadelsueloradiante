@@ -68,6 +68,13 @@ export interface BillingAddress {
 }
 
 export interface ShippingAddress {
+  full_name?: string
+  first_name?: string
+  last_name?: string
+  email?: string
+  phone?: string
+  company?: string
+  company_name?: string
   address_line1: string
   address_line2?: string
   city: string

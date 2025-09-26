@@ -10,6 +10,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../contexts/AuthContext'
 import { ClientService } from '../../lib/clientService'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState } from '../ui/LoadingState'
 import type { ClientStats, ClientOrder, Invoice } from '../../types/client'
 
 interface StatCardProps {
@@ -109,36 +111,49 @@ function InvoiceRow({ invoice }: InvoiceRowProps) {
 
 export default function DashboardOverview() {
   const { user } = useAuth()
+  const isHydrated = useHydration()
   const [stats, setStats] = useState<ClientStats | null>(null)
   const [recentOrders, setRecentOrders] = useState<ClientOrder[]>([])
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      if (!user?.client?.id) return
+    if (!isHydrated || !user?.client?.id) return
 
+    const loadDashboardData = async (retryCount = 0) => {
+      const maxRetries = 3
+      
       try {
         setLoading(true)
+        setError(null)
         
         const [statsData, ordersData, invoicesData] = await Promise.all([
-          ClientService.getClientStats(user.client.id),
-          ClientService.getRecentOrders(user.client.id, 5),
-          ClientService.getRecentInvoices(user.client.id, 5)
+          ClientService.getClientStats(user.client!.id),
+          ClientService.getRecentOrders(user.client!.id, 5),
+          ClientService.getRecentInvoices(user.client!.id, 5)
         ])
 
         setStats(statsData)
         setRecentOrders(ordersData)
         setRecentInvoices(invoicesData)
-      } catch (error) {
-        console.error('Error loading dashboard data:', error)
-      } finally {
         setLoading(false)
+      } catch (error) {
+        console.error(`Error loading dashboard data (intento ${retryCount + 1}):`, error)
+        
+        if (retryCount < maxRetries) {
+          setTimeout(() => loadDashboardData(retryCount + 1), (retryCount + 1) * 1000)
+          return
+        } else {
+          setError('Error al cargar los datos del dashboard')
+          setLoading(false)
+        }
       }
     }
 
-    loadDashboardData()
-  }, [user?.client?.id])
+    const timeoutId = setTimeout(() => loadDashboardData(), 100)
+    return () => clearTimeout(timeoutId)
+  }, [isHydrated, user?.client?.id])
 
   if (loading) {
     return (

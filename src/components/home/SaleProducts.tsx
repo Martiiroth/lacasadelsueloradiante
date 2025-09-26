@@ -5,6 +5,8 @@ import Link from 'next/link'
 import type { ProductCardData } from '../../types/products'
 import { ProductService } from '../../lib/products'
 import ProductCard from '../products/ProductCard'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState, ProductSkeleton } from '../ui/LoadingState'
 
 interface SaleProductsProps {
   limit?: number
@@ -14,9 +16,24 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
   const [products, setProducts] = useState<ProductCardData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isHydrated = useHydration()
+
+  // Función para reintentar carga
+  const handleRetry = () => {
+    setError(null)
+    setLoading(true)
+    // Force re-trigger del useEffect
+    setProducts([])
+  }
 
   useEffect(() => {
-    const loadSaleProducts = async () => {
+    if (!isHydrated) return
+
+    const loadSaleProducts = async (retryCount = 0) => {
+      const maxRetries = 3
+      
+      console.log(`🔄 SaleProducts: Cargando ${limit} productos en oferta... (intento ${retryCount + 1})`)
+      
       setLoading(true)
       setError(null)
       
@@ -28,24 +45,34 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
           limit
         )
 
-        if (result) {
+        if (result && result.products.length > 0) {
           setProducts(result.products)
-          console.log(`✅ SaleProducts: ${result.products.length} productos en oferta`)
+          console.log(`✅ SaleProducts: ${result.products.length} productos en oferta cargados`)
+          setLoading(false)
+        } else if (retryCount < maxRetries) {
+          setTimeout(() => loadSaleProducts(retryCount + 1), (retryCount + 1) * 1000)
+          return
         } else {
-          setError('No se pudieron cargar los productos en oferta')
           setProducts([])
+          setLoading(false)
         }
       } catch (err) {
-        console.error('Error loading sale products:', err)
-        setError('Error al cargar los productos en oferta')
-        setProducts([])
-      } finally {
-        setLoading(false)
+        console.error(`❌ SaleProducts error (intento ${retryCount + 1}):`, err)
+        
+        if (retryCount < maxRetries) {
+          setTimeout(() => loadSaleProducts(retryCount + 1), (retryCount + 1) * 1000)
+          return
+        } else {
+          setError('Error al cargar los productos en oferta')
+          setProducts([])
+          setLoading(false)
+        }
       }
     }
 
-    loadSaleProducts()
-  }, [limit])
+    const timeoutId = setTimeout(() => loadSaleProducts(), 150)
+    return () => clearTimeout(timeoutId)
+  }, [isHydrated, limit])
 
   if (loading) {
     return (
@@ -81,24 +108,50 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
             <div className="text-red-500 mb-4">
               ⚠️ {error}
             </div>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-            >
-              Reintentar
-            </button>
+            <div className="space-x-4">
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              >
+                Recargar página
+              </button>
+              <button 
+                onClick={handleRetry}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
           </div>
         </div>
       </section>
     )
   }
 
-  if (products.length === 0) {
+  if (products.length === 0 && !loading && !error) {
     return null // No mostrar la sección si no hay productos en oferta
   }
 
   return (
-    <section className="py-16 bg-gradient-to-br from-red-50 to-orange-50 relative overflow-hidden">
+    <LoadingState 
+      fallback={
+        <section className="py-16 bg-gradient-to-br from-red-50 to-orange-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium mb-4">
+                🔥 ¡Ofertas Especiales!
+              </div>
+              <h2 className="text-4xl font-bold text-gray-900 mb-4">
+                <span className="text-red-600">Productos en Oferta</span>
+              </h2>
+            </div>
+            <ProductSkeleton count={limit} />
+          </div>
+        </section>
+      }
+      delay={100}
+    >
+      <section className="py-16 bg-gradient-to-br from-red-50 to-orange-50 relative overflow-hidden">
       {/* Decoración de fondo */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-red-200 rounded-full opacity-20"></div>
@@ -166,5 +219,6 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
         </div>
       </div>
     </section>
+    </LoadingState>
   )
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import t        <form onSubmit={handleSubmit} className="space-y-6">s } from '../../types/checkout'
+import { BillingAddress } from '../../types/checkout'
 
 interface BillingFormProps {
   initialData?: Partial<BillingAddress>

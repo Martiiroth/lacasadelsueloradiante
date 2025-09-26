@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { AuthService } from '../lib/auth'
 import type { AuthState, UserWithClient } from '../types/auth'
+import { useHydration } from '../hooks/useHydration'
 
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
@@ -19,8 +20,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: true,
     error: null,
   })
+  const isHydrated = useHydration()
 
   useEffect(() => {
+    if (!isHydrated) return
+    
     // Verificar si hay una sesión actual
     getCurrentUser()
 
@@ -31,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [isHydrated])
 
   const getCurrentUser = async () => {
     try {
@@ -98,6 +102,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signUp,
     signOut,
     refreshUser,
+  }
+
+  // Prevenir hydration mismatch mostrando un loading inicial
+  if (!isHydrated) {
+    return (
+      <AuthContext.Provider value={{ ...value, loading: true }}>
+        {children}
+      </AuthContext.Provider>
+    )
   }
 
   return (

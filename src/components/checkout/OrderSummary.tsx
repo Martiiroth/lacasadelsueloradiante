@@ -5,6 +5,8 @@ import Image from 'next/image'
 import { useCart } from '../../contexts/CartContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { OrderService } from '../../lib/orders'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState } from '../ui/LoadingState'
 import type { 
   CheckoutSummary, 
   ShippingAddress,
@@ -36,14 +38,16 @@ export default function OrderSummary({
 }: OrderSummaryProps) {
   const { user } = useAuth()
   const { cartItems } = useCart()
+  const isHydrated = useHydration()
   const [summary, setSummary] = useState<CheckoutSummary | null>(null)
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!isHydrated) return
     loadSummary()
-  }, [cartItems, shippingMethodId, couponCode])
+  }, [isHydrated, cartItems, shippingMethodId, couponCode])
 
   const loadSummary = async () => {
     try {
@@ -158,10 +162,10 @@ export default function OrderSummary({
               </h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="font-medium text-gray-900">
-                  {shippingAddress.first_name} {shippingAddress.last_name}
+                  {shippingAddress.full_name}
                 </p>
-                {shippingAddress.company_name && (
-                  <p className="text-gray-600">{shippingAddress.company_name}</p>
+                {shippingAddress.company && (
+                  <p className="text-gray-600">{shippingAddress.company}</p>
                 )}
                 <p className="text-gray-600">{shippingAddress.address_line1}</p>
                 {shippingAddress.address_line2 && (
@@ -174,7 +178,7 @@ export default function OrderSummary({
                 {shippingAddress.phone && (
                   <p className="text-gray-600 mt-2">Tel: {shippingAddress.phone}</p>
                 )}
-                <p className="text-gray-600">Email: {shippingAddress.email}</p>
+
               </div>
             </div>
 

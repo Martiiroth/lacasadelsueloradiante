@@ -20,8 +20,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   const hasDiscount = product.role_price_cents && product.role_price_cents < product.price_cents
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      <Link href={`/products/${product.slug}`}>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
+      <Link href={`/products/${product.slug}`} className="flex flex-col h-full">
         <div className="relative">
           {/* Imagen del producto */}
           <div className="aspect-square relative bg-gray-100">
@@ -72,44 +72,48 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Información del producto */}
-        <div className="p-4">
-          <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2">
-            {product.title}
-          </h3>
-          
-          {product.short_description && (
-            <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-              {product.short_description}
-            </p>
-          )}
+        <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 text-sm sm:text-base">
+              {product.title}
+            </h3>
+            
+            {product.short_description && (
+              <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2">
+                {product.short_description}
+              </p>
+            )}
+          </div>
 
           {/* Precio */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {hasDiscount && user ? (
-                <>
-                  <span className="text-lg font-bold text-green-600">
-                    €{formatPrice(product.role_price_cents!)}
+          <div className="mt-auto">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {hasDiscount && user ? (
+                  <>
+                    <span className="text-base sm:text-lg font-bold text-green-600">
+                      €{formatPrice(product.role_price_cents!)}
+                    </span>
+                    <span className="text-xs sm:text-sm text-gray-500 line-through">
+                      €{formatPrice(product.price_cents)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-base sm:text-lg font-bold text-gray-800">
+                    €{formatPrice(displayPrice)}
                   </span>
-                  <span className="text-sm text-gray-500 line-through">
-                    €{formatPrice(product.price_cents)}
-                  </span>
-                </>
-              ) : (
-                <span className="text-lg font-bold text-gray-800">
-                  €{formatPrice(displayPrice)}
-                </span>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Indicador de stock */}
-            <div className="flex items-center">
-              <div className={`w-2 h-2 rounded-full mr-2 ${
-                product.in_stock ? 'bg-green-500' : 'bg-red-500'
-              }`} />
-              <span className="text-xs text-gray-500">
-                {product.in_stock ? 'Disponible' : 'Sin stock'}
-              </span>
+              {/* Indicador de stock */}
+              <div className="flex items-center">
+                <div className={`w-2 h-2 rounded-full mr-2 ${
+                  product.in_stock ? 'bg-green-500' : 'bg-red-500'
+                }`} />
+                <span className="text-xs text-gray-500">
+                  {product.in_stock ? 'Disponible' : 'Sin stock'}
+                </span>
+              </div>
             </div>
           </div>
         </div>

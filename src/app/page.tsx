@@ -31,7 +31,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4 px-4 sm:px-0">
                 <Link
                   href="/products"
-                  className="btn-touch inline-flex items-center justify-center bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl text-center"
+                  className="inline-flex items-center justify-center px-6 py-3 sm:px-8 sm:py-4 bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl text-center min-h-[48px] sm:min-h-[auto]"
                 >
                   <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -39,11 +39,9 @@ export default function HomePage() {
                   <span>Ver Productos</span>
                 </Link>
                 
-
-                
                 <Link
                   href="/contacto"
-                  className="btn-touch inline-flex items-center justify-center border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-900 transition-all duration-200 text-center"
+                  className="inline-flex items-center justify-center px-6 py-3 sm:px-8 sm:py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-900 transition-all duration-200 text-center min-h-[48px] sm:min-h-[auto]"
                 >
                   <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />

@@ -81,7 +81,7 @@ interface ProductGridProps {
 function ProductGrid({ products, loading, error, limit, onSaleOnly, onRetry }: ProductGridProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
         {Array.from({ length: limit }).map((_, i) => (
           <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
             <div className="aspect-square bg-gray-200"></div>
@@ -135,7 +135,7 @@ function ProductGrid({ products, loading, error, limit, onSaleOnly, onRetry }: P
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-12">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
@@ -280,15 +280,15 @@ export default function FeaturedProducts({
   const renderContent = () => {
     if (showFilters && !onSaleOnly) {
       return (
-        <div className="flex gap-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           <LoadingState 
             fallback={<FilterSkeleton />}
             delay={100}
           >
-            {/* Sidebar de filtros */}
-            <div className="w-64 flex-shrink-0">
-              <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+            {/* Sidebar de filtros - Responsivo */}
+            <div className="w-full lg:w-64 lg:flex-shrink-0 mb-6 lg:mb-0">
+              <div className="bg-white rounded-lg shadow-sm border p-4 lg:p-6 lg:sticky lg:top-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 lg:mb-6">
                   Filtros
                 </h3>
 
@@ -303,7 +303,7 @@ export default function FeaturedProducts({
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Buscar por nombre, marca, código..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm min-h-[48px]"
                     />
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,7 +353,7 @@ export default function FeaturedProducts({
                       setSortBy(field)
                       setSortOrder(order as 'asc' | 'desc')
                     }}
-                    className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full text-sm border border-gray-300 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[48px]"
                   >
                     <option value="created_at-desc">Más recientes</option>
                     <option value="title-asc">Nombre A-Z</option>

@@ -87,6 +87,7 @@ export default function ProductsPage() {
   const [retryTrigger, setRetryTrigger] = useState(0)
   
   // Estados para filtros
+  const [filtersVisible, setFiltersVisible] = useState(false)
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '')
   const [minPrice, setMinPrice] = useState(searchParams.get('minPrice') || '')
@@ -221,16 +222,24 @@ export default function ProductsPage() {
           </p>
         </div>
 
-        {/* Layout con sidebar de filtros */}
-        <div className="flex gap-8">
-          {/* Sidebar de filtros */}
-          <div className="w-80 flex-shrink-0">
-            <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6">
-                Filtros de búsqueda
-              </h3>
-
-              <form onSubmit={handleSearchSubmit} className="space-y-6">
+        {/* Layout completamente responsive */}
+        <div className="space-y-6">
+          {/* Filtros móvil - encima de productos */}
+          <div className="lg:hidden">
+            <div className="bg-white rounded-lg shadow-sm border p-4">
+              <button
+                type="button"
+                onClick={() => setFiltersVisible(!filtersVisible)}
+                className="w-full flex items-center justify-between p-3 text-left font-medium text-gray-900 hover:bg-gray-50 rounded-lg transition-colors min-h-[48px]"
+              >
+                <span>Filtros de búsqueda</span>
+                <svg className={`w-5 h-5 transform transition-transform ${filtersVisible ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              
+              <div className={`${filtersVisible ? 'block' : 'hidden'} mt-4`}>
+                <form onSubmit={handleSearchSubmit} className="space-y-4">
                 {/* Búsqueda por texto */}
                 <div>
                   <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
@@ -243,7 +252,7 @@ export default function ProductsPage() {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Buscar por nombre, marca, código..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[48px]"
                     />
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -253,7 +262,7 @@ export default function ProductsPage() {
                   </div>
                   <button
                     type="submit"
-                    className="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="w-full mt-2 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium min-h-[48px]"
                   >
                     Buscar
                   </button>
@@ -404,14 +413,381 @@ export default function ProductsPage() {
                   </div>
                 )}
               </form>
+              </div>
             </div>
           </div>
 
-          {/* Contenido principal */}
-          <div className="flex-1">
+          {/* Sidebar filtros desktop */}
+          <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                Filtros de búsqueda
+              </h3>
+              <form onSubmit={handleSearchSubmit} className="space-y-6">
+                {/* Búsqueda por texto */}
+                <div>
+                  <label htmlFor="search-desktop" className="block text-sm font-medium text-gray-700 mb-2">
+                    Buscar productos
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="search-desktop"
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Buscar por nombre, marca, código..."
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full mt-2 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    Buscar
+                  </button>
+                </div>
+
+                {/* Categorías */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Categorías
+                  </h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory('')
+                        setCurrentPage(1)
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        selectedCategory === ''
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      Todas las categorías
+                    </button>
+                    <CategoryFilterList
+                      categories={categories}
+                      selectedCategory={selectedCategory}
+                      onSelectCategory={(categoryId: string) => {
+                        setSelectedCategory(categoryId)
+                        setCurrentPage(1)
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Filtros de precio */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Rango de precio
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="minPrice-desktop" className="block text-xs text-gray-500 mb-1">
+                        Precio mínimo
+                      </label>
+                      <input
+                        id="minPrice-desktop"
+                        type="number"
+                        value={minPrice}
+                        onChange={(e) => {
+                          setMinPrice(e.target.value)
+                          setCurrentPage(1)
+                        }}
+                        placeholder="€ 0"
+                        min="0"
+                        step="0.01"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="maxPrice-desktop" className="block text-xs text-gray-500 mb-1">
+                        Precio máximo
+                      </label>
+                      <input
+                        id="maxPrice-desktop"
+                        type="number"
+                        value={maxPrice}
+                        onChange={(e) => {
+                          setMaxPrice(e.target.value)
+                          setCurrentPage(1)
+                        }}
+                        placeholder="€ 9999"
+                        min="0"
+                        step="0.01"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ordenamiento */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Ordenar por
+                  </h4>
+                  <select
+                    value={`${sortBy}-${sortOrder}`}
+                    onChange={(e) => {
+                      const [field, order] = e.target.value.split('-')
+                      setSortBy(field)
+                      setSortOrder(order as 'asc' | 'desc')
+                      setCurrentPage(1)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  >
+                    <option value="name-asc">Nombre A-Z</option>
+                    <option value="name-desc">Nombre Z-A</option>
+                    <option value="price-asc">Precio menor</option>
+                    <option value="price-desc">Precio mayor</option>
+                    <option value="created_at-desc">Más recientes</option>
+                    <option value="created_at-asc">Más antiguos</option>
+                  </select>
+                </div>
+
+                {/* Filtros activos y limpiar */}
+                {hasActiveFilters && (
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Filtros activos
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      >
+                        Limpiar todo
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {searchTerm && (
+                        <FilterBadge
+                          label={`"${searchTerm}"`}
+                          onRemove={() => setSearchTerm('')}
+                        />
+                      )}
+                      {selectedCategory && (
+                        <FilterBadge
+                          label={categories.find(c => c.id === selectedCategory)?.name || 'Categoría'}
+                          onRemove={() => setSelectedCategory('')}
+                        />
+                      )}
+                      {minPrice && (
+                        <FilterBadge
+                          label={`Min: €${minPrice}`}
+                          onRemove={() => setMinPrice('')}
+                        />
+                      )}
+                      {maxPrice && (
+                        <FilterBadge
+                          label={`Max: €${maxPrice}`}
+                          onRemove={() => setMaxPrice('')}
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
+
+          {/* Layout principal responsive */}
+          <div className="lg:flex lg:gap-8">
+            {/* Sidebar filtros desktop */}
+            <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+              <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">
+                  Filtros de búsqueda
+                </h3>
+                <form onSubmit={handleSearchSubmit} className="space-y-6">
+                  {/* Búsqueda por texto */}
+                  <div>
+                    <label htmlFor="search-desktop" className="block text-sm font-medium text-gray-700 mb-2">
+                      Buscar productos
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="search-desktop"
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Buscar por nombre, marca, código..."
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full mt-2 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      Buscar
+                    </button>
+                  </div>
+
+                  {/* Categorías */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">
+                      Categorías
+                    </h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedCategory('')
+                          setCurrentPage(1)
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                          selectedCategory === ''
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        Todas las categorías
+                      </button>
+                      <CategoryFilterList
+                        categories={categories}
+                        selectedCategory={selectedCategory}
+                        onSelectCategory={(categoryId: string) => {
+                          setSelectedCategory(categoryId)
+                          setCurrentPage(1)
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Filtros de precio */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">
+                      Rango de precio
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="minPrice-desktop" className="block text-xs text-gray-500 mb-1">
+                          Precio mínimo
+                        </label>
+                        <input
+                          id="minPrice-desktop"
+                          type="number"
+                          value={minPrice}
+                          onChange={(e) => {
+                            setMinPrice(e.target.value)
+                            setCurrentPage(1)
+                          }}
+                          placeholder="€ 0"
+                          min="0"
+                          step="0.01"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="maxPrice-desktop" className="block text-xs text-gray-500 mb-1">
+                          Precio máximo
+                        </label>
+                        <input
+                          id="maxPrice-desktop"
+                          type="number"
+                          value={maxPrice}
+                          onChange={(e) => {
+                            setMaxPrice(e.target.value)
+                            setCurrentPage(1)
+                          }}
+                          placeholder="€ 9999"
+                          min="0"
+                          step="0.01"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Ordenamiento */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">
+                      Ordenar por
+                    </h4>
+                    <select
+                      value={`${sortBy}-${sortOrder}`}
+                      onChange={(e) => {
+                        const [field, order] = e.target.value.split('-')
+                        setSortBy(field)
+                        setSortOrder(order as 'asc' | 'desc')
+                        setCurrentPage(1)
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    >
+                      <option value="name-asc">Nombre A-Z</option>
+                      <option value="name-desc">Nombre Z-A</option>
+                      <option value="price-asc">Precio menor</option>
+                      <option value="price-desc">Precio mayor</option>
+                      <option value="created_at-desc">Más recientes</option>
+                      <option value="created_at-asc">Más antiguos</option>
+                    </select>
+                  </div>
+
+                  {/* Filtros activos */}
+                  {hasActiveFilters && (
+                    <div className="border-t border-gray-200 pt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium text-gray-700">
+                          Filtros activos
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={clearFilters}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          Limpiar todo
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {searchTerm && (
+                          <FilterBadge
+                            label={`"${searchTerm}"`}
+                            onRemove={() => setSearchTerm('')}
+                          />
+                        )}
+                        {selectedCategory && (
+                          <FilterBadge
+                            label={categories.find(c => c.id === selectedCategory)?.name || 'Categoría'}
+                            onRemove={() => setSelectedCategory('')}
+                          />
+                        )}
+                        {minPrice && (
+                          <FilterBadge
+                            label={`Min: €${minPrice}`}
+                            onRemove={() => setMinPrice('')}
+                          />
+                        )}
+                        {maxPrice && (
+                          <FilterBadge
+                            label={`Max: €${maxPrice}`}
+                            onRemove={() => setMaxPrice('')}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </form>
+              </div>
+            </div>
+
+            {/* Contenido principal */}
+            <div className="flex-1 min-w-0">
             {/* Encabezado de resultados */}
             {!loading && (
-              <div className="mb-6 flex items-center justify-between">
+              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-medium text-gray-900">
                     {totalProducts} producto{totalProducts !== 1 ? 's' : ''} encontrado{totalProducts !== 1 ? 's' : ''}
@@ -467,8 +843,8 @@ export default function ProductsPage() {
             ) : (
               <LoadingState>
                 <>
-                  {/* Grid de productos */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                  {/* Grid de productos - Responsive */}
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-8">
                     {products.map((product) => (
                       <ProductCard key={product.id} product={product} />
                     ))}
@@ -485,6 +861,7 @@ export default function ProductsPage() {
                 </>
               </LoadingState>
             )}
+            </div>
           </div>
         </div>
       </div>

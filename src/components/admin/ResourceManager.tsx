@@ -105,7 +105,7 @@ const ResourceManager: React.FC<ResourceManagerProps> = ({
         <div className="text-center py-6 text-gray-500">
           <DocumentIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
           <p>No hay recursos añadidos</p>
-          <p className="text-sm">Haz clic en "Añadir Recurso" para comenzar</p>
+          <p className="text-sm">Haz clic en &quot;Añadir Recurso&quot; para comenzar</p>
         </div>
       )}
 

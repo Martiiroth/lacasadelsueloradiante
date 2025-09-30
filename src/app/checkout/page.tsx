@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState } from '../../components/ui/LoadingState'
 import { OrderService } from '../../lib/orders'
 import BillingForm from '../../components/checkout/BillingFormClean'
 import ShippingFormSimple from '../../components/checkout/ShippingFormSimple'
@@ -22,6 +24,7 @@ export default function CheckoutPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { cartItems, clearCart } = useCart()
+  const isHydrated = useHydration()
   
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('billing')
   const [isLoading, setIsLoading] = useState(false)
@@ -39,14 +42,16 @@ export default function CheckoutPage() {
 
   // Verificar que tenga items en el carrito
   useEffect(() => {
+    if (!isHydrated) return
     if (cartItems.length === 0) {
       router.push('/cart')
       return
     }
-  }, [cartItems, router])
+  }, [cartItems, router, isHydrated])
 
   // Pre-llenar información del usuario si está disponible
   useEffect(() => {
+    if (!isHydrated) return
     if (user?.client && currentStep === 'shipping' && billingAddress) {
       const initialShippingData: Partial<ShippingAddress> = {
         address_line1: user.client.address_line1 || billingAddress.address_line1 || '',
@@ -61,7 +66,7 @@ export default function CheckoutPage() {
         setShippingAddress(prev => prev || initialShippingData as ShippingAddress)
       }
     }
-  }, [user, currentStep, shippingAddress, billingAddress])
+  }, [user, currentStep, shippingAddress, billingAddress, isHydrated])
 
   const handleBillingSubmit = (data: BillingAddress & { use_shipping_as_billing?: boolean }) => {
     setBillingAddress(data)
@@ -140,15 +145,17 @@ export default function CheckoutPage() {
     setError(null)
   }
 
-  // Mostrar loading si no hay items en el carrito
-  if (cartItems.length === 0) {
+  // Mostrar loading si no hay items en el carrito o no está hidratado
+  if (!isHydrated || cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando checkout...</p>
+      <LoadingState>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando checkout...</p>
+          </div>
         </div>
-      </div>
+      </LoadingState>
     )
   }
 

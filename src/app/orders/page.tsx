@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAuth } from '../../contexts/AuthContext'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState } from '../../components/ui/LoadingState'
 import { OrderService } from '../../lib/orders'
 import type { Order } from '../../types/checkout'
 
@@ -11,21 +13,30 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
+  const isHydrated = useHydration()
 
   useEffect(() => {
+    if (!isHydrated) return
     if (user?.client?.id) {
       loadOrders()
     }
-  }, [user])
+  }, [user, isHydrated, retryCount])
 
   const loadOrders = async () => {
     try {
       setLoading(true)
       const clientOrders = await OrderService.getClientOrders(user!.client!.id)
       setOrders(clientOrders)
+      setRetryCount(0)
     } catch (err) {
       console.error('Error loading orders:', err)
       setError('Error al cargar los pedidos')
+      if (retryCount < 3) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1)
+        }, 1000 * Math.pow(2, retryCount))
+      }
     } finally {
       setLoading(false)
     }
@@ -100,11 +111,11 @@ export default function OrdersPage() {
     )
   }
 
-  if (loading) {
+  if (!isHydrated || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse">
+      <LoadingState>
+        <div className="min-h-screen bg-gray-50 py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
             <div className="grid grid-cols-1 gap-6">
               {[...Array(3)].map((_, i) => (
@@ -117,7 +128,7 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
-      </div>
+      </LoadingState>
     )
   }
 

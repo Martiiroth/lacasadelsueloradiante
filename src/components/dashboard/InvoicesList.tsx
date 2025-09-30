@@ -10,6 +10,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../contexts/AuthContext'
 import { ClientService } from '../../lib/clientService'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState } from '../ui/LoadingState'
 import type { Invoice, InvoiceFilters, InvoiceStatus } from '../../types/client'
 
 interface InvoicesListProps {
@@ -31,6 +33,8 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
   const [currentPage, setCurrentPage] = useState(1)
   const [totalInvoices, setTotalInvoices] = useState(0)
   const [showFilterPanel, setShowFilterPanel] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  const isHydrated = useHydration()
   
   const invoicesPerPage = limit || 10
   
@@ -63,16 +67,23 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
       } else {
         setTotalInvoices(page * invoicesPerPage + 1)
       }
+      setRetryCount(0)
     } catch (error) {
       console.error('Error loading invoices:', error)
+      if (retryCount < 3) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1)
+        }, 1000 * Math.pow(2, retryCount))
+      }
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
+    if (!isHydrated) return
     loadInvoices(currentPage)
-  }, [user?.client?.id, filters, currentPage])
+  }, [user?.client?.id, filters, currentPage, isHydrated, retryCount])
 
   const handleFilterChange = (newFilters: Partial<InvoiceFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }))
@@ -105,10 +116,10 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
 
   const totalPages = Math.ceil(totalInvoices / invoicesPerPage)
 
-  if (loading) {
+  if (!isHydrated || loading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse">
+      <LoadingState>
+        <div className="p-6">
           <div className="h-6 bg-gray-200 rounded w-48 mb-6"></div>
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
@@ -116,7 +127,7 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
             ))}
           </div>
         </div>
-      </div>
+      </LoadingState>
     )
   }
 

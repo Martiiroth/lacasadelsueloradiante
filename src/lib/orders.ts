@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import EmailService from './emailService'
 import type { 
   Order, 
   OrderItem, 
@@ -179,6 +180,18 @@ export class OrderService {
         return null
       }
 
+      // Validar stock antes de crear los items
+      console.log('Validando stock antes de crear pedido...')
+      const stockValidation = await this.validateOrderStock(orderData.items)
+      
+      if (!stockValidation.valid) {
+        console.warn('Order creation with stock issues:', stockValidation.issues)
+        // Log the issues but continue with the order creation (business decision)
+        stockValidation.issues.forEach(issue => {
+          console.warn(`Stock issue - Variant ${issue.variant_id}: ${issue.issue}`)
+        })
+      }
+
       // Crear items de la orden
       const orderItemsData = orderData.items.map(item => ({
         order_id: order.id,
@@ -213,6 +226,49 @@ export class OrderService {
         // Limpiar orden creada
         await supabase.from('orders').delete().eq('id', order.id)
         return null
+      }
+
+      // Descontar stock después de crear los items exitosamente
+      console.log('Descontando stock para pedido del cliente...')
+      const stockUpdatePromises = orderData.items.map(async (item) => {
+        // Check stock availability first
+        const stockCheck = await this.checkVariantStock(item.variant_id, item.qty)
+        
+        if (!stockCheck.available) {
+          console.warn(`Insufficient stock for variant ${item.variant_id}. Available: ${stockCheck.current_stock}, Requested: ${item.qty}`)
+          // Continue with the order but log the warning
+        }
+
+        // Update stock (subtract the quantity)
+        const stockUpdate = await this.updateVariantStock(item.variant_id, -item.qty)
+        
+        return {
+          ...stockUpdate,
+          variant_id: item.variant_id,
+          qty_ordered: item.qty,
+          stock_check: stockCheck
+        }
+      })
+
+      // Wait for all stock updates to complete
+      const stockUpdateResults = await Promise.all(stockUpdatePromises)
+      
+      // Log stock update results
+      stockUpdateResults.forEach(result => {
+        if (result.success) {
+          console.log(`Stock updated for variant ${result.variant_id}: ${result.old_stock} -> ${result.new_stock} (-${result.qty_ordered})`)
+          if (!result.stock_check.available) {
+            console.warn(`Warning: Order created with insufficient stock for variant ${result.variant_id}`)
+          }
+        } else {
+          console.error(`Failed to update stock for variant ${result.variant_id}:`, result.error)
+        }
+      })
+
+      // Check if any stock updates failed
+      const failedUpdates = stockUpdateResults.filter(result => !result.success)
+      if (failedUpdates.length > 0) {
+        console.warn(`${failedUpdates.length} stock updates failed, but order was created successfully`)
       }
 
       // Calcular total de la orden
@@ -250,6 +306,60 @@ export class OrderService {
         payment_method: orderData.payment_method_id,
         guest_email: orderData.guest_email
       }, orderData.client_id || null)
+
+      // Enviar notificación por email de nuevo pedido
+      try {
+        console.log('Enviando notificación de nuevo pedido desde cliente por email...')
+        
+        // Obtener información del cliente
+        let clientName = 'Cliente'
+        let clientEmail = orderData.guest_email || ''
+        
+        if (orderData.client_id) {
+          const { data: client } = await supabase
+            .from('clients')
+            .select('first_name, last_name, email')
+            .eq('id', orderData.client_id)
+            .single()
+          
+          if (client) {
+            clientName = `${client.first_name} ${client.last_name}`.trim()
+            clientEmail = client.email
+          }
+        }
+        
+        const emailData = {
+          orderId: order.id,
+          orderNumber: order.id, // Usar ID como número de pedido
+          status: 'pending', // Nuevo pedido siempre es pending
+          clientName,
+          clientEmail,
+          items: orderItems.map(item => ({
+            title: item.variant?.product?.title || 'Producto',
+            quantity: item.qty,
+            price: (item.price_cents || 0) / 100
+          })),
+          total: total_cents / 100,
+          createdAt: order.created_at,
+          shippingAddress: orderData.shipping_address ? 
+            (typeof orderData.shipping_address === 'string' 
+              ? orderData.shipping_address 
+              : JSON.stringify(orderData.shipping_address, null, 2)
+            ) : undefined
+        }
+
+        // Enviar notificación de nuevo pedido
+        const emailSent = await EmailService.sendNewOrderNotification(emailData)
+        
+        if (emailSent) {
+          console.log(`✅ Notificación de nuevo pedido del cliente enviada para #${order.id}`)
+        } else {
+          console.log(`⚠️ No se pudo enviar la notificación de nuevo pedido del cliente #${order.id}`)
+        }
+      } catch (emailError) {
+        console.error('Error enviando notificación de nuevo pedido del cliente por email:', emailError)
+        // No fallar la operación si el email falla
+      }
 
       const confirmation: OrderConfirmation = {
         order: { ...order, total_cents },
@@ -497,6 +607,123 @@ export class OrderService {
     } catch (error) {
       console.error('Error in updateOrderStatus:', error)
       return false
+    }
+  }
+
+  // Stock management methods
+  static async checkVariantStock(variantId: string, requestedQty: number) {
+    try {
+      const { data: variant, error } = await supabase
+        .from('product_variants')
+        .select('stock')
+        .eq('id', variantId)
+        .single()
+
+      if (error) {
+        console.error('Error checking variant stock:', error)
+        return {
+          available: false,
+          current_stock: 0,
+          error: error.message
+        }
+      }
+
+      const available = variant.stock >= requestedQty
+      
+      return {
+        available,
+        current_stock: variant.stock,
+        requested: requestedQty,
+        remaining: Math.max(0, variant.stock - requestedQty)
+      }
+    } catch (error) {
+      console.error('Error in checkVariantStock:', error)
+      return {
+        available: false,
+        current_stock: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }
+  }
+
+  static async updateVariantStock(variantId: string, quantityChange: number) {
+    try {
+      // Get current stock first
+      const { data: currentVariant, error: fetchError } = await supabase
+        .from('product_variants')
+        .select('stock')
+        .eq('id', variantId)
+        .single()
+
+      if (fetchError) {
+        return {
+          success: false,
+          error: `Failed to fetch current stock: ${fetchError.message}`,
+          variant_id: variantId
+        }
+      }
+
+      const oldStock = currentVariant.stock
+      const newStock = Math.max(0, oldStock + quantityChange) // Prevent negative stock
+
+      const { error: updateError } = await supabase
+        .from('product_variants')
+        .update({ stock: newStock })
+        .eq('id', variantId)
+
+      if (updateError) {
+        return {
+          success: false,
+          error: `Failed to update stock: ${updateError.message}`,
+          variant_id: variantId
+        }
+      }
+
+      console.log(`Stock updated for variant ${variantId}: ${oldStock} -> ${newStock} (${quantityChange >= 0 ? '+' : ''}${quantityChange})`)
+
+      return {
+        success: true,
+        old_stock: oldStock,
+        new_stock: newStock,
+        change: quantityChange,
+        variant_id: variantId
+      }
+    } catch (error) {
+      console.error('Error updating variant stock:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        variant_id: variantId
+      }
+    }
+  }
+
+  static async validateOrderStock(orderItems: Array<{variant_id: string, qty: number}>) {
+    interface StockIssue {
+      variant_id: string
+      requested: number
+      available: number
+      issue: string
+    }
+
+    const issues: StockIssue[] = []
+    
+    for (const item of orderItems) {
+      const stockCheck = await this.checkVariantStock(item.variant_id, item.qty)
+      
+      if (!stockCheck.available) {
+        issues.push({
+          variant_id: item.variant_id,
+          requested: item.qty,
+          available: stockCheck.current_stock,
+          issue: `Insufficient stock. Requested: ${item.qty}, Available: ${stockCheck.current_stock}`
+        })
+      }
+    }
+    
+    return {
+      valid: issues.length === 0,
+      issues
     }
   }
 }

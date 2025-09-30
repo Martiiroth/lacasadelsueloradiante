@@ -12,6 +12,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../contexts/AuthContext'
 import { ClientService } from '../../lib/clientService'
+import { useHydration } from '../../hooks/useHydration'
+import { LoadingState } from '../ui/LoadingState'
 import type { Client, UpdateClientData } from '../../types/client'
 
 interface InfoFieldProps {
@@ -64,6 +66,8 @@ export default function PersonalInfo() {
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  const isHydrated = useHydration()
   const [editData, setEditData] = useState<UpdateClientData>({
     first_name: '',
     last_name: '',
@@ -81,6 +85,8 @@ export default function PersonalInfo() {
   })
 
   useEffect(() => {
+    if (!isHydrated) return
+
     const loadClientData = async () => {
       if (!user?.client?.id) return
 
@@ -104,16 +110,22 @@ export default function PersonalInfo() {
             company_name: clientData.company_name || '',
             company_position: clientData.company_position || ''
           })
+          setRetryCount(0)
         }
       } catch (error) {
         console.error('Error loading client data:', error)
+        if (retryCount < 3) {
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1)
+          }, 1000 * Math.pow(2, retryCount))
+        }
       } finally {
         setLoading(false)
       }
     }
 
     loadClientData()
-  }, [user?.client?.id])
+  }, [user?.client?.id, isHydrated, retryCount])
 
   const handleEditChange = (field: keyof UpdateClientData, value: string) => {
     setEditData(prev => ({
@@ -171,18 +183,25 @@ export default function PersonalInfo() {
     setIsEditing(false)
   }
 
-  if (loading) {
+  if (!isHydrated || loading) {
     return (
-      <div className="p-6">
-        <div className="animate-pulse">
+      <LoadingState>
+        <div className="p-6">
           <div className="h-6 bg-gray-200 rounded w-48 mb-6"></div>
-          <div className="space-y-4">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
-            ))}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      </LoadingState>
     )
   }
 

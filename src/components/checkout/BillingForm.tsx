@@ -2,24 +2,30 @@
 
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import { BillingAddress } from '../../types/checkout'
+import { BillingAddress, ShippingAddress } from '../../types/checkout'
+
+interface ExtendedBillingAddress extends BillingAddress {
+  use_shipping_as_billing?: boolean
+}
 
 interface BillingFormProps {
-  initialData?: Partial<BillingAddress>
+  initialData?: Partial<ExtendedBillingAddress>
   onSubmit: (data: BillingAddress) => void
   onBack?: () => void
   isLoading?: boolean
+  shippingAddress?: ShippingAddress
 }
 
 export default function BillingForm({ 
   initialData, 
   onSubmit, 
   onBack, 
-  isLoading = false 
+  isLoading = false,
+  shippingAddress
 }: BillingFormProps) {
   const { user } = useAuth()
   
-  const [formData, setFormData] = useState<Partial<BillingAddress>>({
+  const [formData, setFormData] = useState<Partial<ExtendedBillingAddress>>({
     first_name: initialData?.first_name || user?.client?.first_name || '',
     last_name: initialData?.last_name || user?.client?.last_name || '',
     email: initialData?.email || user?.client?.email || '',
@@ -33,7 +39,8 @@ export default function BillingForm({
     city: initialData?.city || user?.client?.city || '',
     region: initialData?.region || user?.client?.region || '',
     postal_code: initialData?.postal_code || user?.client?.postal_code || '',
-    country: initialData?.country || 'España'
+    country: initialData?.country || 'España',
+    use_shipping_as_billing: initialData?.use_shipping_as_billing || false
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -48,7 +55,29 @@ export default function BillingForm({
     }
   }
 
-
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target
+    
+    if (name === 'use_shipping_as_billing' && checked && shippingAddress) {
+      // Copiar datos de la dirección de envío a la de facturación
+      setFormData(prev => ({
+        ...prev,
+        [name]: checked,
+        first_name: shippingAddress.first_name || prev.first_name,
+        last_name: shippingAddress.last_name || prev.last_name,
+        email: shippingAddress.email || prev.email,
+        phone: shippingAddress.phone || prev.phone,
+        address_line1: shippingAddress.address_line1,
+        address_line2: shippingAddress.address_line2,
+        city: shippingAddress.city,
+        region: shippingAddress.region,
+        postal_code: shippingAddress.postal_code,
+        country: shippingAddress.country || 'España'
+      }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: checked }))
+    }
+  }
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}

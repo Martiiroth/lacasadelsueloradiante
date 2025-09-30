@@ -186,9 +186,21 @@ export interface AdminProduct {
   og_image?: string
   created_at: string
   updated_at: string
+  // Additional product properties
+  status: 'active' | 'draft' | 'archived'
+  handle: string
+  type?: string
+  vendor?: string
+  tags?: string
   // Relaciones
   variants?: AdminProductVariant[]
   images?: AdminProductImage[]
+  media?: {
+    id: string
+    url: string
+    alt_text?: string
+    position: number
+  }[]
   resources?: ResourceData[]
   categories?: {
     category: {
@@ -217,6 +229,14 @@ export interface AdminProductVariant {
   dimensions?: any
   created_at: string
   updated_at: string
+  // Additional variant properties
+  option1?: string
+  option2?: string
+  option3?: string
+  price_cents: number
+  compare_at_price_cents?: number
+  inventory_quantity: number
+  is_active: boolean
 }
 
 export interface AdminProductImage {
@@ -271,6 +291,11 @@ export interface UpdateProductData {
   meta_title?: string
   meta_description?: string
   resources?: ResourceData[]
+  status?: 'active' | 'draft' | 'archived'
+  handle?: string
+  type?: string
+  vendor?: string
+  tags?: string
 }
 
 export interface ResourceData {

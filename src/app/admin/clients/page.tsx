@@ -25,9 +25,12 @@ export default function AdminClients() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRole, setSelectedRole] = useState<string>('')
   const [selectedStatus, setSelectedStatus] = useState<string>('')
+  const [availableRoles, setAvailableRoles] = useState<{ id: number; name: string; description?: string }[]>([])
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null)
 
   useEffect(() => {
     loadClients()
+    loadRoles()
   }, [filters])
 
   const loadClients = async () => {
@@ -40,6 +43,15 @@ export default function AdminClients() {
       setError('Error al cargar los clientes')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadRoles = async () => {
+    try {
+      const roles = await AdminService.getAllRoles()
+      setAvailableRoles(roles)
+    } catch (err) {
+      console.error('Error loading roles:', err)
     }
   }
 
@@ -90,6 +102,60 @@ export default function AdminClients() {
     } catch (err) {
       console.error('Error updating client status:', err)
       alert('Error al actualizar el estado del cliente')
+    }
+  }
+
+  const changeClientRole = async (clientId: string, newRoleId: number) => {
+    try {
+      const client = clients.find(c => c.id === clientId)
+      const newRole = availableRoles.find(r => r.id === newRoleId)
+      const currentRole = client?.role?.name || 'guest'
+      
+      if (!client || !newRole) return
+
+      // Confirmación para cambios sensibles de rol
+      if (currentRole === 'admin' || newRole.name === 'admin') {
+        const currentRoleLabel = AdminService.getRoleLabel(currentRole as any)
+        const newRoleLabel = AdminService.getRoleLabel(newRole.name as any)
+        const message = `¿Cambiar el rol de ${client.first_name} ${client.last_name}?\n\nDe: ${currentRoleLabel}\nA: ${newRoleLabel}\n\nEste cambio afectará los permisos del usuario.`
+        
+        if (!confirm(message)) {
+          return
+        }
+      }
+
+      setUpdatingRole(clientId)
+      const success = await AdminService.updateClientRole(clientId, newRoleId)
+      
+      if (success) {
+        // Actualizar el cliente localmente
+        setClients(prevClients => 
+          prevClients.map(client => {
+            if (client.id === clientId) {
+              return { 
+                ...client, 
+                role_id: newRoleId, 
+                role: {
+                  id: newRole.id,
+                  name: newRole.name as 'admin' | 'sat' | 'instalador' | 'guest',
+                  description: newRole.description
+                }
+              }
+            }
+            return client
+          })
+        )
+        
+        // Mostrar mensaje de éxito
+        alert(`Rol actualizado correctamente a "${AdminService.getRoleLabel(newRole.name as any)}"`)
+      } else {
+        alert('Error al actualizar el rol del cliente')
+      }
+    } catch (err) {
+      console.error('Error updating client role:', err)
+      alert('Error al actualizar el rol del cliente')
+    } finally {
+      setUpdatingRole(null)
     }
   }
 
@@ -262,9 +328,43 @@ export default function AdminClients() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${AdminService.getRoleColor(client.role?.name || 'guest')}`}>
-                        {AdminService.getRoleLabel(client.role?.name || 'guest')}
-                      </span>
+                      <div className="relative group">
+                        <select
+                          value={client.role_id || ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              changeClientRole(client.id, parseInt(e.target.value))
+                            }
+                          }}
+                          disabled={updatingRole === client.id}
+                          title={`Cambiar rol de ${client.first_name} ${client.last_name}`}
+                          className={`text-xs font-medium rounded-full px-3 py-1 pr-8 border-0 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none bg-opacity-100 transition-all duration-200 ${AdminService.getRoleColor(client.role?.name || 'guest')} ${updatingRole === client.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80 hover:shadow-md'}`}
+                        >
+                          {availableRoles.map(role => (
+                            <option key={role.id} value={role.id} className="bg-white text-gray-900">
+                              {AdminService.getRoleLabel(role.name as any)}
+                            </option>
+                          ))}
+                        </select>
+                        
+                        {/* Icono de dropdown personalizado */}
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          {updatingRole === client.id ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border border-gray-500 border-t-transparent"></div>
+                          ) : (
+                            <svg className="h-3 w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Tooltip con descripción del rol actual */}
+                        {client.role?.description && (
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                            {client.role.description}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button

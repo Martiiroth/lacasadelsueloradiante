@@ -2,6 +2,25 @@
 const nextConfig = {
   // Configuración para producción
   output: 'standalone',
+
+  // Configuración del webpack para manejar módulos de servidor
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Evitar que los módulos de Node.js se incluyan en el bundle del cliente
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        path: false,
+        os: false,
+        stream: false,
+        util: false,
+      }
+    }
+    return config
+  },
   
   // Optimizaciones de imágenes  
   images: {

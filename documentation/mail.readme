@@ -1,0 +1,46 @@
+IMAP
+Incoming Server Name
+imappro.zoho.eu
+Port
+993
+Require SSL
+Yes
+Username
+consultas@lacasadelsueloradianteapp.com
+
+password
+Limpiezas-2024
+
+POP
+Incoming Server Name
+poppro.zoho.eu
+Port
+995
+Require SSL
+Yes
+Username
+consultas@lacasadelsueloradianteapp.com
+password
+Limpiezas-2024
+
+
+
+Outgoing / SMTP
+Outgoing Server Name
+smtppro.zoho.eu
+Port
+465 with SSL or 587 with TLS
+Require Authentication
+Yes
+MX
+MX records must be configured and verified for your domain to receive emails in Zoho Mail. Launch the domain registrar's DNS Manager and add Zoho's MX records listed in the following table.
+
+Record Type	Host	Priority	Value
+MX	@/ Blank/ Domain name	10	mx.zoho.eu
+MX	@/ Blank/ Domain name	20	mx2.zoho.eu
+MX	@/ Blank/ Domain name	50	mx3.zoho.eu
+SPF
+SPF record helps the recipient email servers to identify the email server permitted to send emails using your domain name. Launch your domain registrar's DNS Manager and add the SPF record given in the following table.
+
+Record Type	Host	Value
+TXT	@/ Blank/ Domain name	v=spf1 include:zohomail.eu ~all

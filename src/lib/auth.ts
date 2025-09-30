@@ -57,23 +57,21 @@ export class AuthService {
 
       console.log('User created successfully:', data.user?.id)
 
-      // El trigger handle_new_user() debería crear automáticamente el registro en clients
-      // Verificar que se creó correctamente después de un breve delay
+      // Crear inmediatamente el registro de cliente para asegurar consistency
       if (data.user) {
-        setTimeout(async () => {
-          try {
-            const client = await this.getClientByAuthUid(data.user!.id)
-            if (!client) {
-              console.warn('Client record not found, attempting manual creation')
-              // Intentar crear manualmente si el trigger falló
-              await this.createClientRecord(data.user!.id, registerData)
-            } else {
-              console.log('Client record created successfully:', client.id)
-            }
-          } catch (error) {
-            console.error('Error verifying client creation:', error)
+        try {
+          const clientResult = await this.createClientRecord(data.user.id, registerData)
+          if (clientResult.error) {
+            console.error('Error creating client record:', clientResult.error)
+            // No lanzamos error aqui para no bloquear el registro
+            // El trigger podria haber funcionado de todas formas
+          } else {
+            console.log('Client record created successfully')
           }
-        }, 1000)
+        } catch (error) {
+          console.error('Error creating client record:', error)
+          // No lanzamos error aqui para no bloquear el registro
+        }
       }
 
       return { user: data.user, error: null }
@@ -171,10 +169,22 @@ export class AuthService {
   // Crear registro de cliente manualmente (fallback si el trigger falla)
   static async createClientRecord(authUid: string, registerData: RegisterData) {
     try {
+      // Obtener el role 'guest' por defecto
+      const { data: defaultRole, error: roleError } = await supabase
+        .from('customer_roles')
+        .select('id')
+        .eq('name', 'guest')
+        .single()
+
+      if (roleError) {
+        console.warn('Could not find default role "guest":', roleError)
+      }
+
       const { error } = await supabase
         .from('clients')
         .insert({
           auth_uid: authUid,
+          role_id: defaultRole?.id || null, // Asignar role por defecto
           email: registerData.email,
           first_name: registerData.first_name,
           last_name: registerData.last_name,

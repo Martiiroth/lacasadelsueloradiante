@@ -68,10 +68,11 @@ export default function AdminOrderEdit() {
   const loadOrderDetail = async () => {
     try {
       setLoading(true)
-      const orders = await AdminService.getAllOrders({})
-      const foundOrder = orders.find(o => o.id === orderId)
+      console.log('Cargando pedido con ID:', orderId)
+      const foundOrder = await AdminService.getOrderById(orderId)
       
       if (foundOrder) {
+        console.log('Pedido encontrado:', foundOrder)
         setOrder(foundOrder)
         setStatus(foundOrder.status)
         
@@ -89,25 +90,43 @@ export default function AdminOrderEdit() {
           })
         }
         
-        // Set addresses
-        if (foundOrder.billing_address) {
-          setBillingAddress({
-            address_line1: foundOrder.billing_address.address_line1 || '',
-            address_line2: foundOrder.billing_address.address_line2 || '',
-            city: foundOrder.billing_address.city || '',
-            region: foundOrder.billing_address.region || '',
-            postal_code: foundOrder.billing_address.postal_code || ''
-          })
-        }
-        
+        // Set addresses - Nueva estructura con shipping_address como JSON
         if (foundOrder.shipping_address) {
-          setShippingAddress({
-            address_line1: foundOrder.shipping_address.address_line1 || '',
-            address_line2: foundOrder.shipping_address.address_line2 || '',
-            city: foundOrder.shipping_address.city || '',
-            region: foundOrder.shipping_address.region || '',
-            postal_code: foundOrder.shipping_address.postal_code || ''
-          })
+          console.log('Shipping address data:', foundOrder.shipping_address)
+          
+          // El shipping_address ahora contiene toda la información como JSON
+          const addressData = foundOrder.shipping_address as any
+          
+          // Extraer billing address si existe
+          if (addressData.billing) {
+            setBillingAddress({
+              address_line1: addressData.billing.address_line1 || '',
+              address_line2: addressData.billing.address_line2 || '',
+              city: addressData.billing.city || '',
+              region: addressData.billing.region || '',
+              postal_code: addressData.billing.postal_code || ''
+            })
+          }
+          
+          // Extraer shipping address
+          if (addressData.shipping) {
+            setShippingAddress({
+              address_line1: addressData.shipping.address_line1 || '',
+              address_line2: addressData.shipping.address_line2 || '',
+              city: addressData.shipping.city || '',
+              region: addressData.shipping.region || '',
+              postal_code: addressData.shipping.postal_code || ''
+            })
+          } else {
+            // Fallback: si no hay estructura nueva, usar datos directos (compatibilidad)
+            setShippingAddress({
+              address_line1: addressData.address_line1 || '',
+              address_line2: addressData.address_line2 || '',
+              city: addressData.city || '',
+              region: addressData.region || '',
+              postal_code: addressData.postal_code || ''
+            })
+          }
         }
       } else {
         setError('Pedido no encontrado')
@@ -170,12 +189,18 @@ export default function AdminOrderEdit() {
         }
       }
       
-      // TODO: Update addresses - would need new admin service methods
-      console.log('Billing address:', billingAddress)
-      console.log('Shipping address:', shippingAddress)
-      
-      alert('Pedido y cliente actualizados correctamente')
-      router.push(`/admin/orders/${order.id}`)
+      // Actualizar direcciones de envío y facturación
+      const addressUpdateSuccess = await AdminService.updateOrderAddresses(order.id, {
+        shipping: shippingAddress,
+        billing: billingAddress
+      });
+      if (!addressUpdateSuccess) {
+        alert('Error al actualizar las direcciones del pedido');
+        return;
+      }
+
+      alert('Pedido, cliente y direcciones actualizados correctamente');
+      router.push(`/admin/orders/${order.id}`);
       
     } catch (err) {
       console.error('Error saving order:', err)

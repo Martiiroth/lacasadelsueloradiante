@@ -39,7 +39,29 @@ fi
 if [ ! -f .env.production ]; then
     print_error "Archivo .env.production no encontrado."
     print_warning "Copia .env.production.example a .env.production y completa los valores."
+    cp .env.production.example .env.production
+    print_warning "Archivo .env.production creado. Edítalo antes de continuar."
     exit 1
+fi
+
+# Verificar certificados SSL
+if [ ! -d "nginx/ssl" ]; then
+    print_status "Creando directorio nginx/ssl..."
+    mkdir -p nginx/ssl
+fi
+
+if [ ! -f "nginx/ssl/cert.pem" ] || [ ! -f "nginx/ssl/key.pem" ]; then
+    print_warning "Certificados SSL no encontrados."
+    print_status "Generando certificados auto-firmados para testing..."
+    openssl req -x509 -newkey rsa:4096 -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem -days 365 -nodes \
+        -subj "/C=ES/ST=Madrid/L=Madrid/O=La Casa del Suelo Radiante/CN=lacasadelsueloradianteapp.com"
+    print_warning "ADVERTENCIA: Certificados auto-firmados. Para producción usa Let's Encrypt."
+fi
+
+# Verificar variables críticas
+print_status "Verificando variables de entorno críticas..."
+if ! grep -q "EMAIL_USER=" .env.production || ! grep -q "EMAIL_PASSWORD=" .env.production; then
+    print_warning "Variables de email no configuradas. El sistema de notificaciones no funcionará."
 fi
 
 # Construir y desplegar

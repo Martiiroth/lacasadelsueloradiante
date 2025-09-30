@@ -5,6 +5,8 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useAuth } from '../../../contexts/AuthContext'
+import { useHydration } from '../../../hooks/useHydration'
+import { LoadingState } from '../../../components/ui/LoadingState'
 import { OrderService } from '../../../lib/orders'
 import type { Order } from '../../../types/checkout'
 
@@ -14,12 +16,15 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
+  const isHydrated = useHydration()
 
   useEffect(() => {
+    if (!isHydrated) return
     if (user && id) {
       loadOrder(id as string)
     }
-  }, [user, id])
+  }, [user, id, isHydrated, retryCount])
 
   const loadOrder = async (orderId: string) => {
     try {
@@ -28,12 +33,18 @@ export default function OrderDetailPage() {
       
       if (orderData) {
         setOrder(orderData)
+        setRetryCount(0)
       } else {
         setError('Pedido no encontrado')
       }
     } catch (err) {
       console.error('Error loading order:', err)
       setError('Error al cargar el pedido')
+      if (retryCount < 3) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1)
+        }, 1000 * Math.pow(2, retryCount))
+      }
     } finally {
       setLoading(false)
     }
@@ -107,11 +118,11 @@ export default function OrderDetailPage() {
     )
   }
 
-  if (loading) {
+  if (!isHydrated || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse">
+      <LoadingState>
+        <div className="min-h-screen bg-gray-50 py-12">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
             <div className="bg-white rounded-lg shadow-sm border p-6">
               <div className="space-y-4">
@@ -122,7 +133,7 @@ export default function OrderDetailPage() {
             </div>
           </div>
         </div>
-      </div>
+      </LoadingState>
     )
   }
 

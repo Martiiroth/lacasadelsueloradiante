@@ -224,6 +224,20 @@ export default function RegisterForm({ onToggleMode, onClose }: RegisterFormProp
             />
           </div>
 
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Dirección adicional
+            </label>
+            <input
+              type="text"
+              name="address_line2"
+              value={formData.address_line2 || ''}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Piso, puerta, etc."
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

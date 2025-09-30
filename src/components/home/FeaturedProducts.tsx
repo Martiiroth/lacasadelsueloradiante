@@ -383,7 +383,7 @@ export default function FeaturedProducts({
                     <div className="flex flex-wrap gap-2">
                       {searchTerm && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          "{searchTerm}"
+                          &quot;{searchTerm}&quot;
                           <button
                             onClick={() => setSearchTerm('')}
                             className="ml-1 text-green-600 hover:text-green-800"

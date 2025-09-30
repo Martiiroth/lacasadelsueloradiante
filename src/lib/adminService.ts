@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'
+import EmailService from './emailService'
 import { config } from 'dotenv'
 import path from 'path'
 
@@ -83,6 +84,36 @@ import type {
 } from '../types/admin'
 
 export class AdminService {
+  /**
+   * Actualiza las direcciones de envío y facturación de un pedido
+   */
+  static async updateOrderAddresses(orderId: string, addresses: {
+    shipping?: any,
+    billing?: any
+  }): Promise<boolean> {
+    try {
+      // Guardar cada dirección en su campo correspondiente
+      const updateObj: any = {};
+      if (addresses.shipping) {
+        updateObj.shipping_address = addresses.shipping;
+      }
+      if (addresses.billing) {
+        updateObj.billing_address = addresses.billing;
+      }
+      const { error } = await supabase
+        .from('orders')
+        .update(updateObj)
+        .eq('id', orderId);
+      if (error) {
+        console.error('Error actualizando direcciones del pedido:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Error en updateOrderAddresses:', err);
+      return false;
+    }
+  }
   // === ESTADÍSTICAS GENERALES ===
   
   static async getAdminStats(): Promise<AdminStats> {
@@ -281,6 +312,49 @@ export class AdminService {
     } catch (error) {
       console.error('Error in updateClient:', error)
       return false
+    }
+  }
+
+  // Método específico para actualizar el rol de un cliente
+  static async updateClientRole(clientId: string, roleId: number): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          role_id: roleId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', clientId)
+
+      if (error) {
+        console.error('Error updating client role:', error)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error in updateClientRole:', error)
+      return false
+    }
+  }
+
+  // Obtener todos los roles disponibles
+  static async getAllRoles(): Promise<{ id: number; name: string; description?: string }[]> {
+    try {
+      const { data, error } = await supabase
+        .from('customer_roles')
+        .select('id, name, description')
+        .order('id', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching roles:', error)
+        return []
+      }
+
+      return data || []
+    } catch (error) {
+      console.error('Error in getAllRoles:', error)
+      return []
     }
   }
 
@@ -512,6 +586,66 @@ export class AdminService {
     }
   }
 
+  static async getOrderById(orderId: string): Promise<AdminOrder | null> {
+    try {
+      console.log('AdminService.getOrderById - Buscando pedido:', orderId)
+      
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          client:clients (
+            id,
+            first_name,
+            last_name,
+            email,
+            phone,
+            nif_cif,
+            company_name,
+            company_position,
+            activity,
+            address_line1,
+            address_line2,
+            city,
+            region,
+            postal_code
+          ),
+          order_items (
+            id,
+            qty,
+            price_cents,
+            variant:product_variants (
+              id,
+              title,
+              product:products (
+                title
+              )
+            )
+          ),
+          invoice:invoices (
+            id,
+            invoice_number,
+            prefix,
+            suffix,
+            status
+          )
+        `)
+        .eq('id', orderId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching order by ID:', error)
+        return null
+      }
+
+      console.log('AdminService.getOrderById - Pedido obtenido:', data)
+      return data as AdminOrder
+    } catch (error) {
+      console.error('Error in getOrderById:', error)
+      return null
+    }
+  }
+
   static async updateOrderStatus(orderId: string, data: UpdateOrderStatusData): Promise<boolean> {
     try {
       const { error } = await supabase
@@ -527,6 +661,87 @@ export class AdminService {
         return false
       }
 
+      // Enviar notificación por email después de actualizar exitosamente
+      try {
+        const orderDetails = await this.getOrderById(orderId)
+        if (orderDetails) {
+          console.log('Enviando notificación de cambio de estado por email...')
+          
+          // Preparar datos para el email
+          const clientName = orderDetails.client ? 
+            `${orderDetails.client.first_name} ${orderDetails.client.last_name}`.trim() : 
+            'Cliente'
+          
+          // Construir dirección de envío
+          let shippingAddress = undefined;
+          if (orderDetails.shipping_address) {
+            if (typeof orderDetails.shipping_address === 'string') {
+              try {
+                const parsed = JSON.parse(orderDetails.shipping_address);
+                shippingAddress = parsed.shipping || parsed;
+              } catch {
+                shippingAddress = orderDetails.shipping_address;
+              }
+            } else if (typeof orderDetails.shipping_address === 'object') {
+              shippingAddress = orderDetails.shipping_address.shipping || orderDetails.shipping_address;
+            } else {
+              shippingAddress = orderDetails.shipping_address;
+            }
+          }
+
+          // Construir dirección de facturación solo si existe
+          let billingAddress = undefined;
+          if (orderDetails.billing_address) {
+            billingAddress = typeof orderDetails.billing_address === 'string'
+              ? orderDetails.billing_address
+              : JSON.stringify(orderDetails.billing_address, null, 2);
+          }
+
+          // Obtener todos los datos del cliente para clientInfo
+          let clientInfo = undefined
+          if (orderDetails.client_id) {
+            const { data: clientFull } = await supabase
+              .from('clients')
+              .select('first_name, last_name, email, phone, company_name, nif_cif, address_line1, address_line2, city, region, postal_code')
+              .eq('id', orderDetails.client_id)
+              .single()
+            if (clientFull) {
+              clientInfo = clientFull
+            }
+          }
+
+          const emailData = {
+            orderId: orderDetails.id,
+            orderNumber: orderDetails.id, // Usar ID como número de pedido
+            status: data.status,
+            clientName,
+            clientEmail: orderDetails.client?.email || '',
+            items: orderDetails.order_items?.map(item => ({
+              title: item.variant?.product?.title || 'Producto',
+              quantity: item.qty,
+              price: (item.price_cents || 0) / 100
+            })) || [],
+            total: (orderDetails.total_cents || 0) / 100,
+            createdAt: orderDetails.created_at,
+            shippingAddress,
+            billingAddress,
+            clientInfo
+          }
+
+          // Enviar notificación
+          const emailSent = await EmailService.sendOrderStatusNotification(emailData)
+          
+          if (emailSent) {
+            console.log(`✅ Notificación enviada para pedido #${orderDetails.id}`)
+          } else {
+            console.log(`⚠️ No se pudo enviar la notificación para pedido #${orderDetails.id}`)
+          }
+        }
+      } catch (emailError) {
+        console.error('Error enviando notificación por email:', emailError)
+        // No fallar la operación si el email falla
+      }
+
       return true
     } catch (error) {
       console.error('Error in updateOrderStatus:', error)
@@ -534,20 +749,98 @@ export class AdminService {
     }
   }
 
+  static async cancelOrder(orderId: string): Promise<boolean> {
+    try {
+      // First, get order items to restore stock
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('variant_id, qty')
+        .eq('order_id', orderId)
+
+      if (itemsError) {
+        console.error('Error fetching order items for cancellation:', itemsError)
+        return false
+      }
+
+      // Restore stock for each variant
+      if (orderItems && orderItems.length > 0) {
+        const stockRestorePromises = orderItems
+          .filter(item => item.variant_id) // Only restore if variant_id exists
+          .map(async (item) => {
+            return await this.updateVariantStock(item.variant_id, item.qty) // Add back the quantity
+          })
+
+        const restoreResults = await Promise.all(stockRestorePromises)
+        
+        // Log restoration results
+        restoreResults.forEach((result, index) => {
+          const item = orderItems.filter(i => i.variant_id)[index]
+          if (result.success) {
+            console.log(`Stock restored for variant ${item.variant_id}: ${result.old_stock} -> ${result.new_stock} (+${item.qty})`)
+          } else {
+            console.error(`Failed to restore stock for variant ${item.variant_id}:`, result.error)
+          }
+        })
+      }
+
+      // Update order status to cancelled instead of deleting
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+
+      if (updateError) {
+        console.error('Error updating order status to cancelled:', updateError)
+        return false
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error in cancelOrder:', error)
+      return false
+    }
+  }
+
   static async deleteOrder(orderId: string): Promise<boolean> {
     try {
-      // First delete order items
-      const { error: itemsError } = await supabase
+      // First, get order items to restore stock before deletion
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('variant_id, qty')
+        .eq('order_id', orderId)
+
+      if (itemsError) {
+        console.error('Error fetching order items for deletion:', itemsError)
+        return false
+      }
+
+      // Restore stock for each variant before deleting
+      if (orderItems && orderItems.length > 0) {
+        const stockRestorePromises = orderItems
+          .filter(item => item.variant_id) // Only restore if variant_id exists
+          .map(async (item) => {
+            return await this.updateVariantStock(item.variant_id, item.qty) // Add back the quantity
+          })
+
+        await Promise.all(stockRestorePromises)
+        console.log('Stock restored before order deletion')
+      }
+
+      // Delete order items
+      const { error: deleteItemsError } = await supabase
         .from('order_items')
         .delete()
         .eq('order_id', orderId)
 
-      if (itemsError) {
-        console.error('Error deleting order items:', itemsError)
+      if (deleteItemsError) {
+        console.error('Error deleting order items:', deleteItemsError)
         return false
       }
 
-      // Then delete invoice if exists
+      // Delete invoice if exists
       const { error: invoiceError } = await supabase
         .from('invoices')
         .delete()
@@ -580,61 +873,329 @@ export class AdminService {
     client_id: string
     status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
     total_cents: number
-    billing_address: any
     shipping_address: any
     items: Array<{
+      product_id?: string
+      variant_id?: string
       product_title: string
+      variant_title?: string
       qty: number
       price_cents: number
     }>
   }): Promise<string | null> {
     try {
-      // Create the order
+      console.log('AdminService.createOrder - Iniciando con datos:', orderData)
+      // Validate stock availability before creating the order
+      const stockValidation = await this.validateOrderStock(orderData.items)
+      
+      if (!stockValidation.valid) {
+        console.warn('Order creation with stock issues:', stockValidation.issues)
+        // Log the issues but continue with the order creation (business decision)
+        stockValidation.issues.forEach(issue => {
+          console.warn(`Stock issue - ${issue.product_title}: ${issue.issue}`)
+        })
+      }
+
+      // Create the order - Solo campos que existen en el esquema de DB
+      const orderInsert: any = {
+        client_id: orderData.client_id,
+        status: orderData.status,
+        total_cents: orderData.total_cents,
+        shipping_address: orderData.shipping_address
+        // created_at y updated_at tienen DEFAULT now() en la DB
+      }
+
+      console.log('AdminService.createOrder - Insertando order:', orderInsert)
+      
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          client_id: orderData.client_id,
-          status: orderData.status,
-          total_cents: orderData.total_cents,
-          billing_address: orderData.billing_address,
-          shipping_address: orderData.shipping_address,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .insert(orderInsert)
         .select()
         .single()
 
       if (orderError || !order) {
         console.error('Error creating order:', orderError)
-        return null
+        console.error('Order data that failed:', orderInsert)
+        throw new Error(`Error en base de datos al crear pedido: ${orderError?.message || 'Respuesta vacía'}`)
       }
+      
+      console.log('AdminService.createOrder - Order creado exitosamente:', order.id)
 
-      // Create order items
+      // Create order items and update stock - Solo campos que existen en el esquema
       const orderItems = orderData.items.map(item => ({
         order_id: order.id,
+        variant_id: item.variant_id || null, // Use real variant_id if available
         qty: item.qty,
-        price_cents: item.price_cents,
-        // Note: In a real implementation, you'd need to handle product variants
-        // For now, we'll store the product title in a way that works
-        variant_id: null,
-        created_at: new Date().toISOString()
+        price_cents: item.price_cents
       }))
 
+      console.log('AdminService.createOrder - Insertando order items:', orderItems)
+      
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItems)
 
       if (itemsError) {
         console.error('Error creating order items:', itemsError)
+        console.error('Order items data that failed:', orderItems)
         // Rollback - delete the order
         await supabase.from('orders').delete().eq('id', order.id)
-        return null
+        throw new Error(`Error en base de datos al crear items del pedido: ${itemsError.message}`)
+      }
+      
+      console.log('AdminService.createOrder - Order items creados exitosamente')
+
+      // Update stock for each variant
+      const stockUpdatePromises = orderData.items
+        .filter(item => item.variant_id) // Only update if variant_id exists
+        .map(async (item) => {
+          // Check stock availability first
+          const stockCheck = await this.checkVariantStock(item.variant_id!, item.qty)
+          
+          if (!stockCheck.available) {
+            console.warn(`Insufficient stock for variant ${item.variant_id}. Available: ${stockCheck.current_stock}, Requested: ${item.qty}`)
+            // Continue with the order but log the warning
+          }
+
+          // Update stock (subtract the quantity)
+          const stockUpdate = await this.updateVariantStock(item.variant_id!, -item.qty)
+          
+          return {
+            ...stockUpdate,
+            variant_id: item.variant_id,
+            qty_ordered: item.qty,
+            stock_check: stockCheck
+          }
+        })
+
+      // Wait for all stock updates to complete
+      const stockUpdateResults = await Promise.all(stockUpdatePromises)
+      
+      // Log stock update results
+      stockUpdateResults.forEach(result => {
+        if (result.success) {
+          console.log(`Stock updated for variant ${result.variant_id}: ${result.old_stock} -> ${result.new_stock} (-${result.qty_ordered})`)
+          if (!result.stock_check.available) {
+            console.warn(`Warning: Order created with insufficient stock for variant ${result.variant_id}`)
+          }
+        } else {
+          console.error(`Failed to update stock for variant ${result.variant_id}:`, result.error)
+        }
+      })
+
+      // Check if any stock updates failed
+      const failedUpdates = stockUpdateResults.filter(result => !result.success)
+      if (failedUpdates.length > 0) {
+        console.warn(`${failedUpdates.length} stock updates failed, but order was created successfully`)
+      }
+
+      // Enviar notificación por email de nuevo pedido
+      try {
+        console.log('Enviando notificación de nuevo pedido por email...')
+        
+        // Obtener detalles del cliente para el email
+        let clientData = null
+        let clientName = 'Cliente'
+        
+        if (orderData.client_id) {
+          const { data: client } = await supabase
+            .from('clients')
+            .select('first_name, last_name, email')
+            .eq('id', orderData.client_id)
+            .single()
+          
+          if (client) {
+            clientData = client
+            clientName = `${client.first_name} ${client.last_name}`.trim()
+          }
+        }
+        
+        const emailData = {
+          orderId: order.id,
+          orderNumber: order.id, // Usar ID como número de pedido
+          status: 'pending', // Nuevo pedido siempre es pending
+          clientName,
+          clientEmail: clientData?.email || '',
+          items: orderData.items.map(item => ({
+            title: 'Producto', // Necesitaríamos hacer una consulta adicional para obtener el título
+            quantity: item.qty,
+            price: item.price_cents / 100
+          })),
+          total: orderData.items.reduce((sum, item) => sum + (item.price_cents * item.qty), 0) / 100,
+          createdAt: order.created_at,
+          shippingAddress: typeof orderData.shipping_address === 'string' 
+            ? orderData.shipping_address 
+            : JSON.stringify(orderData.shipping_address, null, 2)
+        }
+
+        // Enviar notificación de nuevo pedido
+        const emailSent = await EmailService.sendNewOrderNotification(emailData)
+        
+        if (emailSent) {
+          console.log(`✅ Notificación de nuevo pedido enviada para #${order.id}`)
+        } else {
+          console.log(`⚠️ No se pudo enviar la notificación de nuevo pedido #${order.id}`)
+        }
+      } catch (emailError) {
+        console.error('Error enviando notificación de nuevo pedido por email:', emailError)
+        // No fallar la operación si el email falla
       }
 
       return order.id
     } catch (error) {
       console.error('Error in createOrder:', error)
       return null
+    }
+  }
+
+  // === GESTIÓN DE STOCK ===
+  
+  static async updateVariantStock(variantId: string, quantityChange: number): Promise<{ success: boolean; old_stock?: number; new_stock?: number; error?: any }> {
+    try {
+      // Get current stock
+      const { data: currentVariant, error: fetchError } = await supabase
+        .from('product_variants')
+        .select('stock')
+        .eq('id', variantId)
+        .single()
+
+      if (fetchError) {
+        console.error(`Error fetching current stock for variant ${variantId}:`, fetchError)
+        return { success: false, error: fetchError }
+      }
+
+      // Calculate new stock
+      const newStock = Math.max(0, currentVariant.stock + quantityChange) // Prevent negative stock
+      
+      // Update stock
+      const { error: updateError } = await supabase
+        .from('product_variants')
+        .update({ 
+          stock: newStock,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', variantId)
+
+      if (updateError) {
+        console.error(`Error updating stock for variant ${variantId}:`, updateError)
+        return { success: false, error: updateError }
+      }
+
+      return { 
+        success: true, 
+        old_stock: currentVariant.stock, 
+        new_stock: newStock 
+      }
+    } catch (error) {
+      console.error(`Unexpected error updating stock for variant ${variantId}:`, error)
+      return { success: false, error }
+    }
+  }
+
+  static async checkVariantStock(variantId: string, requiredQuantity: number): Promise<{ available: boolean; current_stock: number; error?: any }> {
+    try {
+      const { data: variant, error } = await supabase
+        .from('product_variants')
+        .select('stock')
+        .eq('id', variantId)
+        .single()
+
+      if (error) {
+        return { available: false, current_stock: 0, error }
+      }
+
+      return {
+        available: variant.stock >= requiredQuantity,
+        current_stock: variant.stock
+      }
+    } catch (error) {
+      return { available: false, current_stock: 0, error }
+    }
+  }
+
+  static async validateOrderStock(items: Array<{ variant_id?: string; qty: number; product_title: string }>): Promise<{
+    valid: boolean;
+    issues: Array<{
+      product_title: string;
+      variant_id?: string;
+      requested: number;
+      available: number;
+      issue: string;
+    }>;
+  }> {
+    const issues: Array<{
+      product_title: string;
+      variant_id?: string;
+      requested: number;
+      available: number;
+      issue: string;
+    }> = []
+
+    const stockChecks = await Promise.all(
+      items
+        .filter(item => item.variant_id) // Only check items with variant_id
+        .map(async (item) => {
+          const stockCheck = await this.checkVariantStock(item.variant_id!, item.qty)
+          
+          if (!stockCheck.available) {
+            issues.push({
+              product_title: item.product_title,
+              variant_id: item.variant_id,
+              requested: item.qty,
+              available: stockCheck.current_stock,
+              issue: stockCheck.current_stock === 0 
+                ? 'Sin stock disponible'
+                : `Stock insuficiente (disponible: ${stockCheck.current_stock})`
+            })
+          }
+
+          return stockCheck
+        })
+    )
+
+    return {
+      valid: issues.length === 0,
+      issues
+    }
+  }
+
+  static async getStockReport(): Promise<Array<{
+    variant_id: string;
+    product_title: string;
+    variant_title: string;
+    stock: number;
+    status: 'in_stock' | 'low_stock' | 'out_of_stock';
+  }>> {
+    try {
+      const { data, error } = await supabase
+        .from('product_variants')
+        .select(`
+          id,
+          title,
+          stock,
+          products (
+            title
+          )
+        `)
+        .order('stock', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching stock report:', error)
+        return []
+      }
+
+      return (data || []).map((variant: any) => ({
+        variant_id: variant.id,
+        product_title: variant.products?.title || 'Producto sin título',
+        variant_title: variant.title || 'Variante estándar',
+        stock: variant.stock || 0,
+        status: variant.stock === 0 ? 'out_of_stock' 
+              : variant.stock <= 5 ? 'low_stock' 
+              : 'in_stock'
+      }))
+    } catch (error) {
+      console.error('Error in getStockReport:', error)
+      return []
     }
   }
 

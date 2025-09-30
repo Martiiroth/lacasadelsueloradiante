@@ -30,7 +30,7 @@ export default function ShippingForm({
     country: initialData.country || 'España'
   })
 
-  const [errors, setErrors] = useState<Partial<ShippingAddress>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof ShippingAddress, string>>>({})
 
   const handleInputChange = (field: keyof ShippingAddress, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -42,31 +42,31 @@ export default function ShippingForm({
   }
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<ShippingAddress> = {}
+    const newErrors: Partial<Record<keyof ShippingAddress, string>> = {}
 
-    if (!formData.first_name.trim()) {
+    if (!formData.first_name?.trim()) {
       newErrors.first_name = 'El nombre es obligatorio'
     }
-    if (!formData.last_name.trim()) {
+    if (!formData.last_name?.trim()) {
       newErrors.last_name = 'Los apellidos son obligatorios'
     }
-    if (!formData.email.trim()) {
+    if (!formData.email?.trim()) {
       newErrors.email = 'El email es obligatorio'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'El email no es válido'
     }
-    if (!formData.address_line1.trim()) {
+    if (!formData.address_line1?.trim()) {
       newErrors.address_line1 = 'La dirección es obligatoria'
     }
-    if (!formData.city.trim()) {
+    if (!formData.city?.trim()) {
       newErrors.city = 'La ciudad es obligatoria'
     }
-    if (!formData.region.trim()) {
+    if (!formData.region?.trim()) {
       newErrors.region = 'La provincia es obligatoria'
     }
-    if (!formData.postal_code.trim()) {
+    if (!formData.postal_code?.trim()) {
       newErrors.postal_code = 'El código postal es obligatorio'
-    } else if (!/^\d{5}$/.test(formData.postal_code)) {
+    } else if (formData.postal_code && !/^\d{5}$/.test(formData.postal_code)) {
       newErrors.postal_code = 'El código postal debe tener 5 dígitos'
     }
 
@@ -98,7 +98,7 @@ export default function ShippingForm({
               <input
                 type="text"
                 id="first_name"
-                value={formData.first_name}
+                value={formData.first_name || ''}
                 onChange={(e) => handleInputChange('first_name', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.first_name ? 'border-red-300' : 'border-gray-300'
@@ -117,7 +117,7 @@ export default function ShippingForm({
               <input
                 type="text"
                 id="last_name"
-                value={formData.last_name}
+                value={formData.last_name || ''}
                 onChange={(e) => handleInputChange('last_name', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.last_name ? 'border-red-300' : 'border-gray-300'
@@ -138,7 +138,7 @@ export default function ShippingForm({
               <input
                 type="email"
                 id="email"
-                value={formData.email}
+                value={formData.email || ''}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.email ? 'border-red-300' : 'border-gray-300'
@@ -157,7 +157,7 @@ export default function ShippingForm({
               <input
                 type="tel"
                 id="phone"
-                value={formData.phone}
+                value={formData.phone || ''}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 disabled={isLoading}
@@ -173,7 +173,7 @@ export default function ShippingForm({
             <input
               type="text"
               id="company_name"
-              value={formData.company_name}
+              value={formData.company_name || ''}
               onChange={(e) => handleInputChange('company_name', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               disabled={isLoading}
@@ -188,7 +188,7 @@ export default function ShippingForm({
             <input
               type="text"
               id="address_line1"
-              value={formData.address_line1}
+              value={formData.address_line1 || ''}
               onChange={(e) => handleInputChange('address_line1', e.target.value)}
               placeholder="Calle, número"
               className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
@@ -208,7 +208,7 @@ export default function ShippingForm({
             <input
               type="text"
               id="address_line2"
-              value={formData.address_line2}
+              value={formData.address_line2 || ''}
               onChange={(e) => handleInputChange('address_line2', e.target.value)}
               placeholder="Piso, puerta, etc."
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -224,7 +224,7 @@ export default function ShippingForm({
               <input
                 type="text"
                 id="city"
-                value={formData.city}
+                value={formData.city || ''}
                 onChange={(e) => handleInputChange('city', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.city ? 'border-red-300' : 'border-gray-300'
@@ -243,7 +243,7 @@ export default function ShippingForm({
               <input
                 type="text"
                 id="region"
-                value={formData.region}
+                value={formData.region || ''}
                 onChange={(e) => handleInputChange('region', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.region ? 'border-red-300' : 'border-gray-300'
@@ -262,7 +262,7 @@ export default function ShippingForm({
               <input
                 type="text"
                 id="postal_code"
-                value={formData.postal_code}
+                value={formData.postal_code || ''}
                 onChange={(e) => handleInputChange('postal_code', e.target.value)}
                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.postal_code ? 'border-red-300' : 'border-gray-300'

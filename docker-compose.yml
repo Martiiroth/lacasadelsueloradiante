@@ -1,23 +1,7 @@
 version: '3.8'
 
 services:
-  # Base de datos PostgreSQL
-  postgres:
-    image: postgres:15-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: lacasadelsueloradiante
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432:5432"
-    networks:
-      - app-network
-
-  # Aplicación Next.js
+  # Aplicación Next.js - Solo con Supabase
   nextjs-app:
     build:
       context: .
@@ -36,7 +20,6 @@ services:
         - NEXTAUTH_URL=${NEXTAUTH_URL}
         - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
         - DATABASE_URL=${DATABASE_URL}
-        - DATABASE_PASSWORD=${DATABASE_PASSWORD}
         - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
         - BUSINESS_NAME=${BUSINESS_NAME}
@@ -57,8 +40,6 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     ports:
       - "3000:3000"
-    depends_on:
-      - postgres
     networks:
       - app-network
 
@@ -76,9 +57,6 @@ services:
       - nextjs-app
     networks:
       - app-network
-
-volumes:
-  postgres_data:
 
 networks:
   app-network:

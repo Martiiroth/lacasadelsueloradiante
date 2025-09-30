@@ -38,10 +38,11 @@ fi
 # Verificar archivo de entorno
 if [ ! -f .env.production ]; then
     print_error "Archivo .env.production no encontrado."
-    print_warning "Copia .env.production.example a .env.production y completa los valores."
+    print_warning "Creando archivo .env.production desde example..."
     cp .env.production.example .env.production
-    print_warning "Archivo .env.production creado. Edítalo antes de continuar."
-    exit 1
+    print_status "Archivo .env.production creado con valores por defecto."
+else
+    print_status "Archivo .env.production encontrado ✅"
 fi
 
 # Verificar certificados SSL

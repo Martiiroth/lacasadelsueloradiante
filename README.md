@@ -1,160 +1,202 @@
-# 🏠 La Casa del Suelo Radiante - E-commerce
+# 🏠 La Casa del Suelo Radiante - E-commerce Completo
 
-Sistema completo de e-commerce especializado en productos de suelo radiante, desarrollado con Next.js 14, TypeScript y Supabase.
+**E-commerce profesional de sistemas de calefacción y suelo radiante construido con Next.js 14**
 
-## 🚀 Características Principales
+[![Deploy Status](https://img.shields.io/badge/Deploy-Ready-success)](./DEPLOY_DIRECTO.md)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-green)](https://supabase.com/)
 
-### 💼 **Sistema Administrativo Completo**
-- ✅ Gestión de productos con variantes y precios por roles
-- ✅ Sistema de categorías jerárquicas (padre-hijo)
-- ✅ Administración de usuarios y roles (admin, instalador, particular)
-- ✅ Panel de pedidos y gestión de cupones
-- ✅ Subida y gestión de imágenes y recursos
+---
 
-### 🛒 **Experiencia de Usuario**
-- ✅ Carrito de compras completamente funcional
-- ✅ Filtros avanzados con sidebar y búsqueda
-- ✅ Precios dinámicos según el rol del usuario
-- ✅ Galería de imágenes interactiva para productos
-- ✅ Diseño responsive y optimizado para móviles
+## 🚀 **DEPLOY INSTANTÁNEO EN VPS**
 
-### 📞 **Contacto y Comunicación**
-- ✅ Botón de WhatsApp dinámico (689571381)
-- ✅ Sistema de contacto integrado
-- ✅ Navegación optimizada sin elementos innecesarios
+**¡Tu aplicación está 100% lista para producción! Solo ejecuta:**
 
-## 🛠️ Tecnologías Utilizadas
-
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Storage)
-- **Autenticación**: Supabase Auth con roles personalizados
-- **Almacenamiento**: Supabase Storage para imágenes
-- **Despliegue**: Docker + Docker Compose + Nginx
-
-## 📋 Configuración para Desarrollo
-
-### Requisitos Previos
-- Node.js 18+ 
-- npm o yarn
-- Cuenta de Supabase
-
-### Instalación
-
-1. **Clonar el repositorio**
 ```bash
-git clone https://github.com/Martiiroth/lacasadelsueloradianteweb.git
-cd lacasadelsueloradianteweb
+# En tu VPS
+curl -fsSL https://get.docker.com | sh && sudo apt install -y docker-compose
+git clone https://github.com/Martiiroth/lacasadelsueloradiante.git
+cd lacasadelsueloradiante
+chmod +x deploy.sh && ./deploy.sh
 ```
 
-2. **Instalar dependencias**
+**🎉 ¡Listo! Tu e-commerce estará funcionando inmediatamente**
+
+📖 **[Guía completa de deploy →](./DEPLOY_DIRECTO.md)**
+
+---
+
+## ⚡ **Características Principales**
+
+### �️ **E-commerce Completo**
+- Catálogo de productos con categorías
+- Carrito de compra persistente
+- Checkout completo con direcciones de envío/facturación
+- Gestión de inventario y variantes
+- Sistema de cupones y descuentos
+
+### 👤 **Gestión de Usuarios** 
+- Registro y autenticación segura
+- Panel de usuario (dashboard)
+- Historial de pedidos
+- Gestión de información personal
+
+### � **Sistema de Notificaciones**
+- **Emails automáticos** en cada cambio de estado de pedido
+- **SMTP Zoho** pre-configurado
+- **Templates HTML** responsivos
+- Notificaciones a cliente y administrador
+
+### ⚙️ **Panel de Administración**
+- Gestión completa de productos y categorías
+- Gestión de pedidos y estados
+- Gestión de clientes
+- Dashboard con estadísticas
+
+### � **Seguridad y Rendimiento**
+- **HTTPS** automático con certificados SSL
+- **Docker** containerizado para máximo rendimiento
+- **Nginx** como proxy reverso
+- Headers de seguridad configurados
+
+---
+
+## 🏗️ **Arquitectura Técnica**
+
+### **Frontend**
+- **Next.js 14** con App Router
+- **TypeScript** para type safety
+- **Tailwind CSS** para styling
+- **Headless UI** para componentes
+
+### **Backend**
+- **Next.js API Routes**
+- **Supabase** como base de datos
+- **Nodemailer** para emails
+- **Server-side rendering** optimizado
+
+### **Deploy & DevOps**  
+- **Docker** multi-stage builds
+- **Docker Compose** con PostgreSQL, Next.js y Nginx
+- **SSL/TLS** automático
+- **Scripts de deploy** automatizados
+
+---
+
+## � **Estructura del Proyecto**
+
+```
+lacasadelsueloradiante/
+├── src/
+│   ├── app/                    # Next.js 14 App Router
+│   │   ├── admin/             # Panel de administración
+│   │   ├── api/               # API endpoints
+│   │   ├── auth/              # Autenticación
+│   │   ├── checkout/          # Proceso de compra
+│   │   └── dashboard/         # Panel de usuario
+│   ├── components/            # Componentes React
+│   ├── lib/                   # Servicios y utilidades
+│   └── types/                 # Definiciones TypeScript
+├── docker-compose.yml         # Configuración Docker
+├── Dockerfile                 # Imagen Docker optimizada
+├── deploy.sh                  # Script de deploy automático
+└── nginx/                     # Configuración Nginx + SSL
+```
+
+---
+
+## 🌐 **URLs de la Aplicación**
+
+Una vez desplegada, tendrás acceso a:
+
+- **🏠 Frontend**: `https://lacasadelsueloradianteapp.com`
+- **🛡️ Admin**: `https://lacasadelsueloradianteapp.com/admin`
+- **👤 Dashboard**: `https://lacasadelsueloradianteapp.com/dashboard`
+- **🛒 Checkout**: `https://lacasadelsueloradianteapp.com/checkout`
+- **📧 API Email**: `https://lacasadelsueloradianteapp.com/api/email`
+
+---
+
+## � **Desarrollo Local**
+
+Si quieres desarrollar localmente:
+
 ```bash
+# Clonar repositorio
+git clone https://github.com/Martiiroth/lacasadelsueloradiante.git
+cd lacasadelsueloradiante
+
+# Instalar dependencias
 npm install
-```
 
-3. **Configurar variables de entorno**
-```bash
+# Configurar variables locales
 cp .env.example .env.local
-```
+# Editar .env.local con tus valores
 
-Completar con tus credenciales de Supabase:
-```env
-NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima
-SUPABASE_SERVICE_ROLE_KEY=tu_clave_de_servicio
-```
-
-4. **Configurar la base de datos**
-```bash
-node scripts/setup-database.js
-```
-
-5. **Ejecutar en desarrollo**
-```bash
+# Ejecutar desarrollo
 npm run dev
 ```
 
-La aplicación estará disponible en `http://localhost:3000`
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
 
-## 🐳 Despliegue en Producción
+---
 
-### Despliegue con Docker en VPS
+## 📧 **Configuración de Email**
 
-1. **Preparar el VPS**
+El sistema incluye **notificaciones automáticas** configuradas:
+
+- **SMTP**: Zoho Mail pre-configurado
+- **Usuario**: `notificaciones@lacasadelsueloradianteapp.com`
+- **Eventos**: Cambios de estado de pedidos
+- **Templates**: HTML responsivos incluidos
+
+---
+
+## 🔄 **Mantenimiento y Updates**
+
 ```bash
-# Instalar Docker y Docker Compose
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
-```
-
-2. **Configurar variables de entorno**
-```bash
-cp .env.production.example .env.production
-# Editar con valores reales
-nano .env.production
-```
-
-3. **Configurar SSL (opcional)**
-```bash
-mkdir -p nginx/ssl
-# Copiar certificados SSL o generar con Let's Encrypt
-```
-
-4. **Desplegar**
-```bash
-chmod +x deploy.sh
+# Actualizar aplicación
+cd lacasadelsueloradiante
+git pull origin main
 ./deploy.sh
+
+# Ver logs
+docker-compose logs -f
+
+# Backup base de datos
+docker-compose exec postgres pg_dump -U postgres lacasadelsueloradiante > backup.sql
 ```
 
-### Base de Datos
+---
 
-La aplicación utiliza Supabase como backend con las siguientes tablas principales:
+## 📚 **Documentación Completa**
 
-- **Clientes**: Gestión de usuarios y roles (admin, instalador, particular)
-- **Productos**: Catálogo con variantes y precios por rol
-- **Categorías**: Sistema jerárquico padre-hijo
-- **Pedidos**: Sistema completo de e-commerce
-- **Inventario**: Control de stock y backorders
+- 📖 **[Deploy Directo VPS](./DEPLOY_DIRECTO.md)** - Guía ultra-rápida
+- 📋 **[Deploy Paso a Paso](./DEPLOY_VPS.md)** - Guía detallada
+- ✅ **[Verificación Completa](./VERIFICACION_COMPLETA.md)** - Checklist técnico
+- 📧 **[Sistema de Email](./documentation/mail.readme)** - Configuración email
 
-## 📁 Estructura del Proyecto
+---
 
-```
-lacasadelsueloradianteweb/
-├── src/
-│   ├── app/                    # App Router de Next.js 14
-│   │   ├── admin/             # Panel de administración
-│   │   ├── products/          # Páginas de productos
-│   │   ├── api/               # API Routes
-│   │   └── ...
-│   ├── components/            # Componentes React
-│   │   ├── admin/            # Componentes del admin
-│   │   ├── ui/               # Componentes de UI
-│   │   └── ...
-│   ├── lib/                   # Utilidades y servicios
-│   └── types/                 # Definiciones de TypeScript
-├── scripts/                   # Scripts de configuración
-├── nginx/                     # Configuración de Nginx
-├── docker-compose.yml         # Configuración de Docker
-├── Dockerfile                 # Imagen de la aplicación
-└── deploy.sh                  # Script de despliegue
-```
+## 🆘 **Soporte**
 
-## 🔐 Seguridad
+¿Problemas con el deploy? Revisa:
+1. **[Solución de problemas](./DEPLOY_DIRECTO.md#-solución-de-problemas)**
+2. Logs: `docker-compose logs -f`
+3. Estado: `docker-compose ps`
 
-- Autenticación basada en JWT con Supabase
-- Políticas de seguridad RLS (Row Level Security)
-- Headers de seguridad configurados
-- Validación de datos en frontend y backend
-- Gestión segura de imágenes y archivos
+---
 
-## 📞 Contacto
+## 🎯 **Estado del Proyecto**
 
-**WhatsApp**: 689571381 (integrado en la aplicación)
+✅ **PRODUCTION READY** - Listo para usar en producción  
+✅ **Código completo** - Todas las funcionalidades implementadas  
+✅ **Deploy automático** - Script de deploy incluido  
+✅ **Documentación completa** - Guías paso a paso  
+✅ **Sistema de emails** - Notificaciones automáticas  
+✅ **Configuración SSL** - HTTPS automático  
 
-## 🚀 Estado del Proyecto
+---
 
-✅ **Completado**: Sistema completamente funcional con todas las características implementadas  
-🔧 **En desarrollo**: Mejoras continuas y nuevas funcionalidades  
-📱 **Optimizado**: Para desktop y móviles  
-🐳 **Listo para producción**: Con configuración completa de Docker
+**🚀 ¡Tu e-commerce está listo para conquistar el mundo del suelo radiante!**

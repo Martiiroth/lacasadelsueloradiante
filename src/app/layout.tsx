@@ -11,6 +11,11 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'La Casa del Suelo Radiante',
   description: 'Tu tienda especializada en suelo radiante',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+  },
 }
 
 export default function RootLayout({
@@ -20,12 +25,19 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={inter.className}>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      </head>
+      <body className={`${inter.className} overflow-x-hidden`}>
         <AuthProvider>
           <CartProvider>
-            <Navbar />
-            {children}
-            <WhatsAppButton />
+            <div className="min-h-screen flex flex-col">
+              <Navbar />
+              <main className="flex-1">
+                {children}
+              </main>
+              <WhatsAppButton />
+            </div>
           </CartProvider>
         </AuthProvider>
       </body>

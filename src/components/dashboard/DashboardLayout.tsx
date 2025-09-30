@@ -93,11 +93,30 @@ export default function DashboardLayout({ children, activeSection = 'overview' }
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-4 gap-4 lg:gap-8">
+          {/* Mobile Navigation */}
           <div className="lg:col-span-1">
-            <nav className="space-y-1">
+            {/* Mobile dropdown menu */}
+            <div className="lg:hidden mb-4">
+              <select 
+                value={activeSection}
+                onChange={(e) => {
+                  const item = navItems.find(nav => nav.id === e.target.value)
+                  if (item) window.location.href = item.href
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {navItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:block space-y-1">
               {navItems.map((item) => {
                 const isActive = activeSection === item.id
                 const Icon = item.icon
@@ -126,8 +145,8 @@ export default function DashboardLayout({ children, activeSection = 'overview' }
               })}
             </nav>
 
-            {/* Quick Actions */}
-            <div className="mt-8 p-4 bg-white rounded-lg border border-gray-200">
+            {/* Quick Actions - Hidden on mobile */}
+            <div className="hidden lg:block mt-8 p-4 bg-white rounded-lg border border-gray-200">
               <h3 className="text-sm font-medium text-gray-900 mb-3">Acciones Rápidas</h3>
               <div className="space-y-2">
                 <Link 
@@ -154,7 +173,7 @@ export default function DashboardLayout({ children, activeSection = 'overview' }
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[600px]">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[400px] lg:min-h-[600px] p-4 lg:p-6">
               {children}
             </div>
           </div>

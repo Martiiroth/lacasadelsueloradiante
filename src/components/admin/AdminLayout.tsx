@@ -128,14 +128,14 @@ export default function AdminLayout({ children, activeSection = 'overview' }: Ad
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo/Brand */}
-            <div className="flex items-center">
-              <Link href="/admin" className="flex items-center">
-                <ShieldCheckIcon className="h-8 w-8 text-red-600 mr-3" />
-                <div>
-                  <span className="text-xl font-bold text-gray-900">
-                    Panel de Administración
+            <div className="flex items-center min-w-0 flex-1">
+              <Link href="/admin" className="flex items-center min-w-0">
+                <ShieldCheckIcon className="h-6 w-6 lg:h-8 lg:w-8 text-red-600 mr-2 lg:mr-3 flex-shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-lg lg:text-xl font-bold text-gray-900 truncate block">
+                    Panel Admin
                   </span>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 hidden sm:block truncate">
                     La Casa del Suelo Radiante
                   </div>
                 </div>
@@ -143,16 +143,17 @@ export default function AdminLayout({ children, activeSection = 'overview' }: Ad
             </div>
 
             {/* User Menu */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 lg:space-x-4">
               <Link
                 href="/"
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="hidden sm:block text-sm text-gray-500 hover:text-gray-700 px-2 py-1 rounded"
               >
-                Ver Sitio Web
+                <span className="hidden lg:inline">Ver Sitio Web</span>
+                <span className="lg:hidden">Sitio</span>
               </Link>
-              <div className="text-sm">
+              <div className="hidden md:block text-sm min-w-0">
                 <span className="text-gray-500">Admin:</span>
-                <span className="ml-1 font-medium text-gray-900">
+                <span className="ml-1 font-medium text-gray-900 truncate">
                   {user?.client?.first_name 
                     ? `${user.client.first_name} ${user.client.last_name}` 
                     : user?.email}
@@ -160,21 +161,41 @@ export default function AdminLayout({ children, activeSection = 'overview' }: Ad
               </div>
               <button
                 onClick={handleSignOut}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                className="inline-flex items-center px-2 lg:px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
               >
-                <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
-                Cerrar Sesión
+                <ArrowRightOnRectangleIcon className="h-4 w-4 lg:mr-2" />
+                <span className="hidden lg:inline">Cerrar Sesión</span>
+                <span className="lg:hidden sr-only">Salir</span>
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Sidebar Navigation */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-5 gap-4 lg:gap-8">
+          {/* Mobile Sidebar Navigation */}
           <div className="lg:col-span-1">
-            <nav className="space-y-1">
+            {/* Mobile dropdown menu */}
+            <div className="lg:hidden mb-4">
+              <select 
+                value={activeSection}
+                onChange={(e) => {
+                  const item = navItems.find(nav => nav.id === e.target.value)
+                  if (item) window.location.href = item.href
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                {navItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Desktop sidebar navigation */}
+            <nav className="hidden lg:block space-y-1">
               {navItems.map((item) => {
                 const isActive = activeSection === item.id
                 const Icon = item.icon
@@ -203,8 +224,8 @@ export default function AdminLayout({ children, activeSection = 'overview' }: Ad
               })}
             </nav>
 
-            {/* Quick Stats */}
-            <div className="mt-8 p-4 bg-white rounded-lg border border-gray-200">
+            {/* Quick Stats - Hidden on mobile */}
+            <div className="hidden lg:block mt-8 p-4 bg-white rounded-lg border border-gray-200">
               <h3 className="text-sm font-medium text-gray-900 mb-3">Acceso Rápido</h3>
               <div className="space-y-2">
                 <Link 
@@ -253,7 +274,7 @@ export default function AdminLayout({ children, activeSection = 'overview' }: Ad
 
           {/* Main Content */}
           <div className="lg:col-span-4">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[600px]">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[400px] lg:min-h-[600px] p-4 lg:p-6">
               {children}
             </div>
           </div>

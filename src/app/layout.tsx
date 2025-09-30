@@ -11,11 +11,6 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'La Casa del Suelo Radiante',
   description: 'Tu tienda especializada en suelo radiante',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
 }
 
 export default function RootLayout({
@@ -26,7 +21,17 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @media (max-width: 1023px) {
+              .products-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 1rem !important;
+              }
+            }
+          `
+        }} />
       </head>
       <body className={`${inter.className} overflow-x-hidden`}>
         <AuthProvider>

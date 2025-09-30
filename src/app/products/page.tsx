@@ -222,23 +222,21 @@ export default function ProductsPage() {
           </p>
         </div>
 
-        {/* Layout completamente responsive */}
-        <div className="space-y-6">
-          {/* Filtros móvil - encima de productos */}
-          <div className="lg:hidden">
-            <div className="bg-white rounded-lg shadow-sm border p-4">
-              <button
-                type="button"
-                onClick={() => setFiltersVisible(!filtersVisible)}
-                className="w-full flex items-center justify-between p-3 text-left font-medium text-gray-900 hover:bg-gray-50 rounded-lg transition-colors min-h-[48px]"
-              >
-                <span>Filtros de búsqueda</span>
-                <svg className={`w-5 h-5 transform transition-transform ${filtersVisible ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              
-              <div className={`${filtersVisible ? 'block' : 'hidden'} mt-4`}>
+        {/* Filtros móvil - SIEMPRE ENCIMA */}
+        <div className="lg:hidden mb-6">
+          <div className="bg-white rounded-lg shadow-sm border p-4">
+            <button
+              type="button"
+              onClick={() => setFiltersVisible(!filtersVisible)}
+              className="w-full flex items-center justify-between p-3 text-left font-medium text-gray-900 hover:bg-gray-50 rounded-lg transition-colors min-h-[48px]"
+            >
+              <span>Filtros de búsqueda</span>
+              <svg className={`w-5 h-5 transform transition-transform ${filtersVisible ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            <div className={`${filtersVisible ? 'block' : 'hidden'} mt-4`}>
                 <form onSubmit={handleSearchSubmit} className="space-y-4">
                 {/* Búsqueda por texto */}
                 <div>
@@ -413,10 +411,12 @@ export default function ProductsPage() {
                   </div>
                 )}
               </form>
-              </div>
             </div>
           </div>
+        </div>
 
+        {/* Layout principal responsive */}
+        <div className="lg:flex lg:gap-8">
           {/* Sidebar filtros desktop */}
           <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
             <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
@@ -602,7 +602,7 @@ export default function ProductsPage() {
           {/* Layout principal responsive */}
           <div className="lg:flex lg:gap-8">
             {/* Sidebar filtros desktop */}
-            <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+            <div className="desktop-filters hidden lg:block lg:w-80 lg:flex-shrink-0">
               <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
                 <h3 className="text-lg font-semibold text-gray-900 mb-6">
                   Filtros de búsqueda
@@ -844,7 +844,7 @@ export default function ProductsPage() {
               <LoadingState>
                 <>
                   {/* Grid de productos - Responsive */}
-                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-8">
+                  <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
                     {products.map((product) => (
                       <ProductCard key={product.id} product={product} />
                     ))}

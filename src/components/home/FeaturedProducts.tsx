@@ -81,7 +81,7 @@ interface ProductGridProps {
 function ProductGrid({ products, loading, error, limit, onSaleOnly, onRetry }: ProductGridProps) {
   if (loading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+      <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         {Array.from({ length: limit }).map((_, i) => (
           <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
             <div className="aspect-square bg-gray-200"></div>
@@ -135,7 +135,7 @@ function ProductGrid({ products, loading, error, limit, onSaleOnly, onRetry }: P
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 mb-12">
+      <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-12">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

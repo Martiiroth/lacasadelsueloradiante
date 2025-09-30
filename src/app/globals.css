@@ -170,21 +170,55 @@
   
   /* Mobile grid for products */
   .grid-mobile-products {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.75rem;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 1rem !important;
   }
   
   @media (min-width: 640px) {
     .grid-mobile-products {
-      gap: 1rem;
+      gap: 1.5rem !important;
     }
   }
   
   @media (min-width: 1024px) {
     .grid-mobile-products {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      gap: 2rem !important;
+    }
+  }
+  
+  /* Forced mobile styles for debugging */
+  .products-container {
+    display: block !important;
+    width: 100% !important;
+  }
+  
+  @media screen and (max-width: 1023px) {
+    .mobile-filters {
+      display: block !important;
+    }
+    
+    .desktop-filters {
+      display: none !important;
+    }
+    
+    .products-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+  }
+  
+  @media screen and (min-width: 1024px) {
+    .mobile-filters {
+      display: none !important;
+    }
+    
+    .desktop-filters {
+      display: block !important;
+    }
+    
+    .products-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     }
   }
 }

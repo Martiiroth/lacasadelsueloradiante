@@ -83,7 +83,7 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
               🔥 Productos en Oferta
             </h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+          <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
             {Array.from({ length: limit }).map((_, i) => (
               <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
                 <div className="aspect-square bg-gray-200"></div>
@@ -179,7 +179,7 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
         </div>
 
         {/* Grid de productos en oferta */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8 mb-12">
+        <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-12">
           {products.map((product) => (
             <div key={product.id} className="transform hover:scale-105 transition-transform duration-300">
               <ProductCard product={product} />

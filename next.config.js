@@ -35,12 +35,40 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'supabase.lacasadelsueloradianteapp.com',
         port: '',
-        pathname: '/storage/v1/object/public/**',
+        pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'fqxvjjgdppevlmjxwtjf.supabase.co',
+        port: '',
+        pathname: '/**',
+      },
+      // Permitir localhost para desarrollo
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '',
+        pathname: '/**',
+      },
+      // Permitir más dominios comunes de imágenes
+      {
+        protocol: 'https',
+        hostname: '*.googleapis.com',
+        port: '',
+        pathname: '/**',
+      }
     ],
     // Optimizaciones adicionales
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
   // Compresión

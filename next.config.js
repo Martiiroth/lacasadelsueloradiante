@@ -31,10 +31,10 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
-      // Supabase Storage - Dominio principal del proyecto
+      // Supabase Storage - Dominio correcto del proyecto
       {
         protocol: 'https',
-        hostname: 'lacasadelsueloradianteapp.supabase.co',
+        hostname: 'supabase.lacasadelsueloradianteapp.com',
         port: '',
         pathname: '/storage/v1/object/public/**',
       },

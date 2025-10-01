@@ -6,14 +6,31 @@ let transporter: nodemailer.Transporter | null = null
 
 function getTransporter() {
   if (!transporter) {
+    // Verificar variables de entorno
+    const emailUser = process.env.EMAIL_USER
+    const emailPassword = process.env.EMAIL_PASSWORD
+    
+    console.log('📧 Email config check:')
+    console.log('- EMAIL_USER:', emailUser ? 'SET' : 'MISSING')
+    console.log('- EMAIL_PASSWORD:', emailPassword ? 'SET' : 'MISSING')
+    
+    if (!emailUser || !emailPassword) {
+      console.error('❌ Email credentials missing!')
+      throw new Error('Email credentials not configured')
+    }
+
     transporter = nodemailer.createTransport({
-      host: 'smtppro.zoho.eu',
+      host: 'smtppro.zoho.eu', // Cambiar a .com si es cuenta global
       port: 465,
       secure: true, // SSL
       auth: {
-        user: process.env.EMAIL_USER!,
-        pass: process.env.EMAIL_PASSWORD!,
+        user: emailUser,
+        pass: emailPassword,
       },
+      // Configuración adicional para Zoho
+      tls: {
+        rejectUnauthorized: false
+      }
     })
   }
   return transporter
@@ -279,12 +296,19 @@ class ServerEmailService {
   // Verificar configuración del email
   static async verifyEmailConfiguration(): Promise<boolean> {
     try {
+      console.log('🔧 Creating transporter...')
       const transporter = getTransporter()
+      
+      console.log('🧪 Testing SMTP connection...')
       await transporter.verify()
+      
       console.log('✅ Configuración de email verificada correctamente')
       return true
     } catch (error) {
-      console.error('❌ Error en la configuración de email:', error)
+      console.error('❌ Error en la configuración de email:')
+      console.error('- Error type:', error instanceof Error ? error.constructor.name : typeof error)
+      console.error('- Error message:', error instanceof Error ? error.message : String(error))
+      console.error('- Full error:', error)
       return false
     }
   }

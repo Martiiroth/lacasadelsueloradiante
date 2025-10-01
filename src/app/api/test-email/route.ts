@@ -3,22 +3,32 @@ import ServerEmailService from '@/lib/emailService.server'
 
 export async function GET() {
   try {
-    // Verificar configuración de email
-    const isConfigurationValid = await ServerEmailService.verifyEmailConfiguration()
+    console.log('🔧 Starting email diagnostic...')
     
-    if (!isConfigurationValid) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Error en la configuración de email' 
-        },
-        { status: 500 }
-      )
+    // Verificar variables de entorno
+    const envCheck = {
+      EMAIL_USER: process.env.EMAIL_USER ? 'SET' : 'MISSING',
+      EMAIL_PASSWORD: process.env.EMAIL_PASSWORD ? 'SET' : 'MISSING',
+      EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'NOT SET',
+      EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS || 'NOT SET',
+      EMAIL_ADMIN_ADDRESS: process.env.EMAIL_ADMIN_ADDRESS || 'NOT SET',
+      NODE_ENV: process.env.NODE_ENV || 'NOT SET'
     }
-
+    
+    console.log('📊 Environment variables check:', envCheck)
+    
+    // Verificar configuración de email
+    console.log('🧪 Testing email configuration...')
+    const isConfigurationValid = await ServerEmailService.verifyEmailConfiguration()
+    console.log('✅ Configuration test result:', isConfigurationValid)
+    
     return NextResponse.json({ 
       success: true, 
-      message: 'Configuración de email verificada correctamente' 
+      message: 'Email diagnostic completed',
+      data: {
+        environmentVariables: envCheck,
+        configurationValid: isConfigurationValid
+      }
     })
   } catch (error) {
     console.error('Error testing email configuration:', error)

@@ -222,8 +222,8 @@ export default function ProductsPage() {
           </p>
         </div>
 
-        {/* Filtros móvil - SOLO EN MÓVILES */}
-        <div className="mobile-filters block lg:hidden mb-6">
+        {/* Filtros móviles - SOLO EN MÓVILES */}
+        <div className="mobile-filters" style={{marginBottom: '1.5rem'}}>
           <div className="bg-white rounded-lg shadow-sm border p-4">
             <button
               type="button"
@@ -418,7 +418,7 @@ export default function ProductsPage() {
         {/* Layout principal responsive */}
         <div className="lg:flex lg:gap-8">
           {/* Sidebar filtros desktop */}
-          <div className="desktop-filters hidden lg:block lg:w-80 lg:flex-shrink-0">
+          <div className="desktop-filters" style={{width: '320px', flexShrink: 0}}>
             <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-8">
               <h3 className="text-lg font-semibold text-gray-900 mb-6">
                 Filtros de búsqueda

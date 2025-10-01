@@ -31,21 +31,24 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      // Supabase Storage - Dominio principal del proyecto
       {
         protocol: 'https',
-        hostname: 'supabase.lacasadelsueloradianteapp.com',
+        hostname: 'lacasadelsueloradianteapp.supabase.co',
         port: '',
-        pathname: '/**',
+        pathname: '/storage/v1/object/public/**',
       },
+      // Supabase - Wildcard para cualquier proyecto de Supabase (desarrollo/testing)
       {
         protocol: 'https',
         hostname: '*.supabase.co',
         port: '',
-        pathname: '/**',
+        pathname: '/storage/v1/object/public/**',
       },
+      // Dominio personalizado de Supabase (si existe)
       {
         protocol: 'https',
-        hostname: 'fqxvjjgdppevlmjxwtjf.supabase.co',
+        hostname: 'supabase.lacasadelsueloradianteapp.com',
         port: '',
         pathname: '/**',
       },
@@ -69,6 +72,8 @@ const nextConfig = {
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Permitir imágenes externas sin optimización en caso de error
+    unoptimized: process.env.NODE_ENV === 'development' ? true : false,
   },
 
   // Compresión

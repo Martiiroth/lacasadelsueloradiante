@@ -10,8 +10,10 @@ echo "🔍 Cargando variables de entorno desde .env.production..."
 if [ -f .env.production ]; then
     echo "✅ Archivo .env.production encontrado"
     
-    # Leer y exportar variables
-    export $(grep -v '^#' .env.production | xargs)
+    # Leer y exportar variables (manejar espacios correctamente)
+    set -a  # automatically export all variables
+    source .env.production
+    set +a  # stop auto-export
     
     echo "🔑 Variables cargadas:"
     echo "NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:0:30}..."

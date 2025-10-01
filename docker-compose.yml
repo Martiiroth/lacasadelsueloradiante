@@ -1,5 +1,8 @@
 version: '3.8'
 
+# Cargar variables de entorno desde archivo .env
+# Docker Compose carga automáticamente .env si existe
+
 services:
   # Aplicación Next.js - Solo con Supabase
   nextjs-app:

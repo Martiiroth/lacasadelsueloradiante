@@ -210,29 +210,14 @@
     }
   }
   
+  /* Grid de productos responsive */
   @media screen and (max-width: 1023px) {
-    .mobile-filters {
-      display: block !important;
-    }
-    
-    .desktop-filters {
-      display: none !important;
-    }
-    
     .products-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
   }
   
   @media screen and (min-width: 1024px) {
-    .mobile-filters {
-      display: none !important;
-    }
-    
-    .desktop-filters {
-      display: block !important;
-    }
-    
     .products-grid {
       grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     }

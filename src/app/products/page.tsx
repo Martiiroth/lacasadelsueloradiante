@@ -222,8 +222,8 @@ export default function ProductsPage() {
           </p>
         </div>
 
-        {/* Filtros móvil - SIEMPRE ENCIMA */}
-        <div className="lg:hidden mb-6">
+        {/* Filtros móvil - SOLO EN MÓVILES */}
+        <div className="block lg:hidden mb-6">
           <div className="bg-white rounded-lg shadow-sm border p-4">
             <button
               type="button"

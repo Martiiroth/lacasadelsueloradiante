@@ -7,9 +7,7 @@
 echo "🛑 Parando contenedores existentes..."
 docker-compose down
 
-echo "🧹 Limpiando puertos ocupados..."
-sudo fuser -k 80/tcp 2>/dev/null || true
-sudo fuser -k 443/tcp 2>/dev/null || true
+echo "ℹ️  Manteniendo servicios existentes en puertos 80/443..."
 
 echo "🔍 Cargando variables desde .env.production..."
 

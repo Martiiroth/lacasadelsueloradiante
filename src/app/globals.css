@@ -194,6 +194,22 @@
     width: 100% !important;
   }
   
+  /* Filtros responsivos - Solución definitiva */
+  .filters-sidebar {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  @media screen and (min-width: 1024px) {
+    .filters-sidebar {
+      display: block !important;
+      width: 320px !important;
+      flex-shrink: 0 !important;
+      margin-bottom: 0 !important;
+    }
+  }
+  
   @media screen and (max-width: 1023px) {
     .mobile-filters {
       display: block !important;

@@ -677,7 +677,6 @@ export default function ProductsPage() {
                 </>
               </LoadingState>
             )}
-            </div>
           </div>
         </div>
       </div>

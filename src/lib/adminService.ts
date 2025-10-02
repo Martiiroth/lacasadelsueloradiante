@@ -136,30 +136,30 @@ export class AdminService {
 
       // Calcular estadísticas de clientes
       const totalClients = clientsData.data?.length || 0
-      const activeClients = clientsData.data?.filter(c => c.is_active).length || 0
-      const newClientsThisMonth = clientsData.data?.filter(c => 
+      const activeClients = clientsData.data?.filter((c: any) => c.is_active).length || 0
+      const newClientsThisMonth = clientsData.data?.filter((c: any) => 
         new Date(c.created_at) >= startOfMonth
       ).length || 0
 
       // Calcular estadísticas de pedidos
       const totalOrders = ordersData.data?.length || 0
-      const pendingOrders = ordersData.data?.filter(o => 
+      const pendingOrders = ordersData.data?.filter((o: any) => 
         ['pending', 'confirmed', 'processing'].includes(o.status)
       ).length || 0
-      const completedOrders = ordersData.data?.filter(o => 
+      const completedOrders = ordersData.data?.filter((o: any) => 
         o.status === 'delivered'
       ).length || 0
-      const ordersThisMonth = ordersData.data?.filter(o => 
+      const ordersThisMonth = ordersData.data?.filter((o: any) => 
         new Date(o.created_at) >= startOfMonth
       ).length || 0
 
       // Calcular estadísticas financieras
-      const totalRevenue = revenueData.data?.reduce((sum, order) => 
+      const totalRevenue = revenueData.data?.reduce((sum: number, order: any) => 
         sum + (order.total_cents || 0), 0
       ) || 0
-      const revenueThisMonth = ordersData.data?.filter(o => 
+      const revenueThisMonth = ordersData.data?.filter((o: any) => 
         new Date(o.created_at) >= startOfMonth && o.status === 'delivered'
-      ).reduce((sum, order) => sum + (order.total_cents || 0), 0) || 0
+      ).reduce((sum: number, order: any) => sum + (order.total_cents || 0), 0) || 0
       
       const averageOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0
 
@@ -250,7 +250,7 @@ export class AdminService {
 
       // Enriquecer con estadísticas básicas
       const clientsWithStats = await Promise.all(
-        (data || []).map(async (client) => {
+        (data || []).map(async (client: any) => {
           const stats = await this.getClientStats(client.id)
           return {
             ...client,
@@ -274,9 +274,9 @@ export class AdminService {
         .eq('client_id', clientId)
 
       const totalOrders = orders?.length || 0
-      const totalSpent = orders?.reduce((sum, order) => sum + (order.total_cents || 0), 0) || 0
-      const lastOrderDate = orders && orders.length > 0 
-        ? orders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
+      const totalSpent = orders?.reduce((sum: number, order: any) => sum + (order.total_cents || 0), 0) || 0
+      const lastOrderDate = orders && orders.length > 0
+        ? orders.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
         : undefined
 
       return {
@@ -661,6 +661,35 @@ export class AdminService {
         return false
       }
 
+      // Si el estado cambia a "delivered", generar factura automáticamente
+      if (data.status === 'delivered') {
+        console.log(`📄 Pedido ${orderId} marcado como entregado. Generando factura automáticamente...`)
+        
+        try {
+          // Verificar si ya existe una factura para este pedido
+          const { data: existingInvoice } = await supabase
+            .from('invoices')
+            .select('id, invoice_number, prefix, suffix')
+            .eq('order_id', orderId)
+            .single()
+
+          if (existingInvoice) {
+            console.log(`⚠️ Ya existe una factura para el pedido ${orderId}:`, `${existingInvoice.prefix}${existingInvoice.invoice_number}${existingInvoice.suffix}`)
+          } else {
+            // Usar la misma lógica que OrderService para crear facturas
+            const invoice = await this.generateInvoiceForDeliveredOrder(orderId)
+            
+            if (invoice) {
+              console.log(`✅ Factura ${invoice.prefix}${invoice.invoice_number}${invoice.suffix} generada exitosamente para pedido ${orderId}`)
+            } else {
+              console.error(`❌ Error generando factura para pedido ${orderId}`)
+            }
+          }
+        } catch (invoiceError) {
+          console.error(`❌ Error en la generación de factura para pedido ${orderId}:`, invoiceError)
+        }
+      }
+
       // Enviar notificación por email después de actualizar exitosamente
       try {
         const orderDetails = await this.getOrderById(orderId)
@@ -710,6 +739,15 @@ export class AdminService {
             }
           }
 
+          // Obtener información de la factura si el pedido está entregado
+          let invoiceId = undefined
+          let invoiceNumber = undefined
+          if (data.status === 'delivered' && orderDetails.invoice && Array.isArray(orderDetails.invoice) && orderDetails.invoice.length > 0) {
+            const invoice = orderDetails.invoice[0]
+            invoiceId = invoice.id
+            invoiceNumber = `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`
+          }
+
           const emailData = {
             orderId: orderDetails.id,
             orderNumber: orderDetails.id, // Usar ID como número de pedido
@@ -725,11 +763,22 @@ export class AdminService {
             createdAt: orderDetails.created_at,
             shippingAddress,
             billingAddress,
-            clientInfo
+            clientInfo,
+            invoiceId,
+            invoiceNumber
           }
 
-          // Enviar notificación
-          const emailSent = await EmailService.sendOrderStatusNotification(emailData)
+          // Enviar notificación a través de la API para evitar problemas de hidratación
+          const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'send_order_notification',
+              orderData: emailData
+            })
+          })
+          const result = await response.json()
+          const emailSent = result.success
           
           if (emailSent) {
             console.log(`✅ Notificación enviada para pedido #${orderDetails.id}`)
@@ -765,16 +814,16 @@ export class AdminService {
       // Restore stock for each variant
       if (orderItems && orderItems.length > 0) {
         const stockRestorePromises = orderItems
-          .filter(item => item.variant_id) // Only restore if variant_id exists
-          .map(async (item) => {
+          .filter((item: any) => item.variant_id) // Only restore if variant_id exists
+          .map(async (item: any) => {
             return await this.updateVariantStock(item.variant_id, item.qty) // Add back the quantity
           })
 
         const restoreResults = await Promise.all(stockRestorePromises)
         
         // Log restoration results
-        restoreResults.forEach((result, index) => {
-          const item = orderItems.filter(i => i.variant_id)[index]
+        restoreResults.forEach((result: any, index: number) => {
+          const item = orderItems.filter((i: any) => i.variant_id)[index]
           if (result.success) {
             console.log(`Stock restored for variant ${item.variant_id}: ${result.old_stock} -> ${result.new_stock} (+${item.qty})`)
           } else {
@@ -820,8 +869,8 @@ export class AdminService {
       // Restore stock for each variant before deleting
       if (orderItems && orderItems.length > 0) {
         const stockRestorePromises = orderItems
-          .filter(item => item.variant_id) // Only restore if variant_id exists
-          .map(async (item) => {
+          .filter((item: any) => item.variant_id) // Only restore if variant_id exists
+          .map(async (item: any) => {
             return await this.updateVariantStock(item.variant_id, item.qty) // Add back the quantity
           })
 
@@ -947,8 +996,8 @@ export class AdminService {
 
       // Update stock for each variant
       const stockUpdatePromises = orderData.items
-        .filter(item => item.variant_id) // Only update if variant_id exists
-        .map(async (item) => {
+        .filter((item: any) => item.variant_id) // Only update if variant_id exists
+        .map(async (item: any) => {
           // Check stock availability first
           const stockCheck = await this.checkVariantStock(item.variant_id!, item.qty)
           
@@ -1048,6 +1097,97 @@ export class AdminService {
     }
   }
 
+  // === GENERACIÓN DE FACTURAS ===
+  
+  static async generateInvoiceForDeliveredOrder(orderId: string): Promise<any | null> {
+    try {
+      // Obtener información del pedido
+      const orderDetails = await this.getOrderById(orderId)
+      if (!orderDetails) {
+        console.error('No se pudo obtener el pedido para generar factura')
+        return null
+      }
+
+      // Obtener contador de facturas
+      let { data: counter, error: counterError } = await supabase
+        .from('invoice_counters')
+        .select('*')
+        .limit(1)
+        .single()
+
+      if (counterError || !counter) {
+        // Crear contador si no existe
+        const { data: newCounter, error: createCounterError } = await supabase
+          .from('invoice_counters')
+          .insert({
+            prefix: 'FAC-',
+            suffix: '',
+            next_number: 1
+          })
+          .select()
+          .single()
+
+        if (createCounterError || !newCounter) {
+          console.error('Error creating invoice counter:', createCounterError)
+          return null
+        }
+        counter = newCounter
+      }
+
+      // Crear factura
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          client_id: orderDetails.client_id,
+          order_id: orderId,
+          invoice_number: counter.next_number,
+          prefix: counter.prefix,
+          suffix: counter.suffix,
+          total_cents: orderDetails.total_cents,
+          currency: 'EUR',
+          status: 'pending',
+          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 días
+        })
+        .select(`
+          id,
+          client_id,
+          order_id,
+          invoice_number,
+          prefix,
+          suffix,
+          total_cents,
+          currency,
+          status,
+          created_at,
+          due_date
+        `)
+        .single()
+
+      if (invoiceError || !invoice) {
+        console.error('Error creating invoice:', invoiceError)
+        return null
+      }
+
+      // Actualizar contador
+      await supabase
+        .from('invoice_counters')
+        .update({ next_number: counter.next_number + 1 })
+        .eq('id', counter.id)
+
+      console.log('📄 Factura creada exitosamente:', {
+        id: invoice.id,
+        number: `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`,
+        total: invoice.total_cents / 100,
+        order_id: orderId
+      })
+
+      return invoice
+    } catch (error) {
+      console.error('Error in generateInvoiceForDeliveredOrder:', error)
+      return null
+    }
+  }
+
   // === GESTIÓN DE STOCK ===
   
   static async updateVariantStock(variantId: string, quantityChange: number): Promise<{ success: boolean; old_stock?: number; new_stock?: number; error?: any }> {
@@ -1133,8 +1273,8 @@ export class AdminService {
 
     const stockChecks = await Promise.all(
       items
-        .filter(item => item.variant_id) // Only check items with variant_id
-        .map(async (item) => {
+        .filter((item: any) => item.variant_id) // Only check items with variant_id
+        .map(async (item: any) => {
           const stockCheck = await this.checkVariantStock(item.variant_id!, item.qty)
           
           if (!stockCheck.available) {
@@ -1260,7 +1400,7 @@ export class AdminService {
 
       // Enriquecer con estadísticas
       const productsWithStats = await Promise.all(
-        (data || []).map(async (product) => {
+        (data || []).map(async (product: any) => {
           const stats = await this.getProductStats(product.id)
           return {
             ...product,
@@ -1284,7 +1424,7 @@ export class AdminService {
         .eq('product_id', productId)
 
       const totalVariants = variants?.length || 0
-      const totalStock = variants?.reduce((sum, variant) => sum + (variant.stock || 0), 0) || 0
+      const totalStock = variants?.reduce((sum: number, variant: any) => sum + (variant.stock || 0), 0) || 0
 
       // Get sales data through order_items -> product_variants
       const { data: orderItems } = await supabase
@@ -1298,8 +1438,8 @@ export class AdminService {
         `)
         .eq('variant.product_id', productId)
 
-      const totalSold = orderItems?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0
-      const revenueCents = orderItems?.reduce((sum, item) => sum + ((item.qty || 0) * (item.price_cents || 0)), 0) || 0
+      const totalSold = orderItems?.reduce((sum: number, item: any) => sum + (item.qty || 0), 0) || 0
+      const revenueCents = orderItems?.reduce((sum: number, item: any) => sum + ((item.qty || 0) * (item.price_cents || 0)), 0) || 0
 
       return {
         total_variants: totalVariants,
@@ -1411,7 +1551,7 @@ export class AdminService {
                 .select('id, name')
 
               const rolePriceData = variantData.role_prices.map(rp => {
-                const role = roles?.find(r => r.name === rp.role_name)
+                const role = roles?.find((r: any) => r.name === rp.role_name)
                 return {
                   variant_id: createdVariant.id,
                   role_id: role?.id,
@@ -1574,7 +1714,7 @@ export class AdminService {
 
         // Insert new role prices
         const rolePricesData = role_prices.map(rp => {
-          const role = roles?.find(r => r.name === rp.role_name)
+          const role = roles?.find((r: any) => r.name === rp.role_name)
           return {
             variant_id: variantId,
             role_id: role?.id,
@@ -1635,7 +1775,7 @@ export class AdminService {
         }
 
         const rolePricesData = role_prices.map(rp => {
-          const role = roles?.find(r => r.name === rp.role_name)
+          const role = roles?.find((r: any) => r.name === rp.role_name)
           return {
             variant_id: variant.id,
             role_id: role?.id,
@@ -1756,7 +1896,7 @@ export class AdminService {
       // Clean up old images from storage that are no longer being used
       if (existingImages && existingImages.length > 0) {
         const newImageUrls = images.map(img => img.url)
-        const imagesToDelete = existingImages.filter(existing => 
+        const imagesToDelete = existingImages.filter((existing: any) => 
           !newImageUrls.includes(existing.url) &&
           existing.url.includes('supabase') // Only delete Supabase storage URLs
         )
@@ -2212,7 +2352,7 @@ export class AdminService {
 
       // Enriquecer con estadísticas
       const categoriesWithStats = await Promise.all(
-        (data || []).map(async (category) => {
+        (data || []).map(async (category: any) => {
           const stats = await this.getCategoryStats(category.id)
           return {
             ...category,
@@ -2475,7 +2615,7 @@ export class AdminService {
 
       // Enriquecer con información del target y estadísticas
       const couponsWithStats = await Promise.all(
-        (data || []).map(async (coupon) => {
+        (data || []).map(async (coupon: any) => {
           const [target, stats] = await Promise.all([
             this.getCouponTarget(coupon.target_id, coupon.applies_to),
             this.getCouponStats(coupon.id)
@@ -2542,7 +2682,7 @@ export class AdminService {
         .eq('coupon_id', couponId)
 
       const totalRedemptions = redemptions?.length || 0
-      const activeOrders = redemptions?.filter(r => 
+      const activeOrders = redemptions?.filter((r: any) => 
         r.order && typeof r.order === 'object' && 
         ['pending', 'confirmed', 'processing', 'shipped'].includes((r.order as any).status)
       ).length || 0

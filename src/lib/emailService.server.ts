@@ -1,5 +1,6 @@
 // Email service que solo se ejecuta en el servidor
 import nodemailer from 'nodemailer'
+import { PDFService } from './pdfService'
 
 // Configuración del transporter usando la configuración de Zoho
 let transporter: nodemailer.Transporter | null = null
@@ -51,6 +52,8 @@ interface OrderEmailData {
   total: number
   createdAt: string
   shippingAddress?: string
+  invoiceId?: string
+  invoiceNumber?: string
 }
 
 // Mapeo de estados a textos legibles en español
@@ -233,8 +236,26 @@ class ServerEmailService {
       const statusText = this.getStatusText(orderData.status)
       const transporter = getTransporter()
 
+      // Generar PDF de la factura si el pedido está entregado y hay invoiceId
+      let invoiceAttachment = null
+      if (orderData.status === 'delivered' && orderData.invoiceId) {
+        try {
+          console.log('📄 Generando PDF de factura para email:', orderData.invoiceNumber)
+          const pdfBuffer = await PDFService.generateInvoicePDF(orderData.invoiceId)
+          invoiceAttachment = {
+            filename: `factura-${orderData.invoiceNumber}.pdf`,
+            content: Buffer.from(pdfBuffer),
+            contentType: 'application/pdf'
+          }
+          console.log('✅ PDF de factura generado para adjuntar al email')
+        } catch (pdfError) {
+          console.error('❌ Error generando PDF para email:', pdfError)
+          // Continuar sin attachment si hay error
+        }
+      }
+
       // Email para el cliente
-      const clientEmailOptions = {
+      const clientEmailOptions: any = {
         from: {
           name: 'La Casa del Suelo Radiante',
           address: 'consultas@lacasadelsueloradianteapp.com'
@@ -244,8 +265,13 @@ class ServerEmailService {
         html: this.createOrderEmailTemplate(orderData, false)
       }
 
+      // Adjuntar PDF si existe
+      if (invoiceAttachment) {
+        clientEmailOptions.attachments = [invoiceAttachment]
+      }
+
       // Email para el administrador
-      const adminEmailOptions = {
+      const adminEmailOptions: any = {
         from: {
           name: 'La Casa del Suelo Radiante',
           address: 'consultas@lacasadelsueloradianteapp.com'
@@ -253,6 +279,11 @@ class ServerEmailService {
         to: adminEmail,
         subject: `[ADMIN] Pedido #${orderData.orderNumber} actualizado - ${statusText}`,
         html: this.createOrderEmailTemplate(orderData, true)
+      }
+
+      // También adjuntar PDF al admin si existe
+      if (invoiceAttachment) {
+        adminEmailOptions.attachments = [invoiceAttachment]
       }
 
       // Enviar ambos emails

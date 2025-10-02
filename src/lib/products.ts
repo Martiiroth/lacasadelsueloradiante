@@ -170,7 +170,7 @@ export class ProductService {
           .in('category_id', categoriesToFilter)
         
         if (productIds && productIds.length > 0) {
-          const ids = productIds.map(item => item.product_id)
+          const ids = productIds.map((item: any) => item.product_id)
           query = query.in('id', ids)
         } else {
           // No hay productos con estas categorías, devolver resultado vacío

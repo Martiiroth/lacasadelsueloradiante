@@ -12,15 +12,17 @@
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
     "@supabase/supabase-js": "^2.39.0",
-    "@types/nodemailer": "^7.0.2",
+    "@types/puppeteer": "^7.0.4",
     "dotenv": "^17.2.2",
     "next": "14.0.4",
     "nodemailer": "^7.0.6",
-    "react": "^18",
-    "react-dom": "^18"
+    "puppeteer": "^24.23.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/nodemailer": "^7.0.2",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",

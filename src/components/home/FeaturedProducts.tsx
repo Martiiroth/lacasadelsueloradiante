@@ -232,16 +232,6 @@ export default function FeaturedProducts({
           search: searchTerm || undefined,
         }
 
-        // Verificación rápida si hay productos con estos filtros
-        const hasProducts = await ProductService.hasProducts(filters)
-        
-        if (!hasProducts) {
-          console.log(`ℹ️ No hay productos disponibles para los filtros actuales`)
-          setProducts([])
-          setLoading(false)
-          return
-        }
-
         console.log(`🔄 Cargando ${limit} productos...`)
         const result = await ProductService.getProducts(
           filters,

@@ -36,16 +36,6 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
       setError(null)
       
       try {
-        // Verificación rápida si hay productos en oferta
-        const hasProducts = await ProductService.hasProducts({ is_on_sale: true })
-        
-        if (!hasProducts) {
-          console.log(`ℹ️ No hay productos en oferta disponibles`)
-          setProducts([])
-          setLoading(false)
-          return
-        }
-
         console.log(`🔄 Cargando ${limit} productos en oferta...`)
         const result = await ProductService.getProducts(
           { is_on_sale: true },

@@ -20,7 +20,7 @@ export class ProductService {
     try {
       let query = supabase
         .from('products')
-        .select('id', { count: 'exact', head: true })
+        .select('id')
         .eq('is_active', true)
         .limit(1)
 
@@ -33,8 +33,14 @@ export class ProductService {
         query = query.eq('is_on_sale', true)
       }
 
-      const { count } = await query
-      return (count || 0) > 0
+      const { data, error } = await query
+      
+      if (error) {
+        console.error('Error in hasProducts:', error)
+        return true // En caso de error, asumir que sí hay productos para hacer la carga normal
+      }
+      
+      return (data && data.length > 0)
     } catch (error) {
       console.error('Error checking if products exist:', error)
       return true // En caso de error, asumir que sí hay productos

@@ -6,17 +6,17 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Instalar pnpm
+RUN npm install -g pnpm
+
 # Instalar dependencias basadas en el gestor de paquetes preferido
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then yarn global add pnpm && pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+COPY package.json pnpm-lock.yaml* .npmrc ./
+RUN pnpm install --frozen-lockfile
 
 # Reconstruir el código fuente solo cuando sea necesario
 FROM base AS builder
+# Instalar pnpm en el builder stage también
+RUN npm install -g pnpm
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -72,7 +72,7 @@ ENV BUSINESS_CIF=${BUSINESS_CIF}
 # Aprende más aquí: https://nextjs.org/telemetry
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN npm run build
+RUN pnpm run build
 
 # Imagen de producción, copiar todos los archivos y ejecutar next
 FROM base AS runner

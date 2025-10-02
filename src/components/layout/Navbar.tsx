@@ -35,12 +35,12 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link
-              href="/products"
+            <a
+              href="/#productos"
               className="text-gray-900 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
             >
               Productos
-            </Link>
+            </a>
           </div>
 
           {/* Desktop Right Side */}
@@ -114,13 +114,13 @@ export default function Navbar() {
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-200 bg-white">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <Link
-                href="/products"
+              <a
+                href="/#productos"
                 onClick={() => setIsMenuOpen(false)}
                 className="block px-3 py-2 text-gray-900 hover:text-blue-600 hover:bg-gray-50 rounded-md text-base font-medium transition-colors"
               >
                 Productos
-              </Link>
+              </a>
               
               {user ? (
                 <>

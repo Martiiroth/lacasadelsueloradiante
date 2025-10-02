@@ -29,15 +29,15 @@ export default function HomePage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 px-4 sm:px-0">
-                <Link
-                  href="/products"
+                <a
+                  href="#productos"
                   className="inline-flex items-center justify-center px-6 py-3 sm:px-8 sm:py-4 bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl text-center min-h-[48px] sm:min-h-[auto]"
                 >
                   <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
                   <span>Ver Productos</span>
-                </Link>
+                </a>
                 
                 <Link
                   href="/contacto"

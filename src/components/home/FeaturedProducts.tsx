@@ -144,10 +144,10 @@ function ProductGrid({ products, loading, error, limit, onSaleOnly, onRetry }: P
       {/* Botón ver más */}
       <div className="text-center">
         <Link
-          href={onSaleOnly ? "/products?is_on_sale=true" : "/products"}
+          href="/#productos"
           className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
         >
-          {onSaleOnly ? 'Ver todas las ofertas' : 'Ver todos los productos'}
+          {onSaleOnly ? 'Ver todas las ofertas' : 'Explorar más productos'}
           <svg className="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
@@ -442,7 +442,7 @@ export default function FeaturedProducts({
       }
       delay={150}
     >
-      <section className="py-16 bg-white">
+      <section id="productos" className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="text-center mb-12">

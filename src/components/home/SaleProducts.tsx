@@ -29,15 +29,24 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
   useEffect(() => {
     if (!isHydrated) return
 
-    const loadSaleProducts = async (retryCount = 0) => {
-      const maxRetries = 3
-      
-      console.log(`🔄 SaleProducts: Cargando ${limit} productos en oferta... (intento ${retryCount + 1})`)
+    const loadSaleProducts = async () => {
+      console.log(`🔄 SaleProducts: Verificando productos en oferta...`)
       
       setLoading(true)
       setError(null)
       
       try {
+        // Verificación rápida si hay productos en oferta
+        const hasProducts = await ProductService.hasProducts({ is_on_sale: true })
+        
+        if (!hasProducts) {
+          console.log(`ℹ️ No hay productos en oferta disponibles`)
+          setProducts([])
+          setLoading(false)
+          return
+        }
+
+        console.log(`🔄 Cargando ${limit} productos en oferta...`)
         const result = await ProductService.getProducts(
           { is_on_sale: true },
           { field: 'created_at', direction: 'desc' },
@@ -45,33 +54,23 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
           limit
         )
 
-        if (result && result.products.length > 0) {
+        if (result) {
           setProducts(result.products)
           console.log(`✅ SaleProducts: ${result.products.length} productos en oferta cargados`)
-          setLoading(false)
-        } else if (retryCount < maxRetries) {
-          setTimeout(() => loadSaleProducts(retryCount + 1), (retryCount + 1) * 1000)
-          return
         } else {
           setProducts([])
-          setLoading(false)
+          console.log(`⚠️ No se pudo obtener resultado de productos en oferta`)
         }
+        setLoading(false)
       } catch (err) {
-        console.error(`❌ SaleProducts error (intento ${retryCount + 1}):`, err)
-        
-        if (retryCount < maxRetries) {
-          setTimeout(() => loadSaleProducts(retryCount + 1), (retryCount + 1) * 1000)
-          return
-        } else {
-          setError('Error al cargar los productos en oferta')
-          setProducts([])
-          setLoading(false)
-        }
+        console.error(`❌ SaleProducts error:`, err)
+        setError('Error al cargar los productos en oferta')
+        setProducts([])
+        setLoading(false)
       }
     }
 
-    const timeoutId = setTimeout(() => loadSaleProducts(), 150)
-    return () => clearTimeout(timeoutId)
+    loadSaleProducts()
   }, [isHydrated, limit])
 
   if (loading) {

@@ -15,6 +15,32 @@ import type {
 } from '../types/products'
 
 export class ProductService {
+  // Verificar si hay productos disponibles para ciertos filtros (optimización)
+  static async hasProducts(filters?: Partial<ProductFilters>): Promise<boolean> {
+    try {
+      let query = supabase
+        .from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('is_active', true)
+        .limit(1)
+
+      // Aplicar filtros básicos
+      if (filters?.category) {
+        query = query.eq('category_id', filters.category)
+      }
+      
+      if (filters?.is_on_sale) {
+        query = query.eq('is_on_sale', true)
+      }
+
+      const { count } = await query
+      return (count || 0) > 0
+    } catch (error) {
+      console.error('Error checking if products exist:', error)
+      return true // En caso de error, asumir que sí hay productos
+    }
+  }
+
   // Asegurar que hay datos de prueba
   static async ensureTestProducts(): Promise<void> {
     try {

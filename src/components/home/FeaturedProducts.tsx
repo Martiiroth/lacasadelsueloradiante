@@ -215,14 +215,12 @@ export default function FeaturedProducts({
     loadCategories()
   }, [isHydrated, showFilters])
 
-  // Cargar productos con retry automático
+  // Cargar productos de forma optimizada con verificación previa
   useEffect(() => {
     if (!isHydrated) return
 
-    const loadProducts = async (retryCount = 0) => {
-      const maxRetries = 3
-      
-      console.log(`🔄 FeaturedProducts: Cargando ${limit} productos... (intento ${retryCount + 1})`)
+    const loadProducts = async () => {
+      console.log(`🔄 FeaturedProducts: Verificando disponibilidad de productos...`)
       
       setLoading(true)
       setError(null)
@@ -234,6 +232,17 @@ export default function FeaturedProducts({
           search: searchTerm || undefined,
         }
 
+        // Verificación rápida si hay productos con estos filtros
+        const hasProducts = await ProductService.hasProducts(filters)
+        
+        if (!hasProducts) {
+          console.log(`ℹ️ No hay productos disponibles para los filtros actuales`)
+          setProducts([])
+          setLoading(false)
+          return
+        }
+
+        console.log(`🔄 Cargando ${limit} productos...`)
         const result = await ProductService.getProducts(
           filters,
           { 
@@ -244,37 +253,23 @@ export default function FeaturedProducts({
           limit
         )
 
-        if (result && result.products.length > 0) {
+        if (result) {
           setProducts(result.products)
           console.log(`✅ FeaturedProducts: ${result.products.length} productos cargados`)
-          setLoading(false)
-        } else if (retryCount < maxRetries) {
-          // Retry después de un delay incremental
-          setTimeout(() => loadProducts(retryCount + 1), (retryCount + 1) * 1000)
-          return
         } else {
-          setError('No se encontraron productos')
           setProducts([])
-          setLoading(false)
+          console.log(`⚠️ No se pudo obtener resultado de productos`)
         }
+        setLoading(false)
       } catch (err) {
-        console.error(`❌ FeaturedProducts error (intento ${retryCount + 1}):`, err)
-        
-        if (retryCount < maxRetries) {
-          // Retry después de un delay incremental
-          setTimeout(() => loadProducts(retryCount + 1), (retryCount + 1) * 1000)
-          return
-        } else {
-          setError('Error al cargar los productos. Por favor, recarga la página.')
-          setProducts([])
-          setLoading(false)
-        }
+        console.error(`❌ FeaturedProducts error:`, err)
+        setError('Error al cargar los productos')
+        setProducts([])
+        setLoading(false)
       }
     }
 
-    // Agregar un delay inicial para evitar problemas de renderizado
-    const timeoutId = setTimeout(() => loadProducts(), 200)
-    return () => clearTimeout(timeoutId)
+    loadProducts()
   }, [isHydrated, selectedCategory, sortBy, sortOrder, onSaleOnly, limit, searchTerm])
 
   const renderContent = () => {

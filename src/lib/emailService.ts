@@ -23,7 +23,7 @@ class EmailService {
   // Enviar notificación de cambio de estado
   static async sendOrderStatusNotification(orderData: OrderEmailData): Promise<boolean> {
     try {
-      const response = await fetch('/api/email', {
+      const response = await fetch('/api/notifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ class EmailService {
   // Método específico para notificar cuando se crea un nuevo pedido
   static async sendNewOrderNotification(orderData: OrderEmailData): Promise<boolean> {
     try {
-      const response = await fetch('/api/email', {
+      const response = await fetch('/api/notifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ class EmailService {
   // Verificar configuración del email
   static async verifyEmailConfiguration(): Promise<boolean> {
     try {
-      const response = await fetch('/api/email', {
+      const response = await fetch('/api/notifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

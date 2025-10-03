@@ -14,6 +14,9 @@ export async function GET(
   try {
     const { id: invoiceId } = await params
     
+    console.log('🔍 PDF Request - Invoice ID:', invoiceId)
+    console.log('🔍 PDF Request - URL:', request.url)
+    
     // Verificar que la factura existe
     const { data: invoice, error } = await supabase
       .from('invoices')
@@ -21,9 +24,12 @@ export async function GET(
       .eq('id', invoiceId)
       .single()
     
+    console.log('🔍 PDF Request - Supabase query result:', { invoice: !!invoice, error: error?.message })
+    
     if (error || !invoice) {
+      console.error('❌ PDF Request - Factura no encontrada:', { invoiceId, error: error?.message })
       return NextResponse.json(
-        { error: 'Factura no encontrada' },
+        { error: 'Factura no encontrada', invoiceId, details: error?.message },
         { status: 404 }
       )
     }

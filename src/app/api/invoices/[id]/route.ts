@@ -8,7 +8,11 @@ export async function GET(
   try {
     const { id: invoiceId } = await params
     
+    console.log('🔍 Invoice Request - Invoice ID:', invoiceId)
+    console.log('🔍 Invoice Request - URL:', request.url)
+    
     if (!invoiceId) {
+      console.error('❌ Invoice Request - No invoice ID provided')
       return NextResponse.json(
         { error: 'Invoice ID is required' },
         { status: 400 }

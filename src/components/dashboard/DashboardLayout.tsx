@@ -161,12 +161,6 @@ export default function DashboardLayout({ children, activeSection = 'overview' }
                 >
                   Ver Carrito
                 </Link>
-                <Link 
-                  href="/support"
-                  className="block text-sm text-blue-600 hover:text-blue-500"
-                >
-                  Soporte
-                </Link>
               </div>
             </div>
           </div>

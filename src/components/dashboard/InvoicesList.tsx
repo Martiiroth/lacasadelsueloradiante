@@ -19,12 +19,6 @@ interface InvoicesListProps {
   limit?: number
 }
 
-const INVOICE_STATUSES: { value: InvoiceStatus; label: string }[] = [
-  { value: 'pending', label: 'Pendiente' },
-  { value: 'paid', label: 'Pagada' },
-  { value: 'overdue', label: 'Vencida' },
-  { value: 'cancelled', label: 'Cancelada' }
-]
 
 export default function InvoicesList({ showFilters = true, limit }: InvoicesListProps) {
   const { user } = useAuth()
@@ -162,21 +156,7 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Estado de la Factura
               </label>
-              <div className="space-y-2">
-                {INVOICE_STATUSES.map((status) => (
-                  <label key={status.value} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={filters.status?.includes(status.value) || false}
-                      onChange={() => handleStatusToggle(status.value)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">
-                      {status.label}
-                    </span>
-                  </label>
-                ))}
-              </div>
+
             </div>
 
             {/* Fecha desde */}
@@ -231,12 +211,6 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
                     Fecha
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vencimiento
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Total
                   </th>
                   <th className="px-6 py-3 relative">
@@ -258,19 +232,6 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {invoice.due_date 
-                          ? ClientService.formatDateShort(invoice.due_date)
-                          : '-'
-                        }
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ClientService.getInvoiceStatusColor(invoice.status)}`}>
-                        {ClientService.getInvoiceStatusLabel(invoice.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {ClientService.formatPrice(invoice.total_cents)}
                       </div>
@@ -287,13 +248,7 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
                           <EyeIcon className="h-4 w-4 mr-1" />
                           Ver
                         </Link>
-                        <button
-                          onClick={() => handleDownloadInvoice(invoice.id)}
-                          className="inline-flex items-center text-green-600 hover:text-green-500"
-                        >
-                          <ArrowDownTrayIcon className="h-4 w-4 mr-1" />
-                          PDF
-                        </button>
+                      
                       </div>
                     </td>
                   </tr>

@@ -99,9 +99,6 @@ function InvoiceRow({ invoice }: InvoiceRowProps) {
             <p className="text-sm font-medium text-gray-900">
               {ClientService.formatPrice(invoice.total_cents)}
             </p>
-            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ClientService.getInvoiceStatusColor(invoice.status)}`}>
-              {ClientService.getInvoiceStatusLabel(invoice.status)}
-            </span>
           </div>
         </div>
       </div>
@@ -227,22 +224,6 @@ export default function DashboardOverview() {
             icon={CheckCircleIcon}
             color="bg-emerald-500"
             description="Entregados exitosamente"
-          />
-          
-          <StatCard
-            title="Facturas Pendientes"
-            value={stats.pending_invoices}
-            icon={DocumentTextIcon}
-            color="bg-orange-500"
-            description="Por pagar"
-          />
-          
-          <StatCard
-            title="Facturas Pagadas"
-            value={stats.paid_invoices}
-            icon={CheckCircleIcon}
-            color="bg-teal-500"
-            description="Pagos completados"
           />
         </div>
       )}

@@ -6,8 +6,9 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Instalar pnpm
+# Instalar pnpm y sharp para optimización de imágenes
 RUN npm install -g pnpm
+RUN npm install sharp
 
 # Instalar dependencias basadas en el gestor de paquetes preferido
 COPY package.json pnpm-lock.yaml* .npmrc ./
@@ -77,6 +78,20 @@ RUN pnpm run build
 # Imagen de producción, copiar todos los archivos y ejecutar next
 FROM base AS runner
 WORKDIR /app
+
+# Instalar Chromium y dependencias necesarias para Puppeteer
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Configurar Puppeteer para usar Chromium instalado
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 ENV NODE_ENV=production
 # Descomenta la siguiente línea en caso de que quieras deshabilitar la telemetría durante runtime.

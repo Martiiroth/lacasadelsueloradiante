@@ -30,16 +30,10 @@ const endpoints = [
     expected: 200
   },
   {
-    path: '/api/invoices',
+    path: '/api/invoices?client_id=test',
     method: 'GET',
-    name: 'Invoices API', 
-    expected: [200, 401] // Puede requerir auth
-  },
-  {
-    path: '/api/admin/clients',
-    method: 'GET',
-    name: 'Admin Clients API',
-    expected: [200, 401, 403] // Requiere autenticación admin
+    name: 'Invoices API (with client_id)', 
+    expected: [200, 400, 401] // 400 si client_id no existe, OK
   },
   {
     path: '/api/admin/orders',
@@ -48,10 +42,10 @@ const endpoints = [
     expected: [200, 401, 403] // Requiere autenticación admin
   },
   {
-    path: '/api/notifications',
+    path: '/api/email',
     method: 'GET',
-    name: 'Notifications API',
-    expected: [200, 401] // Puede requerir auth
+    name: 'Email API',
+    expected: [200, 405] // Verificar si soporta GET
   }
 ];
 

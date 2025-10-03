@@ -241,52 +241,7 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Direcciones */}
-            <div className="bg-white rounded-lg border border-gray-200">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-medium text-gray-900">Direcciones</h2>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Dirección de Facturación */}
-                  {order.billing_address && (
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-2">
-                        Dirección de Facturación
-                      </h3>
-                      <div className="text-sm text-gray-600 space-y-1">
-                        <p>{order.billing_address.first_name} {order.billing_address.last_name}</p>
-                        <p>{order.billing_address.address_line1}</p>
-                        {order.billing_address.address_line2 && (
-                          <p>{order.billing_address.address_line2}</p>
-                        )}
-                        <p>{order.billing_address.postal_code} {order.billing_address.city}</p>
-                        {order.billing_address.region && <p>{order.billing_address.region}</p>}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Dirección de Envío */}
-                  {order.shipping_address && (
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 mb-2">
-                        Dirección de Envío
-                      </h3>
-                      <div className="text-sm text-gray-600 space-y-1">
-                        <p>{order.shipping_address.first_name} {order.shipping_address.last_name}</p>
-                        <p>{order.shipping_address.address_line1}</p>
-                        {order.shipping_address.address_line2 && (
-                          <p>{order.shipping_address.address_line2}</p>
-                        )}
-                        <p>{order.shipping_address.postal_code} {order.shipping_address.city}</p>
-                        {order.shipping_address.region && <p>{order.shipping_address.region}</p>}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+           
 
           {/* Resumen del Pedido */}
           <div className="space-y-6">
@@ -312,53 +267,9 @@ export default function OrderDetailPage() {
                 </div>
               </div>
             </div>
-
-            {/* Factura */}
-            {order.invoice && (
-              <div className="bg-white rounded-lg border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-lg font-medium text-gray-900">Factura</h2>
-                </div>
-                <div className="p-6">
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Número</span>
-                      <span className="text-gray-900">
-                        {order.invoice.prefix}{order.invoice.invoice_number}{order.invoice.suffix}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Estado</span>
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ClientService.getInvoiceStatusColor(order.invoice.status)}`}>
-                        {ClientService.getInvoiceStatusLabel(order.invoice.status)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Fecha</span>
-                      <span className="text-gray-900">
-                        {ClientService.formatDateShort(order.invoice.created_at)}
-                      </span>
-                    </div>
-                    {order.invoice.due_date && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Vencimiento</span>
-                        <span className="text-gray-900">
-                          {ClientService.formatDateShort(order.invoice.due_date)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-4">
-                    <button className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                      <DocumentTextIcon className="h-4 w-4 mr-2" />
-                      Descargar Factura PDF
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
+      </div>
       </div>
     </DashboardLayout>
   )

@@ -1,7 +1,22 @@
 import puppeteer from 'puppeteer'
 import { createClient } from '@supabase/supabase-js'
+import fs from 'fs'
+import path from 'path'
 
 export class PDFService {
+  // Método para obtener el logo en base64
+  private static getLogoBase64(): string {
+    try {
+      const logoPath = path.join(process.cwd(), 'public', 'images', 'logo.png')
+      const logoBuffer = fs.readFileSync(logoPath)
+      return logoBuffer.toString('base64')
+    } catch (error) {
+      console.warn('⚠️ No se pudo cargar el logo, usando placeholder')
+      // Retornar un placeholder pequeño en base64 si no se encuentra el logo
+      return 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+    }
+  }
+
   static async generateInvoicePDF(invoiceId: string): Promise<Uint8Array> {
     let browser = null
     
@@ -101,11 +116,6 @@ export class PDFService {
         .invoice-content { background: white; max-width: 800px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
         .logo-section { display: flex; align-items: center; }
-        .logo { width: 80px; height: 80px; background: #DC2626; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-right: 24px; }
-        .logo svg { width: 48px; height: 48px; fill: white; }
-        .company-name h1 { color: #111827; font-size: 20px; font-weight: bold; margin: 0; }
-        .company-name h2, .company-name h3 { color: #374151; font-size: 18px; margin: 4px 0 0 0; }
-        .company-name h3 { font-weight: 600; }
         .company-info { text-align: right; font-size: 14px; }
         .company-info .font-semibold { font-weight: 600; }
         .invoice-details { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 32px; }
@@ -128,18 +138,7 @@ export class PDFService {
         <!-- Header -->
         <div class="header">
             <div class="logo-section">
-                <div class="logo">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 2L2 7L12 12L22 7L12 2Z" />
-                        <path d="M2 17L12 22L22 17" />
-                        <path d="M2 12L12 17L22 12" />
-                    </svg>
-                </div>
-                <div class="company-name">
-                    <h1>LaCasa</h1>
-                    <h2>DEL SUELO</h2>
-                    <h3>RADIANTE</h3>
-                </div>
+                <img src="data:image/png;base64,${this.getLogoBase64()}" alt="Logo" style="width: 120px; height: 120px; margin-right: 24px;" />
             </div>
             <div class="company-info">
                 <div class="font-semibold">T&V Servicios y Complementos S.L.</div>

@@ -306,14 +306,11 @@ export default function InvoiceDetailPage() {
               {/* Header */}
               <div className="flex justify-between items-start mb-8">
                 <div className="flex items-center">
-                  <div className="w-16 h-16 bg-red-600 rounded-lg flex items-center justify-center mr-6">
-                    <DocumentTextIcon className="h-8 w-8 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-lg font-bold text-gray-900">LA CASA</h1>
-                    <h2 className="text-lg text-gray-700">DEL SUELO</h2>
-                    <h3 className="text-lg font-semibold text-gray-900">RADIANTE</h3>
-                  </div>
+                  <img 
+                    src="/images/logo.png" 
+                    alt="La Casa del Suelo Radiante" 
+                    className="w-24 h-24 mr-6"
+                  />
                 </div>
                 <div className="text-right text-sm text-gray-600">
                   <div className="font-semibold">T&V Servicios y Complementos S.L.</div>

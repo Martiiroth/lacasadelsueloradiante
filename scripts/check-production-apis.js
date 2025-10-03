@@ -15,7 +15,7 @@ const BASE_URL = `${USE_HTTPS ? 'https' : 'http'}://${PRODUCTION_DOMAIN}`;
 
 console.log(`🌐 Verificando APIs en producción: ${BASE_URL}\n`);
 
-// Lista de endpoints a verificar
+// Lista de endpoints a verificar (APIs reales de la aplicación)
 const endpoints = [
   {
     path: '/api/test-env',
@@ -24,22 +24,34 @@ const endpoints = [
     expected: 200
   },
   {
-    path: '/api/products',
+    path: '/api/test-email',
     method: 'GET', 
-    name: 'Products API',
+    name: 'Test Email Configuration',
     expected: 200
   },
   {
-    path: '/api/categories',
+    path: '/api/invoices',
     method: 'GET',
-    name: 'Categories API', 
-    expected: 200
+    name: 'Invoices API', 
+    expected: [200, 401] // Puede requerir auth
   },
   {
-    path: '/api/auth/user',
+    path: '/api/admin/clients',
     method: 'GET',
-    name: 'Auth User API',
-    expected: [200, 401] // 401 es OK si no está autenticado
+    name: 'Admin Clients API',
+    expected: [200, 401, 403] // Requiere autenticación admin
+  },
+  {
+    path: '/api/admin/orders',
+    method: 'GET',
+    name: 'Admin Orders API',
+    expected: [200, 401, 403] // Requiere autenticación admin
+  },
+  {
+    path: '/api/notifications',
+    method: 'GET',
+    name: 'Notifications API',
+    expected: [200, 401] // Puede requerir auth
   }
 ];
 

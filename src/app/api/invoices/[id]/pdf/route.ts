@@ -9,10 +9,10 @@ const supabase = createClient(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const invoiceId = params.id
+    const { id: invoiceId } = await params
     
     // Verificar que la factura existe
     const { data: invoice, error } = await supabase
@@ -28,16 +28,23 @@ export async function GET(
       )
     }
     
-    console.log('📄 Generando PDF para factura:', invoice.number)
+    const invoiceNumber = `${invoice.prefix || ''}${invoice.invoice_number}${invoice.suffix || ''}`
+    console.log('📄 Generando PDF para factura:', invoiceNumber)
     
     // Generar el PDF
     const pdfBuffer = await PDFService.generateInvoicePDF(invoiceId)
+    
+    if (!pdfBuffer || pdfBuffer.length === 0) {
+      throw new Error('PDF generado está vacío')
+    }
+    
+    console.log('✅ PDF generado correctamente:', pdfBuffer.length, 'bytes')
     
     // Retornar el PDF como response
     return new NextResponse(Buffer.from(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="factura-${invoice.number}.pdf"`
+        'Content-Disposition': `attachment; filename="factura-${invoiceNumber}.pdf"`
       }
     })
     

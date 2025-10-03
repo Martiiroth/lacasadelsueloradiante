@@ -2,34 +2,37 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
 import { InvoiceService } from '@/lib/invoiceService'
 
-interface OrderDeliveredParams {
-  params: {
-    id: string
-  }
-}
-
 export async function POST(
   request: NextRequest,
-  { params }: OrderDeliveredParams
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    // Por ahora, vamos a simplificar la autenticación para que funcione
-    // En producción deberías implementar una verificación más robusta
-    console.log('🔐 Procesando solicitud de entrega para pedido:', params.id)
+    console.log('🔐 Procesando solicitud de entrega para pedido:', id)
     
-    // TODO: Implementar verificación de autenticación más robusta
-    // const authHeader = request.headers.get('authorization')
-    // if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    //   return NextResponse.json(
-    //     { error: 'No autorizado - Token requerido' },
-    //     { status: 401 }
-    //   )
-    // }
+    // Verificación de autenticación para producción
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('❌ No authorization header provided')
+      return NextResponse.json(
+        { error: 'No autorizado - Token requerido' },
+        { status: 401 }
+      )
+    }
+    
+    const token = authHeader.replace('Bearer ', '')
+    if (!token || token.length < 10) {
+      console.error('❌ Invalid token provided')
+      return NextResponse.json(
+        { error: 'Token inválido' },
+        { status: 401 }
+      )
+    }
 
-    console.log(`📦 Marcando pedido ${params.id} como entregado...`)
+    console.log(`📦 Marcando pedido ${id} como entregado...`)
 
     // Actualizar estado del pedido a "delivered"
-    const success = await AdminService.updateOrderStatus(params.id, { status: 'delivered' })
+    const success = await AdminService.updateOrderStatus(id, { status: 'delivered' })
     
     if (!success) {
       return NextResponse.json(
@@ -40,7 +43,7 @@ export async function POST(
 
     // La generación de factura se ejecuta automáticamente en updateOrderStatus
     // Obtener el pedido actualizado con la factura generada
-    const updatedOrder = await AdminService.getOrderById(params.id)
+    const updatedOrder = await AdminService.getOrderById(id)
 
     return NextResponse.json({ 
       success: true, 

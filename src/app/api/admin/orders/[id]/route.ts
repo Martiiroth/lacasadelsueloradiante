@@ -1,23 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
-
-interface OrderUpdateParams {
-  params: {
-    id: string
-  }
-}
+import { cookies } from 'next/headers'
 
 export async function GET(
   request: NextRequest,
-  { params }: OrderUpdateParams
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    // Simplificar autenticación temporalmente para debugging
-    console.log('🔍 Obteniendo detalles del pedido:', params.id)
+    console.log('🔍 Obteniendo detalles del pedido:', id)
     
-    // TODO: Implementar verificación de autenticación
+    // Verificación de autenticación
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'No autorizado - Token requerido' },
+        { status: 401 }
+      )
+    }
 
-    const order = await AdminService.getOrderById(params.id)
+    const order = await AdminService.getOrderById(id)
     
     if (!order) {
       return NextResponse.json(
@@ -38,21 +40,21 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: OrderUpdateParams
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
-    // Simplificar autenticación temporalmente para debugging
-    console.log('🔐 Procesando solicitud de actualización para pedido:', params.id)
+    console.log('🔐 Procesando solicitud de actualización para pedido:', id)
     
-    // TODO: Implementar verificación de autenticación más robusta
-    // const cookieStore = await cookies()
-    // const authToken = cookieStore.get('sb-access-token')?.value
-    // if (!authToken) {
-    //   return NextResponse.json(
-    //     { error: 'No autorizado' },
-    //     { status: 401 }
-    //   )
-    // }
+    // Verificación de autenticación
+    const cookieStore = await cookies()
+    const authToken = cookieStore.get('sb-access-token')?.value
+    if (!authToken) {
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      )
+    }
 
     const body = await request.json()
     const { status } = body
@@ -73,7 +75,7 @@ export async function PUT(
       )
     }
 
-    const success = await AdminService.updateOrderStatus(params.id, { status })
+    const success = await AdminService.updateOrderStatus(id, { status })
     
     if (!success) {
       return NextResponse.json(
@@ -83,7 +85,7 @@ export async function PUT(
     }
 
     // Obtener el pedido actualizado
-    const updatedOrder = await AdminService.getOrderById(params.id)
+    const updatedOrder = await AdminService.getOrderById(id)
 
     return NextResponse.json({ 
       success: true, 

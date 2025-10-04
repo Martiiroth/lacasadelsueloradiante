@@ -23,6 +23,7 @@ export default function RolePriceManager({
   onChange
 }: RolePriceManagerProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [displayPrices, setDisplayPrices] = useState<{ [key: string]: string }>({})
 
   const handlePriceChange = (roleName: VariantRolePrice['role_name'], priceCents: number) => {
     const updatedPrices = rolePrices.filter(rp => rp.role_name !== roleName)
@@ -101,24 +102,46 @@ export default function RolePriceManager({
                     <div className="relative">
                       <CurrencyEuroIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formatPrice(currentPrice)}
-                        onChange={(e) => handlePriceChange(role.name, parsePrice(e.target.value))}
-                        className={`w-24 pl-8 pr-3 py-1 text-sm border rounded-md ${
+                        type="text"
+                        inputMode="decimal"
+                        value={displayPrices[role.name] ?? (currentPrice > 0 ? (currentPrice / 100).toFixed(2) : '')}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setDisplayPrices(prev => ({ ...prev, [role.name]: value }))
+                          
+                          // Solo actualizar si es un número válido o vacío
+                          const numValue = parseFloat(value.replace(',', '.'))
+                          if (!isNaN(numValue) && numValue >= 0) {
+                            handlePriceChange(role.name, Math.round(numValue * 100))
+                          } else if (value === '' || value === '0') {
+                            handlePriceChange(role.name, publicPrice)
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Al salir del campo, formatear el valor
+                          const numValue = parseFloat(e.target.value.replace(',', '.'))
+                          if (!isNaN(numValue) && numValue > 0) {
+                            setDisplayPrices(prev => ({ ...prev, [role.name]: numValue.toFixed(2) }))
+                          } else {
+                            setDisplayPrices(prev => ({ ...prev, [role.name]: '' }))
+                          }
+                        }}
+                        className={`w-28 pl-8 pr-3 py-1 text-sm border rounded-md ${
                           isCustomPrice 
                             ? 'border-indigo-300 bg-indigo-50 text-indigo-900' 
-                            : 'border-gray-300 bg-gray-50 text-gray-700'
+                            : 'border-gray-300 bg-white text-gray-700'
                         }`}
-                        placeholder="0.00"
+                        placeholder="123.42"
                       />
                     </div>
                     
                     {isCustomPrice && (
                       <button
                         type="button"
-                        onClick={() => handlePriceChange(role.name, publicPrice)}
+                        onClick={() => {
+                          handlePriceChange(role.name, publicPrice)
+                          setDisplayPrices(prev => ({ ...prev, [role.name]: '' }))
+                        }}
                         className="text-xs text-gray-500 hover:text-gray-700"
                         title="Usar precio público"
                       >

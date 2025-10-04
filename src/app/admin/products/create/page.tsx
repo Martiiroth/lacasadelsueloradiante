@@ -76,6 +76,11 @@ export default function CreateProductPage() {
       return
     }
 
+    if (!formData.categories || formData.categories.length === 0) {
+      setError('Debes seleccionar al menos una categoría')
+      return
+    }
+
     if (formData.variants.length === 0 || formData.variants.every(v => v.price_public_cents <= 0)) {
       setError('Debe haber al menos una variante con precio mayor a 0')
       return
@@ -519,37 +524,55 @@ export default function CreateProductPage() {
         </div>
 
         {/* Categories */}
-        {categories.length > 0 && (
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                <TagIcon className="h-5 w-5 mr-2 text-gray-400" />
-                Categorías
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Selecciona las categorías a las que pertenece este producto
-              </p>
-            </div>
-            <div className="px-6 py-4">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {categories.map((category) => (
-                  <div key={category.id} className="flex items-center">
-                    <input
-                      id={`category-${category.id}`}
-                      type="checkbox"
-                      checked={(formData.categories || []).includes(category.id)}
-                      onChange={(e) => handleCategoryChange(category.id, e.target.checked)}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                    />
-                    <label htmlFor={`category-${category.id}`} className="ml-2 block text-sm text-gray-900">
-                      {category.name}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <TagIcon className="h-5 w-5 mr-2 text-gray-400" />
+              Categorías *
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Selecciona al menos una categoría para este producto
+            </p>
           </div>
-        )}
+          <div className="px-6 py-4">
+            {loadingCategories ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : categories.length > 0 ? (
+              <div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {categories.map((category) => (
+                    <div key={category.id} className="flex items-center">
+                      <input
+                        id={`category-${category.id}`}
+                        type="checkbox"
+                        checked={(formData.categories || []).includes(category.id)}
+                        onChange={(e) => handleCategoryChange(category.id, e.target.checked)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor={`category-${category.id}`} className="ml-2 block text-sm text-gray-900">
+                        {category.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-gray-500">
+                  Seleccionadas: <span className="font-medium text-indigo-600">
+                    {formData.categories?.length || 0}
+                  </span>
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <TagIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-500">
+                  No hay categorías disponibles. Crea categorías primero.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Product Resources */}
         <div className="bg-white shadow rounded-lg">

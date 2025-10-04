@@ -234,6 +234,14 @@ export class PDFService {
     let browser = null
     
     try {
+      console.log('🚀 PDFService - Launching Puppeteer browser...')
+      console.log('🔧 PDFService - Environment:', {
+        NODE_ENV: process.env.NODE_ENV,
+        PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH || 'default',
+        platform: process.platform,
+        arch: process.arch
+      })
+      
       browser = await puppeteer.launch({ 
         headless: true,
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
@@ -249,7 +257,10 @@ export class PDFService {
         ]
       })
       
+      console.log('✅ PDFService - Browser launched successfully')
+      
       const page = await browser.newPage()
+      console.log('✅ PDFService - Page created successfully')
       
       // Configurar el viewport para un tamaño A4
       await page.setViewport({
@@ -257,14 +268,18 @@ export class PDFService {
         height: 1123,
         deviceScaleFactor: 1
       })
+      console.log('✅ PDFService - Viewport configured')
       
       // Cargar el HTML directamente
+      console.log('📄 PDFService - Loading HTML content...')
       await page.setContent(invoiceHTML, { 
         waitUntil: 'networkidle0',
         timeout: 30000
       })
+      console.log('✅ PDFService - HTML content loaded successfully')
       
       // Generar el PDF
+      console.log('📄 PDFService - Generating PDF...')
       const pdf = await page.pdf({
         format: 'A4',
         printBackground: true,
@@ -275,6 +290,7 @@ export class PDFService {
           left: '10mm'
         }
       })
+      console.log('✅ PDFService - PDF generated successfully, size:', pdf.length, 'bytes')
       
       console.log('✅ PDF generado exitosamente para factura desde HTML:', invoiceNumber)
       

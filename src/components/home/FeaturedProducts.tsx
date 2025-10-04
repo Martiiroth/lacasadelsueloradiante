@@ -73,16 +73,18 @@ interface ProductGridProps {
   products: ProductCardData[]
   loading: boolean
   error: string | null
-  limit: number
+  displayedCount: number
+  totalCount: number
   onSaleOnly: boolean
   onRetry?: () => void
+  onLoadMore?: () => void
 }
 
-function ProductGrid({ products, loading, error, limit, onSaleOnly, onRetry }: ProductGridProps) {
-  if (loading) {
+function ProductGrid({ products, loading, error, displayedCount, totalCount, onSaleOnly, onRetry, onLoadMore }: ProductGridProps) {
+  if (loading && products.length === 0) {
     return (
       <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-        {Array.from({ length: limit }).map((_, i) => (
+        {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
             <div className="aspect-square bg-gray-200"></div>
             <div className="p-4">
@@ -133,25 +135,63 @@ function ProductGrid({ products, loading, error, limit, onSaleOnly, onRetry }: P
     )
   }
 
+  const hasMore = displayedCount < totalCount
+
   return (
     <>
-      <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-12">
-        {products.map((product) => (
+      <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
+        {products.slice(0, displayedCount).map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
 
-      {/* Botón ver más */}
-      <div className="text-center">
-        <Link
-          href="/#productos"
-          className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors"
-        >
-          {onSaleOnly ? 'Ver todas las ofertas' : 'Explorar más productos'}
-          <svg className="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        </Link>
+      {/* Indicador de productos mostrados */}
+      <div className="text-center mb-6">
+        <p className="text-sm text-gray-600">
+          Mostrando <span className="font-semibold">{Math.min(displayedCount, products.length)}</span> de <span className="font-semibold">{totalCount}</span> productos
+        </p>
+      </div>
+
+      {/* Botones de acción */}
+      <div className="text-center space-y-4">
+        {hasMore && onLoadMore && (
+          <div>
+            <button
+              onClick={onLoadMore}
+              disabled={loading}
+              className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Cargando...
+                </>
+              ) : (
+                <>
+                  Ver más productos
+                  <svg className="ml-2 -mr-1 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+        
+        <div>
+          <Link
+            href="/products"
+            className="inline-flex items-center px-8 py-3 border-2 border-blue-600 text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors"
+          >
+            {onSaleOnly ? 'Ver todas las ofertas' : 'Ver todos los productos'}
+            <svg className="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </Link>
+        </div>
       </div>
     </>
   )
@@ -171,8 +211,11 @@ export default function FeaturedProducts({
   limit = 8
 }: FeaturedProductsProps) {
   const [products, setProducts] = useState<ProductCardData[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [displayedCount, setDisplayedCount] = useState(limit)
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
   const [sortBy, setSortBy] = useState('created_at')
@@ -180,10 +223,53 @@ export default function FeaturedProducts({
   const [searchTerm, setSearchTerm] = useState('')
   const isHydrated = useHydration()
 
+  // Función para cargar más productos
+  const handleLoadMore = async () => {
+    setLoadingMore(true)
+    const newDisplayedCount = displayedCount + 8
+    
+    // Si ya tenemos suficientes productos cargados, solo aumentamos el contador
+    if (products.length >= newDisplayedCount) {
+      setDisplayedCount(newDisplayedCount)
+      setLoadingMore(false)
+      return
+    }
+
+    // Si no, cargamos más productos
+    try {
+      const filters = {
+        category: selectedCategory || undefined,
+        is_on_sale: onSaleOnly ? true : undefined,
+        search: searchTerm || undefined,
+      }
+
+      const result = await ProductService.getProducts(
+        filters,
+        { 
+          field: sortBy as 'title' | 'price' | 'created_at' | 'stock', 
+          direction: sortOrder 
+        },
+        1,
+        newDisplayedCount
+      )
+
+      if (result) {
+        setProducts(result.products)
+        setTotalCount(result.total)
+        setDisplayedCount(newDisplayedCount)
+      }
+    } catch (err) {
+      console.error('Error loading more products:', err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
   // Función para reintentar carga
   const handleRetry = () => {
     setError(null)
     setLoading(true)
+    setDisplayedCount(limit)
     // Force re-trigger del useEffect cambiando un state
     setSearchTerm(prev => prev + '')
   }
@@ -232,7 +318,7 @@ export default function FeaturedProducts({
           search: searchTerm || undefined,
         }
 
-        console.log(`🔄 Cargando ${limit} productos...`)
+        console.log(`🔄 Cargando productos iniciales...`)
         const result = await ProductService.getProducts(
           filters,
           { 
@@ -240,14 +326,17 @@ export default function FeaturedProducts({
             direction: sortOrder 
           },
           1,
-          limit
+          100 // Cargamos un número mayor para tener productos disponibles
         )
 
         if (result) {
           setProducts(result.products)
-          console.log(`✅ FeaturedProducts: ${result.products.length} productos cargados`)
+          setTotalCount(result.total)
+          setDisplayedCount(limit) // Reset displayed count
+          console.log(`✅ FeaturedProducts: ${result.products.length} de ${result.total} productos cargados`)
         } else {
           setProducts([])
+          setTotalCount(0)
           console.log(`⚠️ No se pudo obtener resultado de productos`)
         }
         setLoading(false)
@@ -399,11 +488,13 @@ export default function FeaturedProducts({
           <div className="flex-1">
             <ProductGrid 
               products={products}
-              loading={loading}
+              loading={loading || loadingMore}
               error={error}
-              limit={limit}
+              displayedCount={displayedCount}
+              totalCount={totalCount}
               onSaleOnly={onSaleOnly}
               onRetry={handleRetry}
+              onLoadMore={handleLoadMore}
             />
           </div>
         </div>
@@ -412,11 +503,13 @@ export default function FeaturedProducts({
       return (
         <ProductGrid 
           products={products}
-          loading={loading}
+          loading={loading || loadingMore}
           error={error}
-          limit={limit}
+          displayedCount={displayedCount}
+          totalCount={totalCount}
           onSaleOnly={onSaleOnly}
           onRetry={handleRetry}
+          onLoadMore={handleLoadMore}
         />
       )
     }

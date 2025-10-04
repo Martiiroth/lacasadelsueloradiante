@@ -79,20 +79,6 @@ RUN pnpm run build
 FROM base AS runner
 WORKDIR /app
 
-# Instalar Chromium y dependencias necesarias para Puppeteer
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    freetype-dev \
-    harfbuzz \
-    ca-certificates \
-    ttf-freefont
-
-# Configurar Puppeteer para usar Chromium instalado
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
 ENV NODE_ENV=production
 # Descomenta la siguiente línea en caso de que quieras deshabilitar la telemetría durante runtime.
 # ENV NEXT_TELEMETRY_DISABLED 1

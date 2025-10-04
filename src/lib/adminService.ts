@@ -768,17 +768,10 @@ export class AdminService {
             invoiceNumber
           }
 
-          // Enviar notificación a través de la API para evitar problemas de hidratación
-          const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/notifications`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'send_order_notification',
-              orderData: emailData
-            })
-          })
-          const result = await response.json()
-          const emailSent = result.success
+          // Enviar notificación directamente usando ServerEmailService
+          // Importar dinámicamente para evitar problemas en el cliente
+          const { default: ServerEmailService } = await import('@/lib/emailService.server')
+          const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData)
           
           if (emailSent) {
             console.log(`✅ Notificación enviada para pedido #${orderDetails.id}`)

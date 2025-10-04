@@ -34,13 +34,11 @@ const nextConfig = {
     return config
   },
 
-  // Configuración experimental para incluir archivos de PDFKit en standalone
-  experimental: {
-    outputFileTracingIncludes: {
-      '/api/**/*': [
-        './node_modules/pdfkit/js/data/**/*',
-      ],
-    },
+  // Configuración para incluir archivos de PDFKit en standalone
+  outputFileTracingIncludes: {
+    '/api/**/*': [
+      './node_modules/pdfkit/js/data/**/*',
+    ],
   },
   
   // Optimizaciones de imágenes  

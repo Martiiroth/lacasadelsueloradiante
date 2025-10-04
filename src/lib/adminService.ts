@@ -768,15 +768,38 @@ export class AdminService {
             invoiceNumber
           }
 
-          // Enviar notificación directamente usando ServerEmailService
-          // Importar dinámicamente para evitar problemas en el cliente
-          const { default: ServerEmailService } = await import('@/lib/emailService.server')
-          const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData)
-          
-          if (emailSent) {
-            console.log(`✅ Notificación enviada para pedido #${orderDetails.id}`)
-          } else {
-            console.log(`⚠️ No se pudo enviar la notificación para pedido #${orderDetails.id}`)
+          // Enviar notificación usando API interna
+          // Usar un enfoque diferente para evitar problemas con ad blockers
+          try {
+            // Llamar a la API desde el servidor usando la URL interna de Docker
+            const apiUrl = typeof window === 'undefined' 
+              ? 'http://localhost:3000/api/notifications'  // En servidor, usar localhost interno
+              : '/api/notifications'  // En cliente, usar ruta relativa
+            
+            const response = await fetch(apiUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'send_order_notification',
+                orderData: emailData
+              })
+            })
+            
+            if (!response.ok) {
+              throw new Error(`API responded with status ${response.status}`)
+            }
+            
+            const result = await response.json()
+            const emailSent = result.success
+            
+            if (emailSent) {
+              console.log(`✅ Notificación enviada para pedido #${orderDetails.id}`)
+            } else {
+              console.log(`⚠️ No se pudo enviar la notificación para pedido #${orderDetails.id}`)
+            }
+          } catch (fetchError) {
+            console.error('Error al llamar a la API de notificaciones:', fetchError)
+            // Continuar sin fallar la operación
           }
         }
       } catch (emailError) {

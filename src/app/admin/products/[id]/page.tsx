@@ -57,26 +57,7 @@ export default function AdminProductDetail() {
     }
   }
 
-  const toggleProductStatus = async () => {
-    if (!product) return
-    
-    try {
-      setUpdating(true)
-      const newStatus = product.status === 'active' ? 'draft' : 'active'
-      const success = await AdminService.updateProduct(product.id, { status: newStatus })
-      
-      if (success) {
-        setProduct({ ...product, status: newStatus })
-      } else {
-        alert('Error al actualizar el estado del producto')
-      }
-    } catch (err) {
-      console.error('Error updating product status:', err)
-      alert('Error al actualizar el estado del producto')
-    } finally {
-      setUpdating(false)
-    }
-  }
+  // Status toggle removed - field not in current schema
 
   const deleteProduct = async () => {
     if (!product) return
@@ -151,10 +132,10 @@ export default function AdminProductDetail() {
               </button>
               <div className="flex items-center">
                 <div className="flex-shrink-0 h-16 w-16 mr-4">
-                  {product.media && product.media.length > 0 ? (
+                  {product.images && product.images.length > 0 ? (
                     <img
-                      src={product.media[0].url}
-                      alt={product.media[0].alt_text || product.title}
+                      src={product.images[0].url}
+                      alt={product.images[0].alt || product.title}
                       className="h-16 w-16 rounded-lg object-cover"
                     />
                   ) : (
@@ -178,27 +159,6 @@ export default function AdminProductDetail() {
               </div>
             </div>
             <div className="flex space-x-3">
-              <button
-                onClick={toggleProductStatus}
-                disabled={updating}
-                className={`inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
-                  product.status === 'active' 
-                    ? 'text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:ring-yellow-500' 
-                    : 'text-green-700 bg-green-100 hover:bg-green-200 focus:ring-green-500'
-                }`}
-              >
-                {product.status === 'active' ? (
-                  <>
-                    <PencilIcon className="h-4 w-4 mr-2" />
-                    {updating ? 'Guardando...' : 'Pasar a borrador'}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircleIcon className="h-4 w-4 mr-2" />
-                    {updating ? 'Activando...' : 'Activar'}
-                  </>
-                )}
-              </button>
               <button
                 onClick={() => router.push(`/admin/products/${product.id}/edit`)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -235,45 +195,64 @@ export default function AdminProductDetail() {
                     <dd className="mt-1 text-sm text-gray-900">{product.title}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Handle</dt>
-                    <dd className="mt-1 text-sm text-gray-900 font-mono">{product.handle}</dd>
+                    <dt className="text-sm font-medium text-gray-500">Slug</dt>
+                    <dd className="mt-1 text-sm text-gray-900 font-mono">{product.slug}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Tipo</dt>
+                    <dt className="text-sm font-medium text-gray-500">Producto Nuevo</dt>
                     <dd className="mt-1">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        <TagIcon className="h-3 w-3 mr-1" />
-                        {product.type}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        product.is_new ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {product.is_new ? 'Sí' : 'No'}
                       </span>
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Estado</dt>
+                    <dt className="text-sm font-medium text-gray-500">En Oferta</dt>
                     <dd className="mt-1">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${AdminService.getProductStatusColor(product.status)}`}>
-                        {AdminService.getProductStatusLabel(product.status)}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        product.is_on_sale ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {product.is_on_sale ? 'Sí' : 'No'}
                       </span>
                     </dd>
                   </div>
-                  {product.vendor && (
+                  {product.categories && product.categories.length > 0 && (
                     <div>
-                      <dt className="text-sm font-medium text-gray-500">Proveedor</dt>
-                      <dd className="mt-1 flex items-center text-sm text-gray-900">
-                        <BuildingStorefrontIcon className="h-4 w-4 mr-2 text-gray-400" />
-                        {product.vendor}
+                      <dt className="text-sm font-medium text-gray-500">Categorías</dt>
+                      <dd className="mt-1 flex flex-wrap gap-2">
+                        {product.categories.map((cat) => (
+                          <span key={cat.category.id} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            <TagIcon className="h-3 w-3 mr-1" />
+                            {cat.category.name}
+                          </span>
+                        ))}
                       </dd>
                     </div>
                   )}
-                  {product.tags && (
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Etiquetas</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{product.tags}</dd>
+                  {product.short_description && (
+                    <div className="sm:col-span-2">
+                      <dt className="text-sm font-medium text-gray-500">Descripción Corta</dt>
+                      <dd className="mt-1 text-sm text-gray-900">{product.short_description}</dd>
                     </div>
                   )}
                   {product.description && (
                     <div className="sm:col-span-2">
-                      <dt className="text-sm font-medium text-gray-500">Descripción</dt>
+                      <dt className="text-sm font-medium text-gray-500">Descripción Completa</dt>
                       <dd className="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{product.description}</dd>
+                    </div>
+                  )}
+                  {product.meta_title && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Meta Título</dt>
+                      <dd className="mt-1 text-sm text-gray-900">{product.meta_title}</dd>
+                    </div>
+                  )}
+                  {product.meta_description && (
+                    <div>
+                      <dt className="text-sm font-medium text-gray-500">Meta Descripción</dt>
+                      <dd className="mt-1 text-sm text-gray-900">{product.meta_description}</dd>
                     </div>
                   )}
                 </dl>
@@ -314,12 +293,10 @@ export default function AdminProductDetail() {
                       {product.variants.map((variant) => (
                         <tr key={variant.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">{variant.title}</div>
-                            {variant.option1 && (
-                              <div className="text-xs text-gray-500">
-                                {variant.option1}
-                                {variant.option2 && ` / ${variant.option2}`}
-                                {variant.option3 && ` / ${variant.option3}`}
+                            <div className="text-sm font-medium text-gray-900">{variant.title || 'Variante'}</div>
+                            {variant.sku && (
+                              <div className="text-xs text-gray-500 font-mono">
+                                SKU: {variant.sku}
                               </div>
                             )}
                           </td>
@@ -328,24 +305,22 @@ export default function AdminProductDetail() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm font-medium text-gray-900">
-                              €{(variant.price_cents / 100).toFixed(2)}
+                              €{(variant.price_public_cents / 100).toFixed(2)}
                             </div>
-                            {variant.compare_at_price_cents && variant.compare_at_price_cents > variant.price_cents && (
-                              <div className="text-xs text-gray-500 line-through">
-                                €{(variant.compare_at_price_cents / 100).toFixed(2)}
+                            {variant.weight_grams && variant.weight_grams > 0 && (
+                              <div className="text-xs text-gray-500">
+                                {variant.weight_grams}g
                               </div>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`text-sm font-medium ${variant.inventory_quantity < 10 ? 'text-red-600' : 'text-green-600'}`}>
-                              {variant.inventory_quantity}
+                            <span className={`text-sm font-medium ${variant.stock < 10 ? 'text-red-600' : 'text-green-600'}`}>
+                              {variant.stock}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              variant.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {variant.is_active ? 'Activa' : 'Inactiva'}
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Activa
                             </span>
                           </td>
                         </tr>
@@ -356,26 +331,26 @@ export default function AdminProductDetail() {
               </div>
             )}
 
-            {/* Product Media */}
-            {product.media && product.media.length > 0 && (
+            {/* Product Images */}
+            {product.images && product.images.length > 0 && (
               <div className="bg-white shadow rounded-lg">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h3 className="text-lg font-medium text-gray-900 flex items-center">
                     <PhotoIcon className="h-5 w-5 mr-2 text-gray-400" />
-                    Imágenes ({product.media.length})
+                    Imágenes ({product.images.length})
                   </h3>
                 </div>
                 <div className="px-6 py-4">
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                    {product.media.map((media) => (
-                      <div key={media.id} className="relative">
+                    {product.images.map((image) => (
+                      <div key={image.id} className="relative">
                         <img
-                          src={media.url}
-                          alt={media.alt_text || `Imagen ${media.position}`}
+                          src={image.url}
+                          alt={image.alt || `Imagen ${image.position}`}
                           className="h-24 w-full object-cover rounded-lg"
                         />
                         <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                          {media.position}
+                          {image.position}
                         </div>
                       </div>
                     ))}
@@ -446,7 +421,7 @@ export default function AdminProductDetail() {
                   Ver pedidos de este producto
                 </button>
                 <button
-                  onClick={() => window.open(`/products/${product.handle}`, '_blank')}
+                  onClick={() => window.open(`/products/${product.slug}`, '_blank')}
                   className="w-full text-left px-3 py-2 text-sm text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md"
                 >
                   Ver en la tienda

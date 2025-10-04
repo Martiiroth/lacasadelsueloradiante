@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { AdminProduct, UpdateProductData, UpdateVariantData, ResourceData } from '@/types/admin'
+import { AdminProduct, UpdateProductData, UpdateVariantData, ResourceData, AdminCategory } from '@/types/admin'
 import { AdminService } from '@/lib/adminService'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
@@ -17,7 +17,8 @@ import {
   TrashIcon,
   ExclamationCircleIcon,
   CheckCircleIcon,
-  PhotoIcon
+  PhotoIcon,
+  TagIcon
 } from '@heroicons/react/24/outline'
 
 export default function EditProduct() {
@@ -30,6 +31,9 @@ export default function EditProduct() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [categories, setCategories] = useState<AdminCategory[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
 
   // Form data
   const [formData, setFormData] = useState<UpdateProductData>({
@@ -49,7 +53,20 @@ export default function EditProduct() {
 
   useEffect(() => {
     loadProduct()
+    loadCategories()
   }, [productId])
+
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true)
+      const categoriesData = await AdminService.getAllCategories(undefined, 100)
+      setCategories(categoriesData)
+    } catch (error) {
+      console.error('Error loading categories:', error)
+    } finally {
+      setLoadingCategories(false)
+    }
+  }
 
   const loadProduct = async () => {
     try {
@@ -135,6 +152,12 @@ export default function EditProduct() {
           url: resource.url,
           description: '' // No existe en BD, solo para interfaz
         })))
+      }
+
+      // Initialize categories
+      if (foundProduct.categories) {
+        const categoryIds = foundProduct.categories.map(c => c.category.id)
+        setSelectedCategories(categoryIds)
       }
     } catch (err) {
       console.error('Error loading product:', err)
@@ -229,6 +252,14 @@ export default function EditProduct() {
           }
         }
       }
+
+      // Update categories
+      try {
+        await AdminService.updateProductCategories(productId, selectedCategories)
+      } catch (categoryError: any) {
+        console.error('Category update error:', categoryError)
+        throw new Error(`Error al actualizar las categorías: ${categoryError.message}`)
+      }
       
       setSuccess(true)
       setTimeout(() => {
@@ -280,11 +311,17 @@ export default function EditProduct() {
     }])
   }
 
-
-
   const removeVariant = (index: number) => {
     if (variants.length > 1) {
       setVariants(prev => prev.filter((_, i) => i !== index))
+    }
+  }
+
+  const handleCategoryChange = (categoryId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategories(prev => [...prev, categoryId])
+    } else {
+      setSelectedCategories(prev => prev.filter(id => id !== categoryId))
     }
   }
 
@@ -657,6 +694,37 @@ export default function EditProduct() {
               <ImageUpload images={images} onChange={setImages} />
             </div>
           </div>
+
+          {/* Categories */}
+          {categories.length > 0 && (
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                  <TagIcon className="h-5 w-5 mr-2 text-gray-400" />
+                  Categorías
+                </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Selecciona las categorías a las que pertenece este producto
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {categories.map((category) => (
+                  <div key={category.id} className="flex items-center">
+                    <input
+                      id={`category-${category.id}`}
+                      type="checkbox"
+                      checked={selectedCategories.includes(category.id)}
+                      onChange={(e) => handleCategoryChange(category.id, e.target.checked)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor={`category-${category.id}`} className="ml-2 block text-sm text-gray-900">
+                      {category.name}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Product Resources */}
           <div>

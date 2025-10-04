@@ -2028,6 +2028,49 @@ export class AdminService {
     }
   }
 
+  static async updateProductCategories(productId: string, categoryIds: string[]): Promise<boolean> {
+    try {
+      console.log('updateProductCategories called with:', { productId, categoryCount: categoryIds.length })
+
+      // Delete existing category relations
+      const { error: deleteError } = await supabase
+        .from('product_categories')
+        .delete()
+        .eq('product_id', productId)
+
+      if (deleteError) {
+        console.error('Error deleting existing categories:', deleteError)
+        throw deleteError
+      }
+
+      if (categoryIds.length === 0) {
+        console.log('No categories to insert')
+        return true
+      }
+
+      // Insert new category relations
+      const categoryRelations = categoryIds.map(categoryId => ({
+        product_id: productId,
+        category_id: categoryId
+      }))
+
+      const { error: insertError } = await supabase
+        .from('product_categories')
+        .insert(categoryRelations)
+
+      if (insertError) {
+        console.error('Error inserting categories:', insertError)
+        throw insertError
+      }
+
+      console.log('Successfully inserted categories')
+      return true
+    } catch (error) {
+      console.error('Error in updateProductCategories:', error)
+      throw error
+    }
+  }
+
   static async getProduct(productId: string): Promise<AdminProduct | null> {
     try {
       console.log('🔍 AdminService.getProduct called with productId:', productId)

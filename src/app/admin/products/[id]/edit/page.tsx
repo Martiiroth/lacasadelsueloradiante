@@ -51,6 +51,15 @@ export default function EditProduct() {
   const [images, setImages] = useState<ImageData[]>([])
   const [resources, setResources] = useState<ResourceData[]>([])
 
+  // Estado para mostrar valores vacíos en inputs mientras no se haya introducido nada
+  const [displayValues, setDisplayValues] = useState<{
+    [variantIndex: number]: {
+      price?: string
+      stock?: string
+      weight?: string
+    }
+  }>({})
+
   useEffect(() => {
     loadProduct()
     loadCategories()
@@ -308,6 +317,7 @@ export default function EditProduct() {
   }
 
   const addVariant = () => {
+    const newIndex = variants.length
     setVariants(prev => [...prev, {
       sku: '',
       title: '',
@@ -318,6 +328,11 @@ export default function EditProduct() {
       images: [],
       role_prices: []
     }])
+    // Inicializar valores de display vacíos para la nueva variante
+    setDisplayValues(prev => ({
+      ...prev,
+      [newIndex]: { price: '', stock: '', weight: '' }
+    }))
   }
 
   const removeVariant = (index: number) => {
@@ -609,18 +624,47 @@ export default function EditProduct() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        Precio Público (céntimos) *
+                        Precio Público (€) *
                       </label>
                       <input
-                        type="number"
-                        value={variant.price_public_cents}
-                        onChange={(e) => handleVariantChange(index, 'price_public_cents', parseInt(e.target.value) || 0)}
+                        type="text"
+                        inputMode="decimal"
+                        value={displayValues[index]?.price ?? ((variant.price_public_cents && variant.price_public_cents > 0) ? (variant.price_public_cents / 100).toFixed(2) : '')}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setDisplayValues(prev => ({
+                            ...prev,
+                            [index]: { ...prev[index], price: value }
+                          }))
+                          // Solo actualizar si es un número válido o vacío
+                          const numValue = parseFloat(value.replace(',', '.'))
+                          if (!isNaN(numValue) && numValue >= 0) {
+                            handleVariantChange(index, 'price_public_cents', Math.round(numValue * 100))
+                          } else if (value === '' || value === '0') {
+                            handleVariantChange(index, 'price_public_cents', 0)
+                          }
+                        }}
+                        onBlur={(e) => {
+                          // Al salir del campo, formatear el valor
+                          const numValue = parseFloat(e.target.value.replace(',', '.'))
+                          if (!isNaN(numValue) && numValue > 0) {
+                            setDisplayValues(prev => ({
+                              ...prev,
+                              [index]: { ...prev[index], price: numValue.toFixed(2) }
+                            }))
+                          } else {
+                            setDisplayValues(prev => ({
+                              ...prev,
+                              [index]: { ...prev[index], price: '' }
+                            }))
+                          }
+                        }}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                         required
-                        min="0"
+                        placeholder="123.42"
                       />
                       <p className="mt-1 text-sm text-gray-500">
-                        Precio base para clientes sin descuentos especiales
+                        Precio en euros (ej: 123.42)
                       </p>
                     </div>
 
@@ -629,12 +673,20 @@ export default function EditProduct() {
                         Stock *
                       </label>
                       <input
-                        type="number"
-                        value={variant.stock}
-                        onChange={(e) => handleVariantChange(index, 'stock', parseInt(e.target.value) || 0)}
+                        type="text"
+                        inputMode="numeric"
+                        value={displayValues[index]?.stock ?? ((variant.stock !== undefined && variant.stock > 0) ? variant.stock.toString() : '')}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '') // Solo números
+                          setDisplayValues(prev => ({
+                            ...prev,
+                            [index]: { ...prev[index], stock: value }
+                          }))
+                          handleVariantChange(index, 'stock', parseInt(value || '0'))
+                        }}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                         required
-                        min="0"
+                        placeholder="100"
                       />
                     </div>
 
@@ -643,11 +695,19 @@ export default function EditProduct() {
                         Peso (gramos)
                       </label>
                       <input
-                        type="number"
-                        value={variant.weight_grams || 0}
-                        onChange={(e) => handleVariantChange(index, 'weight_grams', parseInt(e.target.value) || 0)}
+                        type="text"
+                        inputMode="numeric"
+                        value={displayValues[index]?.weight ?? ((variant.weight_grams && variant.weight_grams > 0) ? variant.weight_grams.toString() : '')}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '') // Solo números
+                          setDisplayValues(prev => ({
+                            ...prev,
+                            [index]: { ...prev[index], weight: value }
+                          }))
+                          handleVariantChange(index, 'weight_grams', parseInt(value || '0'))
+                        }}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                        min="0"
+                        placeholder="500"
                       />
                     </div>
                   </div>

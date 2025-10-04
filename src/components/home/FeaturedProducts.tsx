@@ -78,9 +78,10 @@ interface ProductGridProps {
   onSaleOnly: boolean
   onRetry?: () => void
   onLoadMore?: () => void
+  onShowAll?: () => void
 }
 
-function ProductGrid({ products, loading, error, displayedCount, totalCount, onSaleOnly, onRetry, onLoadMore }: ProductGridProps) {
+function ProductGrid({ products, loading, error, displayedCount, totalCount, onSaleOnly, onRetry, onLoadMore, onShowAll }: ProductGridProps) {
   if (loading && products.length === 0) {
     return (
       <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
@@ -181,17 +182,32 @@ function ProductGrid({ products, loading, error, displayedCount, totalCount, onS
           </div>
         )}
         
-        <div>
-          <Link
-            href="/products"
-            className="inline-flex items-center px-8 py-3 border-2 border-blue-600 text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors"
-          >
-            {onSaleOnly ? 'Ver todas las ofertas' : 'Ver todos los productos'}
-            <svg className="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </Link>
-        </div>
+        {hasMore && onShowAll && (
+          <div>
+            <button
+              onClick={onShowAll}
+              disabled={loading}
+              className="inline-flex items-center px-8 py-3 border-2 border-blue-600 text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Cargando todos los productos...
+                </>
+              ) : (
+                <>
+                  {onSaleOnly ? 'Ver todas las ofertas' : 'Ver todos los productos'}
+                  <svg className="ml-2 -mr-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </>
   )
@@ -260,6 +276,49 @@ export default function FeaturedProducts({
       }
     } catch (err) {
       console.error('Error loading more products:', err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  // Función para cargar TODOS los productos
+  const handleShowAll = async () => {
+    setLoadingMore(true)
+    
+    // Si ya tenemos todos los productos cargados, solo mostramos todos
+    if (products.length >= totalCount) {
+      setDisplayedCount(totalCount)
+      setLoadingMore(false)
+      return
+    }
+
+    // Si no, cargamos todos los productos
+    try {
+      const filters = {
+        category: selectedCategory || undefined,
+        is_on_sale: onSaleOnly ? true : undefined,
+        search: searchTerm || undefined,
+      }
+
+      console.log(`🔄 Cargando TODOS los productos (${totalCount})...`)
+      const result = await ProductService.getProducts(
+        filters,
+        { 
+          field: sortBy as 'title' | 'price' | 'created_at' | 'stock', 
+          direction: sortOrder 
+        },
+        1,
+        totalCount // Cargamos todos los productos disponibles
+      )
+
+      if (result) {
+        setProducts(result.products)
+        setTotalCount(result.total)
+        setDisplayedCount(result.total)
+        console.log(`✅ Todos los productos cargados: ${result.products.length}`)
+      }
+    } catch (err) {
+      console.error('Error loading all products:', err)
     } finally {
       setLoadingMore(false)
     }
@@ -495,6 +554,7 @@ export default function FeaturedProducts({
               onSaleOnly={onSaleOnly}
               onRetry={handleRetry}
               onLoadMore={handleLoadMore}
+              onShowAll={handleShowAll}
             />
           </div>
         </div>
@@ -510,6 +570,7 @@ export default function FeaturedProducts({
           onSaleOnly={onSaleOnly}
           onRetry={handleRetry}
           onLoadMore={handleLoadMore}
+          onShowAll={handleShowAll}
         />
       )
     }

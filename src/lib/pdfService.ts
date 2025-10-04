@@ -232,78 +232,111 @@ export class PDFService {
   
   static async generateInvoicePDFFromHTML(invoiceHTML: string, invoiceNumber: string): Promise<Uint8Array> {
     let browser = null
+    const maxRetries = 3
+    let lastError = null
     
-    try {
-      console.log('🚀 PDFService - Launching Puppeteer browser...')
-      console.log('🔧 PDFService - Environment:', {
-        NODE_ENV: process.env.NODE_ENV,
-        PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH || 'default',
-        platform: process.platform,
-        arch: process.arch
-      })
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🚀 PDFService - Attempt ${attempt}/${maxRetries} - Launching Puppeteer browser...`)
+        console.log('🔧 PDFService - Environment:', {
+          NODE_ENV: process.env.NODE_ENV,
+          PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+          platform: process.platform,
+          arch: process.arch,
+          attempt: attempt
+        })
+        
+        browser = await puppeteer.launch({ 
+          headless: true,
+          executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+          args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
+            '--single-process',
+            '--disable-gpu',
+            '--disable-background-timer-throttling',
+            '--disable-backgrounding-occluded-windows',
+            '--disable-renderer-backgrounding',
+            '--disable-web-security',
+            '--disable-features=TranslateUI',
+            '--disable-ipc-flooding-protection',
+            '--no-default-browser-check',
+            '--no-experiments',
+            '--memory-pressure-off',
+            '--max_old_space_size=4096'
+          ],
+          timeout: 30000
+        })
+        
+        console.log(`✅ PDFService - Browser launched successfully on attempt ${attempt}`)
       
-      browser = await puppeteer.launch({ 
-        headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-        args: [
-          '--no-sandbox', 
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process',
-          '--disable-gpu'
-        ]
-      })
-      
-      console.log('✅ PDFService - Browser launched successfully')
-      
-      const page = await browser.newPage()
-      console.log('✅ PDFService - Page created successfully')
-      
-      // Configurar el viewport para un tamaño A4
-      await page.setViewport({
-        width: 794,
-        height: 1123,
-        deviceScaleFactor: 1
-      })
-      console.log('✅ PDFService - Viewport configured')
-      
-      // Cargar el HTML directamente
-      console.log('📄 PDFService - Loading HTML content...')
-      await page.setContent(invoiceHTML, { 
-        waitUntil: 'networkidle0',
-        timeout: 30000
-      })
-      console.log('✅ PDFService - HTML content loaded successfully')
-      
-      // Generar el PDF
-      console.log('📄 PDFService - Generating PDF...')
-      const pdf = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '10mm',
-          right: '10mm',
-          bottom: '10mm',
-          left: '10mm'
+        const page = await browser.newPage()
+        console.log(`✅ PDFService - Page created successfully on attempt ${attempt}`)
+        
+        // Configurar el viewport para un tamaño A4
+        await page.setViewport({
+          width: 794,
+          height: 1123,
+          deviceScaleFactor: 1
+        })
+        console.log('✅ PDFService - Viewport configured')
+        
+        // Cargar el HTML directamente
+        console.log('📄 PDFService - Loading HTML content...')
+        await page.setContent(invoiceHTML, { 
+          waitUntil: 'networkidle0',
+          timeout: 20000
+        })
+        console.log('✅ PDFService - HTML content loaded successfully')
+        
+        // Generar el PDF
+        console.log('📄 PDFService - Generating PDF...')
+        const pdf = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: {
+            top: '10mm',
+            right: '10mm',
+            bottom: '10mm',
+            left: '10mm'
+          }
+        })
+        console.log('✅ PDFService - PDF generated successfully, size:', pdf.length, 'bytes')
+        
+        console.log(`✅ PDF generado exitosamente para factura desde HTML en intento ${attempt}:`, invoiceNumber)
+        
+        return pdf
+        
+      } catch (error) {
+        lastError = error
+        console.error(`❌ Error en intento ${attempt}/${maxRetries} generando PDF:`, error)
+        
+        if (attempt === maxRetries) {
+          console.error('❌ Todos los intentos fallaron, lanzando error final')
+          const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+          throw new Error(`Error generando PDF de la factura ${invoiceNumber} después de ${maxRetries} intentos: ${errorMessage}`)
+        } else {
+          console.log(`🔄 Reintentando en 2 segundos... (intento ${attempt + 1}/${maxRetries})`)
+          await new Promise(resolve => setTimeout(resolve, 2000))
         }
-      })
-      console.log('✅ PDFService - PDF generated successfully, size:', pdf.length, 'bytes')
-      
-      console.log('✅ PDF generado exitosamente para factura desde HTML:', invoiceNumber)
-      
-      return pdf
-      
-    } catch (error) {
-      console.error('❌ Error generando PDF desde HTML:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
-      throw new Error(`Error generando PDF de la factura ${invoiceNumber}: ${errorMessage}`)
-    } finally {
-      if (browser) {
-        await browser.close()
+      } finally {
+        if (browser) {
+          try {
+            await browser.close()
+            console.log(`✅ Browser cerrado correctamente en intento ${attempt}`)
+          } catch (closeError) {
+            console.warn(`⚠️ Error cerrando browser en intento ${attempt}:`, closeError)
+          }
+          browser = null
+        }
       }
     }
+    
+    // Si llegamos aquí, todos los intentos fallaron
+    throw new Error(`Error generando PDF después de ${maxRetries} intentos: ${lastError instanceof Error ? lastError.message : 'Error desconocido'}`)
   }
 }

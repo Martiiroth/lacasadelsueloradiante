@@ -98,7 +98,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copiar archivos de fuentes de PDFKit necesarios para generación de PDF
+# PDFKit necesita estos archivos AFM (Adobe Font Metrics) para las fuentes estándar
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pdfkit ./node_modules/pdfkit
+
+# Crear el directorio donde PDFKit busca los archivos y copiarlos
+RUN mkdir -p .next/server/chunks/data
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pdfkit/js/data/* ./.next/server/chunks/data/
 
 USER nextjs
 

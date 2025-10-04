@@ -118,8 +118,13 @@ export default function HomePage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Nuestros Servicios
             </h2>
-            <p className="text-lg text-gray-600">
-              Soluciones completas para todos tus proyectos de calefacción
+            <p className="text-lg text-gray-600 max-w-4xl mx-auto leading-relaxed">
+              En La Casa del Suelo Radiante ofrecemos todo lo que los instaladores necesitan para mantener instalaciones eficientes y seguras:
+              <span className="font-semibold text-gray-900"> líquidos inhibidores, anticongelantes, biocidas, limpiadores y selladores</span>, así como 
+              <span className="font-semibold text-gray-900"> máquinas desenlodadoras, equipos de impulsos, filtros magnéticos y adaptadores para bombas circuladoras</span>.
+            </p>
+            <p className="text-base text-gray-600 max-w-3xl mx-auto mt-4">
+              Productos profesionales, certificados y fáciles de aplicar para una instalación más duradera y libre de averías.
             </p>
           </div>
 
@@ -131,10 +136,10 @@ export default function HomePage() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                Diseño e Instalación
+                Líquidos y Aditivos
               </h3>
               <p className="text-gray-600">
-                Diseñamos e instalamos sistemas de suelo radiante adaptados a tus necesidades específicas.
+                Inhibidores, anticongelantes, biocidas, limpiadores y selladores para una protección completa del sistema.
               </p>
             </div>
 
@@ -146,24 +151,24 @@ export default function HomePage() {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                Mantenimiento
+                Máquinas y Equipos
               </h3>
               <p className="text-gray-600">
-                Servicios de mantenimiento preventivo y reparación para garantizar el óptimo funcionamiento.
+                Máquinas desenlodadoras y equipos de impulsos profesionales para mantenimiento y limpieza de instalaciones.
               </p>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-8 text-center">
               <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                Asesoramiento
+                Filtros y Adaptadores
               </h3>
               <p className="text-gray-600">
-                Te ayudamos a elegir la mejor solución de calefacción para tu proyecto con asesoramiento experto.
+                Filtros magnéticos y adaptadores para bombas circuladoras que garantizan un funcionamiento óptimo y duradero.
               </p>
             </div>
           </div>

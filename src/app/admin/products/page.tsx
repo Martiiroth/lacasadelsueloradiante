@@ -59,7 +59,8 @@ export default function AdminProducts() {
   }
 
   const handleShowAll = () => {
-    setDisplayedCount(totalCount)
+    // Show all filtered products
+    setDisplayedCount(10000) // Set to a large number
   }
 
   const handleSearch = (e: React.FormEvent) => {
@@ -138,6 +139,16 @@ export default function AdminProducts() {
     products.flatMap(p => p.categories?.map(c => c.category.name) || []).filter(Boolean)
   ))
 
+  // Filter products based on selected filters
+  const filteredProducts = products.filter(product => {
+    // Filter by category
+    if (selectedType) {
+      const hasCategory = product.categories?.some(c => c.category.name === selectedType)
+      if (!hasCategory) return false
+    }
+    return true
+  })
+
   return (
     <AdminLayout>
       <div className="max-w-7xl mx-auto">
@@ -153,7 +164,12 @@ export default function AdminProducts() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-500">
-                Mostrando <span className="font-semibold">{Math.min(displayedCount, products.length)}</span> de <span className="font-semibold">{totalCount}</span> productos
+                Mostrando <span className="font-semibold">{Math.min(displayedCount, filteredProducts.length)}</span> de <span className="font-semibold">{filteredProducts.length}</span> productos
+                {filteredProducts.length !== products.length && (
+                  <span className="ml-1 text-gray-400">
+                    (de {products.length} totales)
+                  </span>
+                )}
               </div>
               <button
                 onClick={() => router.push('/admin/products/create')}
@@ -243,7 +259,7 @@ export default function AdminProducts() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {products.slice(0, displayedCount).map((product) => (
+                {filteredProducts.slice(0, displayedCount).map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -349,7 +365,7 @@ export default function AdminProducts() {
             </table>
           </div>
 
-          {products.length === 0 && (
+          {filteredProducts.length === 0 && (
             <div className="text-center py-12">
               <CubeIcon className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No hay productos</h3>
@@ -374,7 +390,7 @@ export default function AdminProducts() {
           )}
 
           {/* Pagination Controls */}
-          {products.length > 0 && displayedCount < totalCount && (
+          {filteredProducts.length > 0 && displayedCount < filteredProducts.length && (
             <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
               <div className="flex justify-center items-center space-x-4">
                 <button
@@ -405,7 +421,7 @@ export default function AdminProducts() {
                   disabled={loadingMore}
                   className="inline-flex items-center px-6 py-2 border-2 border-indigo-600 text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Mostrar todos ({totalCount})
+                  Mostrar todos ({filteredProducts.length})
                 </button>
               </div>
             </div>

@@ -3,10 +3,14 @@
 import Link from 'next/link'
 import FeaturedProducts from '../components/home/FeaturedProducts'
 import SaleProducts from '../components/home/SaleProducts'
+import RegisterPopup from '../components/RegisterPopup'
 
 export default function HomePage() {
   return (
     <div className="min-h-screen">
+      {/* Popup de Registro */}
+      <RegisterPopup delaySeconds={5} />
+      
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white overflow-hidden">
         {/* Decoración de fondo */}
@@ -79,7 +83,7 @@ export default function HomePage() {
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
                     </div>
-                    <span className="text-lg">Instalación profesional</span>
+                    <span className="text-lg">Asesoramiento por expertos</span>
                   </div>
                   
                   <div className="flex items-center">

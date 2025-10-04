@@ -183,8 +183,13 @@ export default function EditProduct() {
         throw new Error('El slug es obligatorio')
       }
 
+      // Warning for products without categories (but allow saving)
       if (!selectedCategories || selectedCategories.length === 0) {
-        throw new Error('Debes seleccionar al menos una categoría')
+        const confirmSave = confirm('⚠️ Este producto no tiene ninguna categoría asignada.\n\nSe recomienda asignar al menos una categoría para una mejor organización.\n\n¿Deseas guardar de todos modos?')
+        if (!confirmSave) {
+          setSaving(false)
+          return
+        }
       }
 
       if (variants.length === 0) {
@@ -704,10 +709,11 @@ export default function EditProduct() {
             <div className="mb-6">
               <h3 className="text-lg font-medium text-gray-900 flex items-center">
                 <TagIcon className="h-5 w-5 mr-2 text-gray-400" />
-                Categorías *
+                Categorías
+                <span className="ml-2 text-xs text-amber-600 font-normal">(Recomendado)</span>
               </h3>
               <p className="mt-1 text-sm text-gray-500">
-                Selecciona al menos una categoría para este producto
+                Selecciona las categorías para este producto. Recomendado para mejor organización.
               </p>
             </div>
             {loadingCategories ? (

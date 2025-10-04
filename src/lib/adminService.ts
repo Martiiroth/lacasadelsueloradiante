@@ -1385,7 +1385,7 @@ export class AdminService {
             position,
             created_at
           ),
-          categories:product_categories!inner (
+          categories:product_categories (
             category:categories (
               id,
               name,

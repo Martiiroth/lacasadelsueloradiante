@@ -40,6 +40,15 @@ export default function CreateProductPage() {
     categories: []
   })
 
+  // Estado para mostrar valores vacíos en inputs mientras no se haya introducido nada
+  const [displayValues, setDisplayValues] = useState<{
+    [variantIndex: number]: {
+      price?: string
+      stock?: string
+      weight?: string
+    }
+  }>({})
+
   useEffect(() => {
     loadCategories()
   }, [])
@@ -133,6 +142,7 @@ export default function CreateProductPage() {
   }
 
   const addVariant = () => {
+    const newIndex = formData.variants.length
     setFormData(prev => ({
       ...prev,
       variants: [...prev.variants, {
@@ -144,6 +154,11 @@ export default function CreateProductPage() {
         images: [],
         role_prices: []
       }]
+    }))
+    // Inicializar valores de display vacíos para la nueva variante
+    setDisplayValues(prev => ({
+      ...prev,
+      [newIndex]: { price: '', stock: '', weight: '' }
     }))
   }
 
@@ -450,16 +465,43 @@ export default function CreateProductPage() {
                       Precio Público (€) *
                     </label>
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={variant.price_public_cents / 100}
-                      onChange={(e) => handleVariantChange(index, 'price_public_cents', Math.round(parseFloat(e.target.value || '0') * 100))}
+                      type="text"
+                      inputMode="decimal"
+                      value={displayValues[index]?.price ?? (variant.price_public_cents > 0 ? (variant.price_public_cents / 100).toFixed(2) : '')}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setDisplayValues(prev => ({
+                          ...prev,
+                          [index]: { ...prev[index], price: value }
+                        }))
+                        // Solo actualizar si es un número válido o vacío
+                        const numValue = parseFloat(value.replace(',', '.'))
+                        if (!isNaN(numValue) && numValue >= 0) {
+                          handleVariantChange(index, 'price_public_cents', Math.round(numValue * 100))
+                        } else if (value === '' || value === '0') {
+                          handleVariantChange(index, 'price_public_cents', 0)
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Al salir del campo, formatear el valor
+                        const numValue = parseFloat(e.target.value.replace(',', '.'))
+                        if (!isNaN(numValue) && numValue > 0) {
+                          setDisplayValues(prev => ({
+                            ...prev,
+                            [index]: { ...prev[index], price: numValue.toFixed(2) }
+                          }))
+                        } else {
+                          setDisplayValues(prev => ({
+                            ...prev,
+                            [index]: { ...prev[index], price: '' }
+                          }))
+                        }
+                      }}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="0.00"
+                      placeholder="123.42"
                     />
                     <p className="mt-1 text-sm text-gray-500">
-                      Precio base para clientes sin descuentos especiales
+                      Precio en euros (ej: 123.42)
                     </p>
                   </div>
 
@@ -468,12 +510,19 @@ export default function CreateProductPage() {
                       Stock
                     </label>
                     <input
-                      type="number"
-                      min="0"
-                      value={variant.stock}
-                      onChange={(e) => handleVariantChange(index, 'stock', parseInt(e.target.value || '0'))}
+                      type="text"
+                      inputMode="numeric"
+                      value={displayValues[index]?.stock ?? (variant.stock > 0 ? variant.stock.toString() : '')}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '') // Solo números
+                        setDisplayValues(prev => ({
+                          ...prev,
+                          [index]: { ...prev[index], stock: value }
+                        }))
+                        handleVariantChange(index, 'stock', parseInt(value || '0'))
+                      }}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="0"
+                      placeholder="100"
                     />
                   </div>
 
@@ -482,12 +531,19 @@ export default function CreateProductPage() {
                       Peso (gramos)
                     </label>
                     <input
-                      type="number"
-                      min="0"
-                      value={variant.weight_grams}
-                      onChange={(e) => handleVariantChange(index, 'weight_grams', parseInt(e.target.value || '0'))}
+                      type="text"
+                      inputMode="numeric"
+                      value={displayValues[index]?.weight ?? ((variant.weight_grams && variant.weight_grams > 0) ? variant.weight_grams.toString() : '')}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '') // Solo números
+                        setDisplayValues(prev => ({
+                          ...prev,
+                          [index]: { ...prev[index], weight: value }
+                        }))
+                        handleVariantChange(index, 'weight_grams', parseInt(value || '0'))
+                      }}
                       className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      placeholder="0"
+                      placeholder="500"
                     />
                   </div>
                 </div>

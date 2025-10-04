@@ -253,23 +253,26 @@ export class PDFService {
             '--no-sandbox', 
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
+            '--disable-gpu',
+            '--disable-software-rasterizer',
+            '--disable-dev-tools',
             '--no-first-run',
             '--no-zygote',
             '--single-process',
-            '--disable-gpu',
-            '--disable-background-timer-throttling',
-            '--disable-backgrounding-occluded-windows',
-            '--disable-renderer-backgrounding',
-            '--disable-web-security',
-            '--disable-features=TranslateUI',
-            '--disable-ipc-flooding-protection',
-            '--no-default-browser-check',
-            '--no-experiments',
-            '--memory-pressure-off',
-            '--max_old_space_size=4096'
+            '--disable-extensions',
+            '--disable-default-apps',
+            '--mute-audio',
+            '--hide-scrollbars',
+            '--disable-background-networking',
+            '--disable-sync',
+            '--metrics-recording-only',
+            '--safebrowsing-disable-auto-update',
+            '--disable-features=site-per-process'
           ],
-          timeout: 30000
+          timeout: 60000,
+          protocolTimeout: 60000,
+          dumpio: false,
+          ignoreDefaultArgs: ['--disable-extensions']
         })
         
         console.log(`✅ PDFService - Browser launched successfully on attempt ${attempt}`)
@@ -288,10 +291,13 @@ export class PDFService {
         // Cargar el HTML directamente
         console.log('📄 PDFService - Loading HTML content...')
         await page.setContent(invoiceHTML, { 
-          waitUntil: 'networkidle0',
-          timeout: 20000
+          waitUntil: 'domcontentloaded',
+          timeout: 15000
         })
         console.log('✅ PDFService - HTML content loaded successfully')
+        
+        // Esperar un momento para asegurar que el contenido está listo
+        await new Promise(resolve => setTimeout(resolve, 500))
         
         // Generar el PDF
         console.log('📄 PDFService - Generating PDF...')

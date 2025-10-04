@@ -1397,11 +1397,8 @@ export class AdminService {
 
       // Aplicar filtros
       if (filters?.product_search) {
-        query = query.or(`
-          title.ilike.%${filters.product_search}%,
-          description.ilike.%${filters.product_search}%,
-          short_description.ilike.%${filters.product_search}%
-        `)
+        const searchTerm = filters.product_search.trim()
+        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,short_description.ilike.%${searchTerm}%`)
       }
 
       // Paginación

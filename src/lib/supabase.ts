@@ -10,20 +10,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
 /**
  * Cliente Supabase con configuración optimizada para Next.js
  * 
- * Configuración crítica para sesión persistente:
- * - autoRefreshToken: true → Renueva automáticamente tokens antes de expirar
- * - persistSession: true → Guarda sesión en localStorage
- * - detectSessionInUrl: true → Detecta tokens en URL (OAuth, magic links)
- * - flowType: 'pkce' → PKCE flow para mayor seguridad
+ * IMPORTANTE: Usando configuración estándar sin PKCE para evitar
+ * problemas de corrupción de sesión al cambiar de ventana.
  */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    flowType: 'pkce',
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     storageKey: 'sb-auth-token',
+    // Configuración adicional para estabilidad
+    debug: false,
   },
   global: {
     headers: {

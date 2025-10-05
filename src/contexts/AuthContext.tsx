@@ -24,6 +24,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   })
   const [session, setSession] = useState<Session | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [sessionCorrupted, setSessionCorrupted] = useState(false)
+
+  // Detectar sesión corrupta y forzar limpieza
+  useEffect(() => {
+    if (sessionCorrupted && typeof window !== 'undefined') {
+      console.error('🚨 SESSION CORRUPTED - Forcing cleanup')
+      
+      // Limpiar todo
+      localStorage.removeItem('sb-auth-token')
+      localStorage.clear()
+      
+      // Mostrar mensaje al usuario
+      alert(
+        '⚠️ Tu sesión ha expirado o está corrupta.\n\n' +
+        'La página se recargará automáticamente.\n' +
+        'Por favor, inicia sesión nuevamente.'
+      )
+      
+      // Recargar la página después de un momento
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    }
+  }, [sessionCorrupted])
 
   // FASE 1: HIDRATACIÓN INICIAL - Recuperar sesión del localStorage
   useEffect(() => {
@@ -109,31 +133,87 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return
 
+    let attemptCount = 0
+    const MAX_ATTEMPTS = 3
+
     const handleVisibilityChange = async () => {
       if (!document.hidden && isInitialized) {
         console.log('👁️ Tab visible - Syncing session...')
         
         try {
-          const { data: { session: currentSession } } = await supabase.auth.getSession()
+          attemptCount++
           
-          // Sincronizar si hay discrepancia entre estado y localStorage
-          if (currentSession && !session) {
-            console.log('🔄 Recovering lost session...')
-            setSession(currentSession)
-            const user = await AuthService.getCurrentUser()
-            setState({ user, loading: false, error: null })
-          } else if (!currentSession && session) {
-            console.log('🔄 Clearing stale session...')
+          // Intentar refrescar la sesión activamente
+          const { data: { session: refreshedSession }, error: refreshError } = 
+            await supabase.auth.refreshSession()
+          
+          if (refreshError) {
+            console.error(`❌ Error refreshing session (attempt ${attemptCount}/${MAX_ATTEMPTS}):`, refreshError)
+            
+            // Si fallamos múltiples veces, marcar como corrupta
+            if (attemptCount >= MAX_ATTEMPTS) {
+              console.error('🚨 Multiple refresh failures - marking session as corrupted')
+              setSessionCorrupted(true)
+              return
+            }
+            
+            // Si el refresh falla, intentar recuperar del localStorage
+            const { data: { session: currentSession } } = await supabase.auth.getSession()
+            
+            if (currentSession) {
+              console.log('🔄 Using cached session from localStorage')
+              setSession(currentSession)
+              
+              // Intentar cargar usuario - si falla, sesión corrupta
+              try {
+                const user = await AuthService.getCurrentUser()
+                if (user) {
+                  setState({ user, loading: false, error: null })
+                  attemptCount = 0 // Reset counter on success
+                } else {
+                  throw new Error('User data unavailable')
+                }
+              } catch (userError) {
+                console.error('❌ Could not load user data:', userError)
+                if (attemptCount >= MAX_ATTEMPTS) {
+                  setSessionCorrupted(true)
+                }
+              }
+            } else {
+              console.log('❌ No session available')
+              setSession(null)
+              setState({ user: null, loading: false, error: null })
+            }
+            return
+          }
+          
+          if (refreshedSession) {
+            console.log('✅ Session refreshed successfully on visibility change')
+            setSession(refreshedSession)
+            attemptCount = 0 // Reset counter on successful refresh
+            
+            // Solo recargar user si el ID cambió o no teníamos user
+            if (!state.user || refreshedSession.user.id !== session?.user.id) {
+              const user = await AuthService.getCurrentUser()
+              setState({ user, loading: false, error: null })
+            }
+          } else if (session) {
+            // No se pudo refrescar pero teníamos sesión antes
+            console.log('⚠️ Could not refresh, clearing session')
             setSession(null)
             setState({ user: null, loading: false, error: null })
-          } else if (currentSession && session && currentSession.user.id !== session.user.id) {
-            console.log('🔄 Session mismatch - Updating...')
-            setSession(currentSession)
-            const user = await AuthService.getCurrentUser()
-            setState({ user, loading: false, error: null })
           }
         } catch (error) {
           console.error('❌ Error syncing session:', error)
+          attemptCount++
+          
+          if (attemptCount >= MAX_ATTEMPTS) {
+            console.error('🚨 Multiple sync errors - marking session as corrupted')
+            setSessionCorrupted(true)
+          } else {
+            setSession(null)
+            setState({ user: null, loading: false, error: 'Session error. Please try again.' })
+          }
         }
       }
     }
@@ -145,7 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleVisibilityChange)
     }
-  }, [session, isInitialized])
+  }, [session, isInitialized, state.user])
 
   const signIn = async (email: string, password: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }))

@@ -105,19 +105,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log('🔄 Auth state changed:', event, currentSession?.user?.email)
+        console.log('🔄 Auth state changed:', event, currentSession?.user?.email || 'no user')
 
         setSession(currentSession)
 
-        if (event === 'SIGNED_IN' && currentSession) {
+        // Manejar todos los eventos importantes
+        if (event === 'INITIAL_SESSION') {
+          // Primera carga - ya manejada en FASE 1
+          console.log('ℹ️ Initial session detected')
+          if (currentSession) {
+            const user = await AuthService.getCurrentUser()
+            setState({ user, loading: false, error: null })
+          }
+        } else if (event === 'SIGNED_IN' && currentSession) {
+          console.log('✅ User signed in')
           const user = await AuthService.getCurrentUser()
           setState({ user, loading: false, error: null })
         } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out')
           setState({ user: null, loading: false, error: null })
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           console.log('✅ Token refreshed successfully')
-          // Session actualizada, mantener user actual
+          // Session actualizada, mantener user actual (no recargar innecesariamente)
         } else if (event === 'USER_UPDATED' && currentSession) {
+          console.log('🔄 User data updated')
           const user = await AuthService.getCurrentUser()
           setState(prev => ({ ...prev, user }))
         }

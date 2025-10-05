@@ -31,6 +31,7 @@ export default function EditProduct() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [autoRecovered, setAutoRecovered] = useState(false)
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [loadingCategories, setLoadingCategories] = useState(false)
@@ -62,6 +63,7 @@ export default function EditProduct() {
 
   // Auto-guardado del formulario en localStorage
   const AUTOSAVE_KEY = `product_edit_autosave_${productId}`
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   
   // Guardar estado del formulario en localStorage cuando cambia
   useEffect(() => {
@@ -75,9 +77,58 @@ export default function EditProduct() {
         timestamp: Date.now()
       }
       localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(autosaveData))
+      setHasUnsavedChanges(true)
       console.log('💾 Auto-guardado realizado')
     }
   }, [formData, variants, images, resources, selectedCategories, loading, product])
+
+  // Recuperar cambios automáticamente al volver a la pestaña
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && product && hasUnsavedChanges) {
+        console.log('👁️ Pestaña visible - Verificando auto-guardado...')
+        
+        const autosaveData = localStorage.getItem(AUTOSAVE_KEY)
+        if (autosaveData) {
+          try {
+            const parsed = JSON.parse(autosaveData)
+            const autosaveAge = Date.now() - parsed.timestamp
+            
+            // Si hay cambios recientes (menos de 1 hora)
+            if (autosaveAge < 3600000) {
+              const autosaveAgeMinutes = Math.floor(autosaveAge / 60000)
+              const autosaveAgeSeconds = Math.floor(autosaveAge / 1000)
+              
+              console.log(`🔄 Auto-guardado encontrado (${autosaveAgeSeconds}s ago)`)
+              
+              // Recuperar automáticamente sin preguntar
+              setFormData(parsed.formData)
+              setVariants(parsed.variants)
+              setImages(parsed.images)
+              setResources(parsed.resources)
+              setSelectedCategories(parsed.selectedCategories)
+              
+              console.log('✅ Cambios recuperados automáticamente')
+              
+              // Mostrar notificación temporal
+              setAutoRecovered(true)
+              setTimeout(() => setAutoRecovered(false), 4000)
+            }
+          } catch (error) {
+            console.error('Error recuperando auto-guardado:', error)
+          }
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleVisibilityChange)
+    }
+  }, [product, hasUnsavedChanges, AUTOSAVE_KEY])
 
   // Limpiar auto-guardado al desmontar o al guardar exitosamente
   useEffect(() => {
@@ -354,6 +405,7 @@ export default function EditProduct() {
       
       // Limpiar auto-guardado después de guardar exitosamente
       localStorage.removeItem(AUTOSAVE_KEY)
+      setHasUnsavedChanges(false)
       console.log('✅ Auto-guardado limpiado después de guardar')
       
       setTimeout(() => {
@@ -447,6 +499,7 @@ export default function EditProduct() {
     
     if (confirmDiscard) {
       localStorage.removeItem(AUTOSAVE_KEY)
+      setHasUnsavedChanges(false)
       console.log('🗑️ Cambios descartados, recargando datos originales')
       loadProduct()
     }
@@ -537,6 +590,21 @@ export default function EditProduct() {
                   <div className="ml-3">
                     <p className="text-sm font-medium text-green-800">
                       Producto actualizado correctamente
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            {autoRecovered && (
+              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-4">
+                <div className="flex">
+                  <CheckCircleIcon className="h-5 w-5 text-blue-400" />
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-blue-800">
+                      ✨ Cambios no guardados recuperados automáticamente
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Tus modificaciones se han restaurado sin necesidad de refrescar la página
                     </p>
                   </div>
                 </div>

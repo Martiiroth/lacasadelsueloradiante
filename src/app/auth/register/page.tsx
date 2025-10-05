@@ -50,7 +50,10 @@ export default function RegisterPage() {
     try {
       const { error } = await signUp(formData)
       if (!error) {
+        // ✅ Registro exitoso - mostrar mensaje y dejar que AuthProvider maneje el estado
+        console.log('✅ Registro exitoso')
         alert('¡Registro exitoso! Revisa tu email para confirmar tu cuenta.')
+        // Redirigir a login para que el usuario inicie sesión
         router.push('/auth/login')
       } else {
         setFormError(error)

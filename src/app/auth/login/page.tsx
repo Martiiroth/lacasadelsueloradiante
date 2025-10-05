@@ -25,6 +25,9 @@ export default function LoginPage() {
     try {
       const result = await signIn(formData.email, formData.password)
       if (!result.error) {
+        // ✅ No redirigir manualmente - el AuthProvider lo maneja automáticamente
+        console.log('✅ Login exitoso - el AuthProvider manejará la navegación')
+        // La redirección se hará automáticamente por el listener de onAuthStateChange
         router.push('/')
       } else {
         setFormError(result.error)

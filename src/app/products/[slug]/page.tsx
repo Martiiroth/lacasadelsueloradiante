@@ -14,6 +14,7 @@ import { TestDataService } from '../../../lib/test-data'
 import { VariantImageService } from '../../../lib/variantImageService'
 import { useHydration } from '../../../hooks/useHydration'
 import { LoadingState } from '../../../components/ui/LoadingState'
+import { processProductDescription } from '../../../lib/textFormatter'
 
 export default function ProductPage() {
   const params = useParams()
@@ -459,8 +460,15 @@ export default function ProductPage() {
                 Descripción del producto
               </h2>
               <div 
-                className="prose max-w-none text-gray-700"
-                dangerouslySetInnerHTML={{ __html: product.description }}
+                className="prose prose-lg max-w-none text-gray-700 
+                  prose-headings:text-gray-900 
+                  prose-h2:text-2xl prose-h2:font-bold prose-h2:mt-8 prose-h2:mb-4
+                  prose-h3:text-xl prose-h3:font-semibold prose-h3:mt-6 prose-h3:mb-3
+                  prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-4
+                  prose-ul:my-4 prose-ul:list-disc prose-ul:pl-6
+                  prose-li:text-gray-700 prose-li:mb-2
+                  prose-strong:text-gray-900 prose-strong:font-semibold"
+                dangerouslySetInnerHTML={{ __html: processProductDescription(product.description) }}
               />
             </div>
           </div>

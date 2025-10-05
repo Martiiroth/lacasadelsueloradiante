@@ -60,6 +60,33 @@ export default function EditProduct() {
     }
   }>({})
 
+  // Auto-guardado del formulario en localStorage
+  const AUTOSAVE_KEY = `product_edit_autosave_${productId}`
+  
+  // Guardar estado del formulario en localStorage cuando cambia
+  useEffect(() => {
+    if (!loading && product) {
+      const autosaveData = {
+        formData,
+        variants,
+        images,
+        resources,
+        selectedCategories,
+        timestamp: Date.now()
+      }
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(autosaveData))
+      console.log('💾 Auto-guardado realizado')
+    }
+  }, [formData, variants, images, resources, selectedCategories, loading, product])
+
+  // Limpiar auto-guardado al desmontar o al guardar exitosamente
+  useEffect(() => {
+    return () => {
+      // Solo limpiamos si el componente se desmonta completamente
+      // No si es por cambio de pestaña (que no desmonta en Next.js)
+    }
+  }, [])
+
   useEffect(() => {
     loadProduct()
     loadCategories()
@@ -93,6 +120,50 @@ export default function EditProduct() {
 
       setProduct(foundProduct)
       
+      // Verificar si hay datos auto-guardados
+      const autosaveData = localStorage.getItem(AUTOSAVE_KEY)
+      const hasAutosave = autosaveData !== null
+      
+      if (hasAutosave) {
+        try {
+          const parsed = JSON.parse(autosaveData)
+          const autosaveAge = Date.now() - parsed.timestamp
+          const autosaveAgeMinutes = Math.floor(autosaveAge / 60000)
+          
+          // Si el auto-guardado tiene menos de 1 hora, preguntar si quiere recuperarlo
+          if (autosaveAge < 3600000) { // 1 hora
+            const confirmRestore = confirm(
+              `🔄 Se encontraron cambios no guardados de hace ${autosaveAgeMinutes} minuto(s).\n\n` +
+              `¿Deseas recuperar estos cambios?\n\n` +
+              `• SÍ: Recuperar cambios no guardados\n` +
+              `• NO: Cargar datos originales del producto`
+            )
+            
+            if (confirmRestore) {
+              console.log('✅ Recuperando datos auto-guardados')
+              setFormData(parsed.formData)
+              setVariants(parsed.variants)
+              setImages(parsed.images)
+              setResources(parsed.resources)
+              setSelectedCategories(parsed.selectedCategories)
+              setLoading(false)
+              return // Salir sin cargar datos originales
+            } else {
+              console.log('❌ Usuario rechazó recuperar auto-guardado')
+              localStorage.removeItem(AUTOSAVE_KEY)
+            }
+          } else {
+            // Auto-guardado muy antiguo, eliminarlo
+            console.log('🗑️ Auto-guardado muy antiguo, eliminando')
+            localStorage.removeItem(AUTOSAVE_KEY)
+          }
+        } catch (parseError) {
+          console.error('Error parsing autosave data:', parseError)
+          localStorage.removeItem(AUTOSAVE_KEY)
+        }
+      }
+      
+      // Cargar datos originales del producto
       // Initialize form data
       setFormData({
         slug: foundProduct.slug,
@@ -280,6 +351,11 @@ export default function EditProduct() {
       }
       
       setSuccess(true)
+      
+      // Limpiar auto-guardado después de guardar exitosamente
+      localStorage.removeItem(AUTOSAVE_KEY)
+      console.log('✅ Auto-guardado limpiado después de guardar')
+      
       setTimeout(() => {
         router.push(`/admin/products/${productId}`)
       }, 1500)
@@ -363,6 +439,23 @@ export default function EditProduct() {
     }
   }
 
+  const handleDiscardChanges = () => {
+    const confirmDiscard = confirm(
+      '⚠️ ¿Estás seguro de que deseas descartar todos los cambios?\n\n' +
+      'Esta acción no se puede deshacer y se perderán todas las modificaciones realizadas.'
+    )
+    
+    if (confirmDiscard) {
+      localStorage.removeItem(AUTOSAVE_KEY)
+      console.log('🗑️ Cambios descartados, recargando datos originales')
+      loadProduct()
+    }
+  }
+
+  const hasAutosave = () => {
+    return localStorage.getItem(AUTOSAVE_KEY) !== null
+  }
+
   if (loading) {
     return (
       <AdminLayout>
@@ -404,7 +497,7 @@ export default function EditProduct() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between">
             <button
               onClick={() => router.push('/admin/products')}
               className="inline-flex items-center text-gray-600 hover:text-gray-900"
@@ -412,10 +505,31 @@ export default function EditProduct() {
               <ArrowLeftIcon className="h-5 w-5 mr-2" />
               Volver a productos
             </button>
+            
+            {hasAutosave() && !success && (
+              <button
+                onClick={handleDiscardChanges}
+                type="button"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <TrashIcon className="h-4 w-4 mr-2" />
+                Descartar cambios
+              </button>
+            )}
           </div>
           <div className="mt-4">
-            <h1 className="text-2xl font-bold text-gray-900">Editar Producto</h1>
-            <p className="text-gray-600">Modifica la información del producto y sus variantes</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Editar Producto</h1>
+                <p className="text-gray-600">Modifica la información del producto y sus variantes</p>
+              </div>
+              {hasAutosave() && !success && (
+                <div className="flex items-center space-x-2 text-sm text-blue-600">
+                  <div className="animate-pulse h-2 w-2 bg-blue-600 rounded-full"></div>
+                  <span>Cambios auto-guardados</span>
+                </div>
+              )}
+            </div>
             {success && (
               <div className="mt-4 bg-green-50 border border-green-200 rounded-md p-4">
                 <div className="flex">

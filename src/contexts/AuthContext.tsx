@@ -41,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: null,
   })
   const [session, setSession] = useState<Session | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // HIDRATACIÓN INICIAL - Recuperar sesión existente
   useEffect(() => {
@@ -68,16 +69,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Cargar datos completos del usuario
           const user = await AuthService.getCurrentUser()
           setState({ user, loading: false, error: null })
+          setIsInitialized(true)
         } else {
           console.log('ℹ️ No existing session')
           if (mounted) {
             setState({ user: null, loading: false, error: null })
+            setIsInitialized(true)
           }
         }
       } catch (error: any) {
         console.error('❌ Error initializing auth:', error)
         if (mounted) {
           setState({ user: null, loading: false, error: error.message })
+          setIsInitialized(true)
         }
       }
     }
@@ -97,8 +101,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, currentSession) => {
         console.log('📡 Auth event:', event, currentSession?.user?.email || 'no user')
 
-        // IMPORTANTE: Ignorar INITIAL_SESSION porque ya se maneja en el useEffect de hidratación
-        // Este evento se dispara al cargar la página y causaría duplicación
+        // IMPORTANTE: Ignorar el primer evento si aún no se ha inicializado
+        // Esto previene que SIGNED_IN se procese antes de la hidratación
+        if (!isInitialized) {
+          console.log('ℹ️ Ignoring event during initialization')
+          return
+        }
+
+        // También ignorar INITIAL_SESSION explícitamente
         if (event === 'INITIAL_SESSION') {
           console.log('ℹ️ Initial session (already handled in hydration)')
           return
@@ -130,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🧹 Cleaning up auth state listener')
       subscription.unsubscribe()
     }
-  }, [supabase])
+  }, [supabase, isInitialized])
 
   const signIn = async (email: string, password: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }))

@@ -26,10 +26,10 @@ export default function ContactoPage() {
             </div>
             <p className="text-gray-600 mb-2">Envíanos un correo electrónico</p>
             <a 
-              href="mailto:info@lacasadelsueloradiante.com" 
+              href="mailto:consultas@lacasadelsueloradianteapp.com" 
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              info@lacasadelsueloradiante.com
+              consultas@lacasadelsueloradianteapp.com
             </a>
           </div>
 
@@ -45,10 +45,10 @@ export default function ContactoPage() {
             </div>
             <p className="text-gray-600 mb-2">Llámanos de lunes a viernes</p>
             <a 
-              href="tel:+34900000000" 
+              href="tel:+34689571381" 
               className="text-green-600 hover:text-green-700 font-medium"
             >
-              +34 900 000 000
+              +34 689 571 381
             </a>
           </div>
 
@@ -64,7 +64,7 @@ export default function ContactoPage() {
             </div>
             <p className="text-gray-600 mb-2">Chatea con nosotros</p>
             <a 
-              href="https://wa.me/34900000000" 
+              href="https://wa.me/34689571381" 
               target="_blank"
               rel="noopener noreferrer"
               className="text-emerald-600 hover:text-emerald-700 font-medium"

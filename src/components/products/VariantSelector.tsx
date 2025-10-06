@@ -122,18 +122,6 @@ export default function VariantSelector({
                       </span>
                     )}
                   </div>
-                  
-                  <div className="flex items-center">
-                    <div className={`w-2 h-2 rounded-full mr-2 ${
-                      variant.stock > 0 ? 'bg-green-500' : 'bg-red-500'
-                    }`} />
-                    <span className="text-sm text-gray-500">
-                      {variant.stock > 0 
-                        ? `${variant.stock} en stock` 
-                        : 'Sin stock'
-                      }
-                    </span>
-                  </div>
                 </div>
               </div>
               

@@ -262,22 +262,7 @@ export default function ProductPage() {
                       </div>
                     )}
                   </div>
-                  
-                  <div className="text-right">
-                    <div className={`text-sm font-medium ${
-                      selectedVariant.stock > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {selectedVariant.stock > 0 
-                        ? `${selectedVariant.stock} en stock`
-                        : 'Sin stock'
-                      }
-                    </div>
-                    {selectedVariant.sku && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        SKU: {selectedVariant.sku}
-                      </div>
-                    )}
-                  </div>
+                
                 </div>
 
                 {/* Cantidad y botón de añadir al carrito */}

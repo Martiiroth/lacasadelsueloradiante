@@ -119,9 +119,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Manejar eventos de autenticación
         if (event === 'SIGNED_IN' && currentSession) {
-          console.log('✅ User signed in')
-          const user = await AuthService.getCurrentUser()
-          setState({ user, loading: false, error: null })
+          // Solo procesar SIGNED_IN si no hay usuario actual (login real)
+          // Si ya hay usuario, ignorar (es un evento falso por cambio de pestaña)
+          if (!state.user) {
+            console.log('✅ User signed in (real login)')
+            const user = await AuthService.getCurrentUser()
+            setState({ user, loading: false, error: null })
+          } else {
+            console.log('ℹ️ SIGNED_IN ignored (user already loaded, likely tab switch)')
+          }
         } else if (event === 'SIGNED_OUT') {
           console.log('👋 User signed out')
           setState({ user: null, loading: false, error: null })

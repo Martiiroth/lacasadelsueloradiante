@@ -1,3 +1,10 @@
+/**
+ * InvoiceService - Servicio de facturas
+ * 
+ * ✅ COMPATIBLE CON ARQUITECTURA SUPABASE SSR
+ * Cliente browser a través de lib/supabase.ts (wrapper compatible)
+ */
+
 import { supabase } from './supabase'
 import type { Invoice, InvoiceStatus } from '../types/client'
 

@@ -1,3 +1,11 @@
+/**
+ * Página de edición de producto
+ * 
+ * ✅ MIGRADO A ARQUITECTURA SUPABASE SSR
+ * Usa cliente browser compatible (lib/supabase.ts wrapper)
+ * 
+ * Client Component con auto-save y auto-recuperación
+ */
 'use client'
 
 import React, { useState, useEffect } from 'react'

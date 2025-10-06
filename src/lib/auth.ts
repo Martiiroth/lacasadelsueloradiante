@@ -1,3 +1,20 @@
+/**
+ * AuthService - Servicio de autenticación
+ * 
+ * ✅ MIGRADO A NUEVA ARQUITECTURA SUPABASE SSR
+ * 
+ * Este servicio usa el cliente browser (createBrowserClient) a través de
+ * lib/supabase.ts que ahora es un wrapper compatible.
+ * 
+ * Funciona correctamente en:
+ * - Client Components
+ * - Contextos de React (AuthContext)
+ * - Event handlers
+ * 
+ * Para Server Components/Actions, usa directamente:
+ * import { createClient } from '@/utils/supabase/server'
+ */
+
 import { supabase } from './supabase'
 import type { LoginCredentials, RegisterData, Client, UserWithClient } from '../types/auth'
 

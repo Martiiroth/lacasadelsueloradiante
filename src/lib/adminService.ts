@@ -1,3 +1,13 @@
+/**
+ * AdminService - Servicio de administración
+ * 
+ * ✅ COMPATIBLE CON ARQUITECTURA SUPABASE SSR
+ * Cliente browser a través de lib/supabase.ts (wrapper compatible)
+ * 
+ * NOTA: Para operaciones en Server Components, considera usar:
+ * import { createClient } from '@/utils/supabase/server'
+ */
+
 import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'

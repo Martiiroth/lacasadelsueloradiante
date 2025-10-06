@@ -1,3 +1,10 @@
+/**
+ * OrderService - Servicio de pedidos
+ * 
+ * ✅ COMPATIBLE CON ARQUITECTURA SUPABASE SSR
+ * Cliente browser a través de lib/supabase.ts (wrapper compatible)
+ */
+
 import { supabase } from './supabase'
 import EmailService from './emailService'
 import type { 

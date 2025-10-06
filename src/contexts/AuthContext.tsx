@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { supabase } from '../lib/supabase'
+import { createClient } from '@/utils/supabase/client'
 import { AuthService } from '../lib/auth'
 import type { AuthState, UserWithClient } from '../types/auth'
 import type { Session } from '@supabase/supabase-js'
@@ -17,6 +17,9 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Crear cliente de Supabase para Client Components
+  const supabase = createClient()
+  
   const [state, setState] = useState<AuthState>({
     user: null,
     loading: true,

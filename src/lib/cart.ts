@@ -1,3 +1,10 @@
+/**
+ * CartService - Servicio de carrito de compras
+ * 
+ * ✅ COMPATIBLE CON ARQUITECTURA SUPABASE SSR
+ * Cliente browser a través de lib/supabase.ts (wrapper compatible)
+ */
+
 import { supabase } from './supabase'
 import type { Cart, CartItem, AddToCartData, UpdateCartItemData, CartLog } from '../types/cart'
 

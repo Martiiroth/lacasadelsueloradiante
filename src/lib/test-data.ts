@@ -1,3 +1,10 @@
+/**
+ * TestDataService - Servicio de datos de prueba
+ * 
+ * ✅ COMPATIBLE CON ARQUITECTURA SUPABASE SSR
+ * Cliente browser a través de lib/supabase.ts (wrapper compatible)
+ */
+
 import { supabase } from './supabase'
 
 export class TestDataService {

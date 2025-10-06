@@ -1,3 +1,10 @@
+/**
+ * StorageService - Servicio de almacenamiento de archivos
+ * 
+ * ✅ COMPATIBLE CON ARQUITECTURA SUPABASE SSR
+ * Cliente browser a través de lib/supabase.ts (wrapper compatible)
+ */
+
 import { supabase } from './supabase'
 
 export interface UploadResult {

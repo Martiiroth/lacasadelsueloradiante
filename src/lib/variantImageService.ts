@@ -1,3 +1,10 @@
+/**
+ * VariantImageService - Servicio de imágenes de variantes
+ * 
+ * ✅ COMPATIBLE CON ARQUITECTURA SUPABASE SSR
+ * Cliente browser a través de lib/supabase.ts (wrapper compatible)
+ */
+
 import { supabase } from './supabase'
 import { StorageService } from './storageService'
 import type { ImageData } from '@/components/admin/ImageUpload'

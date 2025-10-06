@@ -1,3 +1,10 @@
+/**
+ * ClientService - Servicio de clientes
+ * 
+ * ✅ COMPATIBLE CON ARQUITECTURA SUPABASE SSR
+ * Cliente browser a través de lib/supabase.ts (wrapper compatible)
+ */
+
 import { supabase } from './supabase'
 import type { 
   Client, 

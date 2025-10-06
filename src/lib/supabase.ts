@@ -1,42 +1,20 @@
-import { createClient } from '@supabase/supabase-js'
+/**
+ * DEPRECADO: Este archivo existe solo para compatibilidad hacia atrás.
+ * 
+ * NUEVA ARQUITECTURA (Supabase SSR):
+ * - Para Client Components: import { createClient } from '@/utils/supabase/client'
+ * - Para Server Components: import { createClient } from '@/utils/supabase/server'
+ * 
+ * Este export mantiene compatibilidad con código antiguo que aún no ha sido migrado.
+ * El cliente se crea dinámicamente para funcionar en cualquier contexto.
+ */
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
+import { createClient as createBrowserClient } from '@/utils/supabase/client'
 
 /**
- * Cliente Supabase con configuración optimizada para Next.js
+ * Cliente legacy para compatibilidad
+ * Solo funciona en el navegador (Client Components)
  * 
- * IMPORTANTE: Usando configuración estándar sin PKCE para evitar
- * problemas de corrupción de sesión al cambiar de ventana.
+ * @deprecated Usa createClient() de @/utils/supabase/client o @/utils/supabase/server
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'sb-auth-token',
-    // Configuración adicional para estabilidad
-    debug: false,
-    // Aumentar tiempo antes de considerar token expirado
-    flowType: 'implicit',
-  },
-  global: {
-    headers: {
-      'x-application-name': 'lacasadelsueloradiante',
-    },
-  },
-  // Configuración de reintentos para mayor estabilidad
-  db: {
-    schema: 'public',
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-    },
-  },
-})
+export const supabase = createBrowserClient()

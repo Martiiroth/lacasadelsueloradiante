@@ -195,7 +195,7 @@ export default function AdminDashboard() {
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white ${
                               index === 0 ? 'bg-yellow-500' :
                               index === 1 ? 'bg-gray-400' :
-                              index === 2 ? 'bg-orange-600' :
+                              index === 2 ? 'bg-brand-600' :
                               'bg-indigo-500'
                             }`}>
                               {index + 1}

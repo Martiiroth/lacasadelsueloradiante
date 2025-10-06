@@ -132,7 +132,7 @@ export default function AddToCartButton({
 
       {/* Información adicional */}
       {variant && variant.stock > 0 && variant.stock <= 5 && (
-        <p className="text-sm text-orange-600 text-center">
+        <p className="text-sm text-brand-600 text-center">
           ⚠️ Quedan solo {variant.stock} unidades
         </p>
       )}

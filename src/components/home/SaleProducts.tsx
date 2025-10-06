@@ -65,7 +65,7 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
 
   if (loading) {
     return (
-      <section className="py-16 bg-gradient-to-br from-red-50 to-orange-50">
+      <section className="py-16 bg-gradient-to-br from-red-50 to-brand-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
@@ -91,7 +91,7 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
 
   if (error) {
     return (
-      <section className="py-16 bg-gradient-to-br from-red-50 to-orange-50">
+      <section className="py-16 bg-gradient-to-br from-red-50 to-brand-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center py-12">
             <div className="text-red-500 mb-4">
@@ -124,7 +124,7 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
   return (
     <LoadingState 
       fallback={
-        <section className="py-16 bg-gradient-to-br from-red-50 to-orange-50">
+        <section className="py-16 bg-gradient-to-br from-red-50 to-brand-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <div className="inline-flex items-center px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-medium mb-4">
@@ -140,11 +140,11 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
       }
       delay={100}
     >
-      <section className="py-16 bg-gradient-to-br from-red-50 to-orange-50 relative overflow-hidden">
+      <section className="py-16 bg-gradient-to-br from-red-50 to-brand-50 relative overflow-hidden">
       {/* Decoración de fondo */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-red-200 rounded-full opacity-20"></div>
-        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-orange-200 rounded-full opacity-20"></div>
+        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-brand-200 rounded-full opacity-20"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
@@ -194,7 +194,7 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
             
             <Link
               href="/#productos"
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-red-600 to-orange-600 text-white font-semibold rounded-xl hover:from-red-700 hover:to-orange-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-red-600 to-brand-600 text-white font-semibold rounded-xl hover:from-red-700 hover:to-brand-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />

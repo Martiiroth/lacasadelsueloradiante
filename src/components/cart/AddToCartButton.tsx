@@ -135,7 +135,7 @@ export default function AddToCartButton({
       </button>
 
       {variant.stock <= 5 && variant.stock > 0 && (
-        <span className="text-sm text-orange-600 font-medium">
+        <span className="text-sm text-brand-600 font-medium">
           ¡Solo quedan {variant.stock}!
         </span>
       )}

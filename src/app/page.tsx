@@ -24,7 +24,7 @@ export default function HomePage() {
             <div className="text-center lg:text-left">
               <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-4 lg:mb-6 leading-tight">
                 La Casa del 
-                <span className="text-orange-400"> Suelo Radiante</span>
+                <span className="text-brand-500"> Suelo Radiante</span>
               </h1>
               
               <p className="text-lg sm:text-xl lg:text-2xl mb-6 lg:mb-8 text-blue-100 leading-relaxed px-4 sm:px-0">
@@ -35,7 +35,7 @@ export default function HomePage() {
               <div className="flex flex-col sm:flex-row gap-4 px-4 sm:px-0">
                 <a
                   href="#productos"
-                  className="inline-flex items-center justify-center px-6 py-3 sm:px-8 sm:py-4 bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl text-center min-h-[48px] sm:min-h-[auto]"
+                  className="inline-flex items-center justify-center px-6 py-3 sm:px-8 sm:py-4 bg-brand-500 text-white font-semibold rounded-xl hover:bg-brand-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl text-center min-h-[48px] sm:min-h-[auto]"
                 >
                   <svg className="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
@@ -60,7 +60,7 @@ export default function HomePage() {
                 <h3 className="text-2xl font-bold mb-6">¿Por qué elegirnos?</h3>
                 <div className="space-y-4">
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mr-4">
+                    <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center mr-4">
                       <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
@@ -69,7 +69,7 @@ export default function HomePage() {
                   </div>
                   
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mr-4">
+                    <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center mr-4">
                       <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
@@ -78,7 +78,7 @@ export default function HomePage() {
                   </div>
                   
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mr-4">
+                    <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center mr-4">
                       <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
@@ -87,7 +87,7 @@ export default function HomePage() {
                   </div>
                   
                   <div className="flex items-center">
-                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mr-4">
+                    <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center mr-4">
                       <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                       </svg>
@@ -159,8 +159,8 @@ export default function HomePage() {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-8 text-center">
-              <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
@@ -190,14 +190,14 @@ export default function HomePage() {
               
               <div className="space-y-4">
                 <div className="flex items-center">
-                  <svg className="w-6 h-6 text-orange-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-brand-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                   <span className="text-lg">+34 689 571 381</span>
                 </div>
                 
                 <div className="flex items-center">
-                  <svg className="w-6 h-6 text-orange-400 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-6 h-6 text-brand-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                   <span className="text-lg">consultas@lacasadelsueloradiante.com</span>
@@ -212,26 +212,26 @@ export default function HomePage() {
                   <input
                     type="text"
                     placeholder="Tu nombre"
-                    className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-white/70 text-white focus:outline-none focus:border-orange-400"
+                    className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-white/70 text-white focus:outline-none focus:border-brand-500"
                   />
                 </div>
                 <div>
                   <input
                     type="email"
                     placeholder="Tu email"
-                    className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-white/70 text-white focus:outline-none focus:border-orange-400"
+                    className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-white/70 text-white focus:outline-none focus:border-brand-500"
                   />
                 </div>
                 <div>
                   <textarea
                     rows={4}
                     placeholder="Tu mensaje"
-                    className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-white/70 text-white focus:outline-none focus:border-orange-400 resize-none"
+                    className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg placeholder-white/70 text-white focus:outline-none focus:border-brand-500 resize-none"
                   ></textarea>
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-orange-500 text-white font-semibold py-3 rounded-lg hover:bg-orange-600 transition-colors"
+                  className="w-full bg-brand-500 text-white font-semibold py-3 rounded-lg hover:bg-brand-600 transition-colors"
                 >
                   Enviar Mensaje
                 </button>

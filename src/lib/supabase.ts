@@ -22,10 +22,21 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storageKey: 'sb-auth-token',
     // Configuración adicional para estabilidad
     debug: false,
+    // Aumentar tiempo antes de considerar token expirado
+    flowType: 'implicit',
   },
   global: {
     headers: {
       'x-application-name': 'lacasadelsueloradiante',
+    },
+  },
+  // Configuración de reintentos para mayor estabilidad
+  db: {
+    schema: 'public',
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
     },
   },
 })

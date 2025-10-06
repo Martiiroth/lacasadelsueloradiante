@@ -145,11 +145,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') return
 
     let attemptCount = 0
-    const MAX_ATTEMPTS = 3
+    const MAX_ATTEMPTS = 5 // Aumentado de 3 a 5 para más tolerancia
+    let isRefreshing = false // Prevenir múltiples refreshes simultáneos
 
     const handleVisibilityChange = async () => {
-      if (!document.hidden && isInitialized) {
-        console.log('👁️ Tab visible - Syncing session...')
+      if (!document.hidden && isInitialized && !isRefreshing) {
+        console.log('👁️ Tab visible - Checking session...')
+        
+        // Si ya tenemos una sesión válida, verificar si sigue válida
+        if (session && state.user) {
+          const now = Date.now() / 1000 // tiempo en segundos
+          const expiresAt = session.expires_at || 0
+          const timeUntilExpiry = expiresAt - now
+          
+          // Si la sesión expira en más de 5 minutos, no hacer nada
+          if (timeUntilExpiry > 300) {
+            console.log(`✅ Session still valid (expires in ${Math.floor(timeUntilExpiry / 60)} minutes)`)
+            attemptCount = 0 // Reset counter on valid session
+            return
+          }
+          
+          console.log(`⚠️ Session expiring soon (${Math.floor(timeUntilExpiry)} seconds), refreshing...`)
+        }
+        
+        isRefreshing = true
         
         try {
           attemptCount++
@@ -165,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (attemptCount >= MAX_ATTEMPTS) {
               console.error('🚨 Multiple refresh failures - marking session as corrupted')
               setSessionCorrupted(true)
+              isRefreshing = false
               return
             }
             
@@ -181,6 +201,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (user) {
                   setState({ user, loading: false, error: null })
                   attemptCount = 0 // Reset counter on success
+                  isRefreshing = false
+                  return
                 } else {
                   throw new Error('User data unavailable')
                 }
@@ -195,6 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setSession(null)
               setState({ user: null, loading: false, error: null })
             }
+            isRefreshing = false
             return
           }
           
@@ -222,9 +245,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error('🚨 Multiple sync errors - marking session as corrupted')
             setSessionCorrupted(true)
           } else {
-            setSession(null)
-            setState({ user: null, loading: false, error: 'Session error. Please try again.' })
+            // No limpiar la sesión inmediatamente, dar más oportunidades
+            console.log('⚠️ Sync error, will retry on next visibility change')
           }
+        } finally {
+          isRefreshing = false
         }
       }
     }
@@ -232,9 +257,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     window.addEventListener('focus', handleVisibilityChange)
 
+    // HEARTBEAT: Verificar sesión cada 5 minutos si la tab está activa
+    const heartbeatInterval = setInterval(() => {
+      if (!document.hidden && session && state.user) {
+        const now = Date.now() / 1000
+        const expiresAt = session.expires_at || 0
+        const timeUntilExpiry = expiresAt - now
+        
+        // Si expira en menos de 10 minutos, refrescar preventivamente
+        if (timeUntilExpiry < 600 && !isRefreshing) {
+          console.log('🔄 Heartbeat: Refreshing session preventively...')
+          handleVisibilityChange()
+        }
+      }
+    }, 5 * 60 * 1000) // Cada 5 minutos
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleVisibilityChange)
+      clearInterval(heartbeatInterval)
     }
   }, [session, isInitialized, state.user])
 

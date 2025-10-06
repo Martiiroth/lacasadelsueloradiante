@@ -43,6 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   // Usar useRef en lugar de useState para evitar recreación del listener
   const isInitializedRef = useRef(false)
+  // Usar useRef para trackear si hay usuario (más confiable que state.user)
+  const hasUserRef = useRef(false)
 
   // HIDRATACIÓN INICIAL - Recuperar sesión existente
   useEffect(() => {
@@ -70,11 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Cargar datos completos del usuario
           const user = await AuthService.getCurrentUser()
           setState({ user, loading: false, error: null })
+          hasUserRef.current = true  // Marcar que hay usuario
           isInitializedRef.current = true
         } else {
           console.log('ℹ️ No existing session')
           if (mounted) {
             setState({ user: null, loading: false, error: null })
+            hasUserRef.current = false  // No hay usuario
             isInitializedRef.current = true
           }
         }
@@ -120,19 +124,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Manejar eventos de autenticación
         if (event === 'SIGNED_IN' && currentSession) {
           // Solo procesar SIGNED_IN si no hay usuario actual (login real)
-          // Si ya hay usuario, ignorar (es un evento falso por cambio de pestaña)
-          if (!state.user) {
+          // Usar hasUserRef en lugar de state.user para evitar problemas de sincronización
+          if (!hasUserRef.current) {
             console.log('✅ [AUTH] User signed in (real login) - Cargando usuario...')
             const user = await AuthService.getCurrentUser()
             console.log('✅ [AUTH] Usuario cargado:', user?.email)
             setState({ user, loading: false, error: null })
+            hasUserRef.current = true  // Marcar que hay usuario
             console.log('✅ [AUTH] Estado actualizado con nuevo usuario')
           } else {
-            console.log('ℹ️ [AUTH] SIGNED_IN ignored (user already loaded:', state.user.email, '- likely tab switch)')
+            console.log('ℹ️ [AUTH] SIGNED_IN ignored (user already loaded - likely tab switch)')
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('👋 [AUTH] User signed out - Limpiando estado...')
           setState({ user: null, loading: false, error: null })
+          hasUserRef.current = false  // Ya no hay usuario
           console.log('👋 [AUTH] Estado limpiado')
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           console.log('🔄 [AUTH] Token refreshed by Supabase (middleware handled)')

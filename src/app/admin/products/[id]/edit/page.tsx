@@ -75,7 +75,8 @@ export default function EditProduct() {
   
   // Guardar estado del formulario en localStorage cuando cambia
   useEffect(() => {
-    if (!loading && product) {
+    // NO auto-guardar si se está guardando (evita conflictos)
+    if (!loading && product && !saving) {
       const autosaveData = {
         formData,
         variants,
@@ -88,11 +89,17 @@ export default function EditProduct() {
       setHasUnsavedChanges(true)
       console.log('💾 Auto-guardado realizado')
     }
-  }, [formData, variants, images, resources, selectedCategories, loading, product])
+  }, [formData, variants, images, resources, selectedCategories, loading, product, saving])
 
   // Recuperar cambios automáticamente al volver a la pestaña
   useEffect(() => {
     const handleVisibilityChange = () => {
+      // NO recuperar si se está guardando (evita conflictos)
+      if (saving) {
+        console.log('⏸️ Guardando... ignorando recuperación automática')
+        return
+      }
+
       if (!document.hidden && product && hasUnsavedChanges) {
         console.log('👁️ Pestaña visible - Verificando auto-guardado...')
         
@@ -136,7 +143,7 @@ export default function EditProduct() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('focus', handleVisibilityChange)
     }
-  }, [product, hasUnsavedChanges, AUTOSAVE_KEY])
+  }, [product, hasUnsavedChanges, saving, AUTOSAVE_KEY])
 
   // Limpiar auto-guardado al desmontar o al guardar exitosamente
   useEffect(() => {

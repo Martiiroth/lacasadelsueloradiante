@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface RegisterPopupProps {
   delaySeconds?: number // Tiempo de espera antes de mostrar el popup (en segundos)
@@ -11,25 +12,33 @@ interface RegisterPopupProps {
 export default function RegisterPopup({ delaySeconds = 5 }: RegisterPopupProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [dontShowAgain, setDontShowAgain] = useState(false)
+  const { user } = useAuth()
 
   useEffect(() => {
-    // Verificar si el usuario ya cerró el popup con "No volver a mostrar"
-    const popupClosed = localStorage.getItem('registerPopupClosed')
-    
-    // Verificar si el usuario ya está autenticado
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true'
-    
-    if (popupClosed === 'true' || isAuthenticated) {
+    // ✅ NO mostrar el popup si el usuario está autenticado
+    if (user) {
+      console.log('[REGISTER_POPUP] Usuario autenticado, no mostrar popup')
       return
     }
 
+    // Verificar si el usuario ya cerró el popup con "No volver a mostrar"
+    const popupClosed = localStorage.getItem('registerPopupClosed')
+    
+    if (popupClosed === 'true') {
+      console.log('[REGISTER_POPUP] Usuario ya cerró el popup permanentemente')
+      return
+    }
+
+    console.log(`[REGISTER_POPUP] Programando popup para mostrar en ${delaySeconds} segundos`)
+
     // Mostrar el popup después del delay especificado
     const timer = setTimeout(() => {
+      console.log('[REGISTER_POPUP] Mostrando popup de registro')
       setIsOpen(true)
     }, delaySeconds * 1000)
 
     return () => clearTimeout(timer)
-  }, [delaySeconds])
+  }, [delaySeconds, user])
 
   const handleClose = () => {
     setIsOpen(false)

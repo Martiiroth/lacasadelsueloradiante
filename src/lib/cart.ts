@@ -111,6 +111,24 @@ export class CartService {
     try {
       console.log('🛒 CartService.addToCart:', { cartId, data })
       
+      // VALIDAR STOCK DISPONIBLE ANTES DE AGREGAR
+      const { data: variantData, error: variantError } = await supabase
+        .from('product_variants')
+        .select('stock, title, sku')
+        .eq('id', data.variant_id)
+        .single()
+
+      if (variantError || !variantData) {
+        console.error('❌ Error al obtener variante:', variantError)
+        throw new Error('No se pudo verificar el stock del producto')
+      }
+
+      console.log('📦 Stock disponible:', { 
+        variant: variantData.title || variantData.sku, 
+        stock: variantData.stock, 
+        requested: data.qty 
+      })
+      
       // Verificar si el item ya existe en el carrito
       const { data: existingItem, error: checkError } = await supabase
         .from('cart_items')
@@ -122,11 +140,39 @@ export class CartService {
       console.log('🔍 Existing item check:', { existingItem, checkError })
 
       if (existingItem) {
+        // Si existe, validar que la cantidad total no exceda el stock
+        const newTotalQty = existingItem.qty + data.qty
+        
+        if (newTotalQty > variantData.stock) {
+          const available = variantData.stock - existingItem.qty
+          console.error('❌ Stock insuficiente:', {
+            currentInCart: existingItem.qty,
+            requested: data.qty,
+            available: variantData.stock,
+            wouldExceed: newTotalQty
+          })
+          throw new Error(
+            `Stock insuficiente. Ya tienes ${existingItem.qty} en el carrito. ` +
+            `Solo puedes agregar ${available} más. Stock disponible: ${variantData.stock}`
+          )
+        }
+        
         // Si existe, actualizar cantidad
         console.log('📝 Updating existing item')
         return await this.updateCartItem(existingItem.id, {
-          qty: existingItem.qty + data.qty
+          qty: newTotalQty
         })
+      }
+
+      // Validar stock para nuevo item
+      if (data.qty > variantData.stock) {
+        console.error('❌ Stock insuficiente para nuevo item:', {
+          requested: data.qty,
+          available: variantData.stock
+        })
+        throw new Error(
+          `Stock insuficiente. Solicitado: ${data.qty}, Disponible: ${variantData.stock}`
+        )
       }
 
       // Si no existe, crear nuevo item
@@ -162,13 +208,56 @@ export class CartService {
       return newItem
     } catch (error) {
       console.error('Error in addToCart:', error)
-      return null
+      // Re-lanzar el error para que el componente pueda mostrarlo
+      throw error
     }
   }
 
   // Actualizar cantidad de un item del carrito
   static async updateCartItem(itemId: string, data: UpdateCartItemData): Promise<CartItem | null> {
     try {
+      // Obtener el item actual para saber qué variante es
+      const { data: currentItem, error: fetchError } = await supabase
+        .from('cart_items')
+        .select('variant_id, qty')
+        .eq('id', itemId)
+        .single()
+
+      if (fetchError || !currentItem) {
+        console.error('❌ Error al obtener item del carrito:', fetchError)
+        throw new Error('No se pudo obtener el item del carrito')
+      }
+
+      // Validar stock disponible antes de actualizar
+      const { data: variantData, error: variantError } = await supabase
+        .from('product_variants')
+        .select('stock, title, sku')
+        .eq('id', currentItem.variant_id)
+        .single()
+
+      if (variantError || !variantData) {
+        console.error('❌ Error al obtener variante:', variantError)
+        throw new Error('No se pudo verificar el stock del producto')
+      }
+
+      console.log('📦 Validando actualización de cantidad:', {
+        variant: variantData.title || variantData.sku,
+        currentQty: currentItem.qty,
+        newQty: data.qty,
+        stock: variantData.stock
+      })
+
+      // Validar que la nueva cantidad no exceda el stock
+      if (data.qty > variantData.stock) {
+        console.error('❌ Stock insuficiente para actualización:', {
+          requested: data.qty,
+          available: variantData.stock
+        })
+        throw new Error(
+          `Stock insuficiente. Solicitado: ${data.qty}, Disponible: ${variantData.stock}`
+        )
+      }
+
       const { data: updatedItem, error } = await supabase
         .from('cart_items')
         .update({ qty: data.qty })
@@ -195,7 +284,8 @@ export class CartService {
       return updatedItem
     } catch (error) {
       console.error('Error in updateCartItem:', error)
-      return null
+      // Re-lanzar el error para que el componente pueda mostrarlo
+      throw error
     }
   }
 

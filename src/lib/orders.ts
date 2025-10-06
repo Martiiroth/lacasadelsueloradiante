@@ -192,11 +192,14 @@ export class OrderService {
       const stockValidation = await this.validateOrderStock(orderData.items)
       
       if (!stockValidation.valid) {
-        console.warn('Order creation with stock issues:', stockValidation.issues)
-        // Log the issues but continue with the order creation (business decision)
-        stockValidation.issues.forEach(issue => {
-          console.warn(`Stock issue - Variant ${issue.variant_id}: ${issue.issue}`)
-        })
+        console.error('❌ Order creation BLOCKED - Insufficient stock:', stockValidation.issues)
+        
+        // Construir mensaje de error detallado
+        const errorMessages = stockValidation.issues.map(issue => 
+          `Variant ${issue.variant_id}: ${issue.issue}`
+        ).join('\n')
+        
+        throw new Error(`No se puede crear el pedido. Stock insuficiente:\n${errorMessages}`)
       }
 
       // Crear items de la orden
@@ -242,8 +245,9 @@ export class OrderService {
         const stockCheck = await this.checkVariantStock(item.variant_id, item.qty)
         
         if (!stockCheck.available) {
-          console.warn(`Insufficient stock for variant ${item.variant_id}. Available: ${stockCheck.current_stock}, Requested: ${item.qty}`)
-          // Continue with the order but log the warning
+          const errorMsg = `Stock insuficiente para variante ${item.variant_id}. Disponible: ${stockCheck.current_stock}, Solicitado: ${item.qty}`
+          console.error(`❌ ${errorMsg}`)
+          throw new Error(errorMsg)
         }
 
         // Update stock (subtract the quantity)

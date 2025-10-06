@@ -15,7 +15,7 @@
  */
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { AuthService } from '../lib/auth'
 import type { AuthState, UserWithClient } from '../types/auth'
@@ -41,7 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: null,
   })
   const [session, setSession] = useState<Session | null>(null)
-  const [isInitialized, setIsInitialized] = useState(false)
+  // Usar useRef en lugar de useState para evitar recreación del listener
+  const isInitializedRef = useRef(false)
 
   // HIDRATACIÓN INICIAL - Recuperar sesión existente
   useEffect(() => {
@@ -69,19 +70,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Cargar datos completos del usuario
           const user = await AuthService.getCurrentUser()
           setState({ user, loading: false, error: null })
-          setIsInitialized(true)
+          isInitializedRef.current = true
         } else {
           console.log('ℹ️ No existing session')
           if (mounted) {
             setState({ user: null, loading: false, error: null })
-            setIsInitialized(true)
+            isInitializedRef.current = true
           }
         }
       } catch (error: any) {
         console.error('❌ Error initializing auth:', error)
         if (mounted) {
           setState({ user: null, loading: false, error: error.message })
-          setIsInitialized(true)
+          isInitializedRef.current = true
         }
       }
     }
@@ -101,9 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event, currentSession) => {
         console.log('📡 Auth event:', event, currentSession?.user?.email || 'no user')
 
-        // IMPORTANTE: Ignorar el primer evento si aún no se ha inicializado
-        // Esto previene que SIGNED_IN se procese antes de la hidratación
-        if (!isInitialized) {
+        // IMPORTANTE: Ignorar eventos hasta que se complete la hidratación inicial
+        // Esto previene que SIGNED_IN se procese antes de la primera carga
+        if (!isInitializedRef.current) {
           console.log('ℹ️ Ignoring event during initialization')
           return
         }
@@ -140,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🧹 Cleaning up auth state listener')
       subscription.unsubscribe()
     }
-  }, [supabase, isInitialized])
+  }, [supabase])
 
   const signIn = async (email: string, password: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }))

@@ -315,11 +315,15 @@ export default function EditProduct() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🚀 [GUARDAR] Iniciando proceso de guardado...')
+    console.log('🚀 [GUARDAR] Estado inicial - saving:', saving)
     setSaving(true)
+    console.log('🚀 [GUARDAR] setSaving(true) ejecutado')
     setError(null)
     setSuccess(false)
 
     try {
+      console.log('🔍 [GUARDAR] Validando campos requeridos...')
       // Validate required fields
       if (!formData.title?.trim()) {
         throw new Error('El título es obligatorio')
@@ -328,28 +332,37 @@ export default function EditProduct() {
       if (!formData.slug?.trim()) {
         throw new Error('El slug es obligatorio')
       }
+      console.log('✅ [GUARDAR] Validación exitosa')
 
       // Warning for products without categories (but allow saving)
       if (!selectedCategories || selectedCategories.length === 0) {
+        console.log('⚠️ [GUARDAR] Producto sin categorías, solicitando confirmación...')
         const confirmSave = confirm('⚠️ Este producto no tiene ninguna categoría asignada.\n\nSe recomienda asignar al menos una categoría para una mejor organización.\n\n¿Deseas guardar de todos modos?')
         if (!confirmSave) {
+          console.log('❌ [GUARDAR] Usuario canceló guardado (sin categorías)')
           setSaving(false)
           return
         }
+        console.log('✅ [GUARDAR] Usuario confirmó guardado sin categorías')
       }
 
       if (variants.length === 0) {
         throw new Error('Debe haber al menos una variante')
       }
+      console.log(`✅ [GUARDAR] ${variants.length} variante(s) para procesar`)
 
       // Update product
+      console.log('📝 [GUARDAR] Actualizando producto...')
       const success = await AdminService.updateProduct(productId, formData)
+      console.log('📝 [GUARDAR] Resultado updateProduct:', success)
       
       if (!success) {
         throw new Error('Error al actualizar el producto')
       }
+      console.log('✅ [GUARDAR] Producto actualizado exitosamente')
 
       // Update variants
+      console.log('📝 [GUARDAR] Actualizando variantes...')
       const variantPromises = variants.map(async (variant, index) => {
         try {
           if (variant.id) {
@@ -369,69 +382,90 @@ export default function EditProduct() {
       })
 
       const variantResults = await Promise.all(variantPromises)
+      console.log('📝 [GUARDAR] Resultados de variantes:', variantResults)
       const failedVariants = variantResults.filter(result => result === false || result === null)
       
       if (failedVariants.length > 0) {
-        console.error('Failed variants:', failedVariants)
+        console.error('❌ [GUARDAR] Failed variants:', failedVariants)
         throw new Error(`Error al actualizar ${failedVariants.length} de ${variants.length} variantes`)
       }
+      console.log('✅ [GUARDAR] Todas las variantes actualizadas exitosamente')
 
       // Update images
+      console.log('🖼️ [GUARDAR] Actualizando imágenes del producto...')
       try {
         await AdminService.updateProductImages(productId, images)
+        console.log('✅ [GUARDAR] Imágenes actualizadas exitosamente')
       } catch (imageError: any) {
-        console.error('Image update error:', imageError)
+        console.error('❌ [GUARDAR] Image update error:', imageError)
         throw new Error(`Error al actualizar las imágenes: ${imageError.message}`)
       }
 
       // Update resources
+      console.log('📄 [GUARDAR] Actualizando recursos del producto...')
       try {
         await AdminService.updateProductResources(productId, resources)
+        console.log('✅ [GUARDAR] Recursos actualizados exitosamente')
       } catch (resourceError: any) {
-        console.error('Resource update error:', resourceError)
+        console.error('❌ [GUARDAR] Resource update error:', resourceError)
         throw new Error(`Error al actualizar los recursos: ${resourceError.message}`)
       }
 
-      // Update variant images (role prices are handled in AdminService.updateProductVariant)
+      // Update variant images
+      console.log('🖼️ [GUARDAR] Actualizando imágenes de variantes...')
       for (const variant of variants) {
         if (variant.id) {
           // Update variant images
           if (variant.images) {
             try {
+              console.log(`🖼️ [GUARDAR] Procesando imágenes para variante ${variant.id}...`)
               const variantImageData = VariantImageService.convertFromImageData(variant.images, variant.id)
               await VariantImageService.updateVariantImages(variant.id, variantImageData)
+              console.log(`✅ [GUARDAR] Imágenes de variante ${variant.id} actualizadas`)
             } catch (variantImageError: any) {
-              console.error('Variant image update error:', variantImageError)
+              console.error('❌ [GUARDAR] Variant image update error:', variantImageError)
               throw new Error(`Error al actualizar las imágenes de la variante: ${variantImageError.message}`)
             }
           }
         }
       }
+      console.log('✅ [GUARDAR] Todas las imágenes de variantes actualizadas')
 
       // Update categories
+      console.log('🏷️ [GUARDAR] Actualizando categorías...')
       try {
         await AdminService.updateProductCategories(productId, selectedCategories)
+        console.log('✅ [GUARDAR] Categorías actualizadas exitosamente')
       } catch (categoryError: any) {
-        console.error('Category update error:', categoryError)
+        console.error('❌ [GUARDAR] Category update error:', categoryError)
         throw new Error(`Error al actualizar las categorías: ${categoryError.message}`)
       }
       
+      console.log('🎉 [GUARDAR] ¡Guardado completado exitosamente!')
       setSuccess(true)
+      console.log('🎉 [GUARDAR] setSuccess(true) ejecutado')
       
       // Limpiar auto-guardado después de guardar exitosamente
+      console.log('🧹 [GUARDAR] Limpiando auto-guardado...')
       localStorage.removeItem(AUTOSAVE_KEY)
       setHasUnsavedChanges(false)
-      console.log('✅ Auto-guardado limpiado después de guardar')
+      console.log('✅ [GUARDAR] Auto-guardado limpiado después de guardar')
       
+      console.log('⏱️ [GUARDAR] Esperando 1.5s antes de redireccionar...')
       setTimeout(() => {
+        console.log('🔄 [GUARDAR] Redireccionando a vista de producto...')
         router.push(`/admin/products/${productId}`)
       }, 1500)
 
     } catch (err) {
-      console.error('Error updating product:', err)
+      console.error('❌ [GUARDAR] ERROR CRÍTICO:', err)
+      console.error('❌ [GUARDAR] Stack trace:', err instanceof Error ? err.stack : 'No stack trace')
       setError(err instanceof Error ? err.message : 'Error al actualizar el producto')
     } finally {
+      console.log('🏁 [GUARDAR] Bloque finally - Ejecutando setSaving(false)')
+      console.log('🏁 [GUARDAR] Estado actual de saving antes del finally:', saving)
       setSaving(false)
+      console.log('🏁 [GUARDAR] setSaving(false) ejecutado - proceso completado')
     }
   }
 

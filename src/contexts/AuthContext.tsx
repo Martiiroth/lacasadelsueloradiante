@@ -122,23 +122,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Solo procesar SIGNED_IN si no hay usuario actual (login real)
           // Si ya hay usuario, ignorar (es un evento falso por cambio de pestaña)
           if (!state.user) {
-            console.log('✅ User signed in (real login)')
+            console.log('✅ [AUTH] User signed in (real login) - Cargando usuario...')
             const user = await AuthService.getCurrentUser()
+            console.log('✅ [AUTH] Usuario cargado:', user?.email)
             setState({ user, loading: false, error: null })
+            console.log('✅ [AUTH] Estado actualizado con nuevo usuario')
           } else {
-            console.log('ℹ️ SIGNED_IN ignored (user already loaded, likely tab switch)')
+            console.log('ℹ️ [AUTH] SIGNED_IN ignored (user already loaded:', state.user.email, '- likely tab switch)')
           }
         } else if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out')
+          console.log('👋 [AUTH] User signed out - Limpiando estado...')
           setState({ user: null, loading: false, error: null })
+          console.log('👋 [AUTH] Estado limpiado')
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
-          console.log('🔄 Token refreshed by Supabase')
+          console.log('🔄 [AUTH] Token refreshed by Supabase (middleware handled)')
           // Token refrescado automáticamente por middleware
           // No necesitamos recargar el usuario aquí
         } else if (event === 'USER_UPDATED' && currentSession) {
-          console.log('🔄 User data updated')
+          console.log('🔄 [AUTH] User data updated - Recargando usuario...')
           const user = await AuthService.getCurrentUser()
+          console.log('🔄 [AUTH] Usuario recargado:', user?.email)
           setState(prev => ({ ...prev, user }))
+          console.log('🔄 [AUTH] Estado actualizado')
         }
       }
     )

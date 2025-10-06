@@ -116,12 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setState({ user: null, loading: false, error: null })
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           console.log('🔄 Token refreshed by Supabase')
-          // Token refrescado automáticamente, mantener estado actual
-          // Solo actualizar si el usuario cambió
-          if (state.user && currentSession.user.id !== state.user.id) {
-            const user = await AuthService.getCurrentUser()
-            setState({ user, loading: false, error: null })
-          }
+          // Token refrescado automáticamente por middleware
+          // No necesitamos recargar el usuario aquí
         } else if (event === 'USER_UPDATED' && currentSession) {
           console.log('🔄 User data updated')
           const user = await AuthService.getCurrentUser()
@@ -134,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('🧹 Cleaning up auth state listener')
       subscription.unsubscribe()
     }
-  }, [supabase, state.user])
+  }, [supabase])
 
   const signIn = async (email: string, password: string) => {
     setState(prev => ({ ...prev, loading: true, error: null }))

@@ -1,9 +1,27 @@
 /**
  * AuthContext - Context de autenticación
  * 
- * ✅ SIMPLIFICADO CON ARQUITECTURA SUPABASE SSR
- * 
- * El middleware se encarga de:
+ * ✅ SIMPLIFICADO CON ARQUITECTURA SUPABASE S    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        console.log('📡 Auth event:', event, currentSession?.user?.email || 'no user')
+
+        setSession(currentSession)
+
+        // IMPORTANT: Ignorar INITIAL_SESSION porque ya se maneja en la hidratación
+        if (event === 'INITIAL_SESSION') {
+          console.log('ℹ️ Initial session (already handled in hydration)')
+          return // No hacer nada, ya se manejó en useEffect de hidratación
+        }
+
+        // Manejar eventos de autenticación
+        if (event === 'SIGNED_IN' && currentSession) {
+          console.log('✅ User signed in')
+          const user = await AuthService.getCurrentUser()
+          setState({ user, loading: false, error: null })
+        } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out')
+          setState({ user: null, loading: false, error: null })
+        } else if (event === 'TOKEN_REFRESHED' && currentSession) {ddleware se encarga de:
  * - Refrescar tokens automáticamente en cada request
  * - Actualizar cookies
  * - Mantener sesión válida

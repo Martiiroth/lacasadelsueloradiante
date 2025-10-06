@@ -196,8 +196,14 @@ export default function EditProduct() {
           const autosaveAge = Date.now() - parsed.timestamp
           const autosaveAgeMinutes = Math.floor(autosaveAge / 60000)
           
-          // Si el auto-guardado tiene menos de 1 hora, preguntar si quiere recuperarlo
-          if (autosaveAge < 3600000) { // 1 hora
+          // Si el auto-guardado es muy reciente (menos de 30 segundos), ignorarlo
+          // Probablemente es de la recuperación automática, no cambios reales del usuario
+          if (autosaveAge < 30000) {
+            console.log('🔄 Auto-guardado muy reciente (<30s), ignorando y limpiando')
+            localStorage.removeItem(AUTOSAVE_KEY)
+          }
+          // Si el auto-guardado tiene menos de 1 hora pero más de 30 segundos, preguntar
+          else if (autosaveAge < 3600000) { // 1 hora
             const confirmRestore = confirm(
               `🔄 Se encontraron cambios no guardados de hace ${autosaveAgeMinutes} minuto(s).\n\n` +
               `¿Deseas recuperar estos cambios?\n\n` +

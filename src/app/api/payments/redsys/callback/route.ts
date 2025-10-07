@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { RedsysService, RedsysResponse } from '@/lib/redsys'
 import { createClient } from '@/utils/supabase/server'
+import EmailService from '@/lib/emailService.server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,11 +83,11 @@ export async function POST(request: NextRequest) {
 
     // Actualizar estado de la orden según el resultado del pago
     if (result.isSuccess) {
-      // Pago exitoso
+      // Pago exitoso - cambiar a processing (en proceso de preparación)
       await supabase
         .from('orders')
         .update({ 
-          status: 'confirmed',
+          status: 'processing',
           payment_status: 'paid'
         })
         .eq('id', orderId)
@@ -94,8 +95,8 @@ export async function POST(request: NextRequest) {
       // Registrar en logs
       await supabase.from('order_logs').insert({
         order_id: orderId,
-        status: 'confirmed',
-        comment: 'Pago confirmado vía Redsys',
+        status: 'processing',
+        comment: 'Pago confirmado vía Redsys - Pedido en preparación',
         details: {
           redsysOrder: transactionData.Ds_Order,
           authCode: transactionData.Ds_AuthorisationCode,
@@ -106,7 +107,62 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      console.log('✅ Pago confirmado para orden:', orderId)
+      console.log('✅ Pago confirmado para orden:', orderId, '- Estado: processing')
+      
+      // Enviar correo de confirmación de pedido
+      try {
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (
+              qty,
+              price_cents,
+              product_variants (
+                title,
+                products (
+                  title
+                )
+              )
+            ),
+            clients (
+              first_name,
+              last_name,
+              email
+            )
+          `)
+          .eq('id', orderId)
+          .single()
+
+        if (orderData) {
+          // Preparar datos para el email
+          const emailData = {
+            orderId: orderData.id,
+            orderNumber: orderData.confirmation_number,
+            status: orderData.status,
+            clientName: orderData.clients 
+              ? `${orderData.clients.first_name} ${orderData.clients.last_name}`
+              : orderData.guest_email || 'Cliente',
+            clientEmail: orderData.clients?.email || orderData.guest_email || '',
+            items: orderData.order_items?.map((item: any) => ({
+              title: item.product_variants?.products?.title || 'Producto',
+              quantity: item.qty,
+              price: item.price_cents / 100
+            })) || [],
+            subtotal: orderData.subtotal_cents / 100,
+            shipping: orderData.shipping_cents / 100,
+            tax: orderData.tax_cents / 100,
+            total: orderData.total_cents / 100,
+            createdAt: orderData.created_at
+          }
+
+          await EmailService.sendNewOrderNotification(emailData)
+          console.log('📧 Correo de confirmación enviado para orden:', orderId)
+        }
+      } catch (emailError) {
+        console.error('Error enviando correo de confirmación:', emailError)
+        // No fallar la transacción si el correo falla
+      }
     } else {
       // Pago rechazado
       await supabase

@@ -18,7 +18,9 @@
     "nodemailer": "^7.0.6",
     "pdfkit": "^0.15.2",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "redsys-easy": "^5.2.11",
+    "redsys-pos": "^1.0.2"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",

@@ -12,12 +12,14 @@ import ShippingFormSimple from '../../components/checkout/ShippingFormSimple'
 import PaymentForm from '../../components/checkout/PaymentForm'
 import OrderSummary from '../../components/checkout/OrderSummary'
 import OrderConfirmationComponent from '../../components/checkout/OrderConfirmation'
+import RedsysPaymentForm from '../../components/checkout/RedsysPaymentForm'
 import type { 
   CheckoutStep, 
   ShippingAddress,
   BillingAddress, 
   OrderConfirmation,
-  CreateOrderData
+  CreateOrderData,
+  PaymentMethod
 } from '../../types/checkout'
 
 export default function CheckoutPage() {
@@ -36,6 +38,10 @@ export default function CheckoutPage() {
   const [shippingMethodId, setShippingMethodId] = useState<string>('')
   const [paymentMethodId, setPaymentMethodId] = useState<string>('')
   const [couponCode, setCouponCode] = useState<string>('')
+  
+  // Datos de pago con Redsys
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
   
   // Confirmación de pedido
   const [orderConfirmation, setOrderConfirmation] = useState<OrderConfirmation | null>(null)
@@ -102,6 +108,16 @@ export default function CheckoutPage() {
     setError(null)
 
     try {
+      // Obtener información del método de pago seleccionado
+      const paymentMethods = await OrderService.getPaymentMethods()
+      const selectedMethod = paymentMethods.find(m => m.id === paymentMethodId)
+      
+      if (!selectedMethod) {
+        throw new Error('Método de pago no válido')
+      }
+
+      setSelectedPaymentMethod(selectedMethod)
+
       // Preparar datos de la orden
       const orderData: CreateOrderData = {
         client_id: user?.client?.id || null,
@@ -122,6 +138,16 @@ export default function CheckoutPage() {
       const confirmation = await OrderService.createOrder(orderData)
       
       if (confirmation) {
+        // Si el método de pago es Redsys (tarjeta), redirigir al formulario de pago
+        if (selectedMethod.provider === 'Redsys') {
+          setPendingOrderId(confirmation.order.id)
+          setOrderConfirmation(confirmation)
+          setCurrentStep('payment')
+          setIsLoading(false)
+          return
+        }
+
+        // Para otros métodos de pago, proceder normalmente
         setOrderConfirmation(confirmation)
         setCurrentStep('confirmation')
         
@@ -276,7 +302,38 @@ export default function CheckoutPage() {
             />
           )}
 
-          {currentStep === 'payment' && (
+          {currentStep === 'payment' && pendingOrderId && orderConfirmation && (
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-blue-800 mb-2">
+                  Pedido Creado: #{orderConfirmation.confirmation_number}
+                </h3>
+                <p className="text-sm text-blue-700">
+                  Tu pedido ha sido registrado. Por favor, completa el pago con tarjeta para confirmar tu compra.
+                </p>
+              </div>
+              
+              <RedsysPaymentForm
+                orderId={pendingOrderId}
+                amount={orderConfirmation.order.total_cents}
+                description={`Pedido #${orderConfirmation.confirmation_number}`}
+                consumerName={billingAddress?.first_name && billingAddress?.last_name 
+                  ? `${billingAddress.first_name} ${billingAddress.last_name}` 
+                  : undefined
+                }
+                autoSubmit={false}
+                onSuccess={() => {
+                  console.log('Redirigiendo a Redsys...')
+                }}
+                onError={(error) => {
+                  setError(error)
+                  setIsLoading(false)
+                }}
+              />
+            </div>
+          )}
+
+          {currentStep === 'payment' && !pendingOrderId && (
             <PaymentForm
               onSubmit={handlePaymentSubmit}
               onBack={() => handleBackToStep('shipping')}

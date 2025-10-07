@@ -57,7 +57,7 @@ export class CheckoutTestDataService {
       const paymentMethods = [
         {
           name: 'Tarjeta de Crédito/Débito',
-          provider: 'Stripe',
+          provider: 'Redsys',
           active: true
         },
         {

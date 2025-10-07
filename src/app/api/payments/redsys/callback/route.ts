@@ -9,9 +9,17 @@ import { createClient } from '@/utils/supabase/server'
 import EmailService from '@/lib/emailService.server'
 
 export async function POST(request: NextRequest) {
+  console.log('🔔 ===== CALLBACK DE REDSYS RECIBIDO =====')
+  
   try {
     // Obtener parámetros de Redsys del body
     const formData = await request.formData()
+    
+    console.log('📦 Datos del formulario:', {
+      hasSignatureVersion: !!formData.get('Ds_SignatureVersion'),
+      hasParameters: !!formData.get('Ds_MerchantParameters'),
+      hasSignature: !!formData.get('Ds_Signature')
+    })
     
     const redsysResponse: RedsysResponse = {
       Ds_SignatureVersion: formData.get('Ds_SignatureVersion') as string,
@@ -50,30 +58,44 @@ export async function POST(request: NextRequest) {
     // Buscar la orden relacionada
     const supabase = await createClient()
     
-    // Buscar por el número de orden de Redsys en los logs
-    const { data: logs } = await supabase
+    // El número de orden de Redsys contiene nuestro orderId
+    // Buscar en los logs el registro que creamos al iniciar el pago
+    const { data: logs, error: logsError } = await supabase
       .from('order_logs')
-      .select('order_id')
+      .select('order_id, created_at')
       .eq('comment', 'Iniciando pago con Redsys')
       .order('created_at', { ascending: false })
-      .limit(10)
+      .limit(20) // Aumentar para buscar en más registros
+
+    console.log('🔍 Buscando orden en logs:', { 
+      found: logs?.length || 0,
+      redsysOrder: transactionData.Ds_Order 
+    })
 
     let orderId: string | null = null
     
-    // Si no encontramos en logs, intentar buscar órdenes pendientes recientes
-    if (!logs || logs.length === 0) {
+    // Buscar la orden más reciente que inició pago
+    if (logs && logs.length > 0) {
+      // Tomar la más reciente (la primera en la lista ordenada desc)
+      orderId = logs[0].order_id
+      console.log('✓ Orden encontrada en logs:', orderId)
+    }
+    
+    // Si no encontramos en logs, buscar órdenes pendientes recientes
+    if (!orderId) {
+      console.log('⚠️ No encontrado en logs, buscando orden pendiente...')
       const { data: pendingOrders } = await supabase
         .from('orders')
-        .select('id')
+        .select('id, created_at')
         .eq('status', 'pending')
+        .eq('payment_status', 'pending')
         .order('created_at', { ascending: false })
         .limit(1)
       
       if (pendingOrders && pendingOrders.length > 0) {
         orderId = pendingOrders[0].id
+        console.log('✓ Orden pendiente encontrada:', orderId)
       }
-    } else {
-      orderId = logs[0].order_id
     }
 
     if (!orderId) {

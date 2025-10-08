@@ -37,13 +37,62 @@ export async function POST(request: NextRequest) {
       Ds_Signature
     }
 
+    // Debug: Mostrar información de configuración
+    console.log('🔧 Variables de configuración Redsys:', {
+      merchantCode: process.env.REDSYS_MERCHANT_CODE,
+      terminal: process.env.REDSYS_TERMINAL,
+      hasSecretKey: !!process.env.REDSYS_SECRET_KEY,
+      secretKeyLength: process.env.REDSYS_SECRET_KEY?.length || 0,
+      currency: process.env.REDSYS_CURRENCY,
+      environment: process.env.REDSYS_ENVIRONMENT
+    })
+
+    // Debug: Mostrar parámetros recibidos
+    console.log('🔍 Parámetros Redsys recibidos:', {
+      signatureVersion: Ds_SignatureVersion,
+      parametersLength: Ds_MerchantParameters?.length || 0,
+      signatureLength: Ds_Signature?.length || 0,
+      parameters: Ds_MerchantParameters?.substring(0, 100) + '...',
+      signature: Ds_Signature?.substring(0, 20) + '...'
+    })
+
     // Procesar respuesta de Redsys
     const result = RedsysService.processResponse(redsysResponse)
 
+    console.log('📊 Resultado del procesamiento:', {
+      isValid: result.isValid,
+      isSuccess: result.isSuccess,
+      message: result.message,
+      hasData: !!result.data
+    })
+
     if (!result.isValid) {
-      console.error('Firma de Redsys inválida')
+      console.error('❌ Firma de Redsys inválida')
+      
+      // Debug adicional para la firma
+      try {
+        const decodedParams = JSON.parse(Buffer.from(Ds_MerchantParameters, 'base64').toString('utf-8'))
+        console.log('🧪 Debug parámetros decodificados:', {
+          order: decodedParams.Ds_Order,
+          amount: decodedParams.Ds_Amount,
+          response: decodedParams.Ds_Response,
+          merchantCode: decodedParams.Ds_MerchantCode,
+          terminal: decodedParams.Ds_Terminal
+        })
+      } catch (decodeError) {
+        console.error('Error decodificando parámetros para debug:', decodeError)
+      }
+      
       return NextResponse.json(
-        { error: 'Firma de Redsys inválida', success: false },
+        { 
+          error: 'Firma de Redsys inválida', 
+          success: false,
+          debug: {
+            hasSecretKey: !!process.env.REDSYS_SECRET_KEY,
+            parametersReceived: !!Ds_MerchantParameters,
+            signatureReceived: !!Ds_Signature
+          }
+        },
         { status: 400 }
       )
     }

@@ -129,10 +129,25 @@ export class RedsysService {
    */
   static verifySignature(merchantParameters: string, signature: string): boolean {
     try {
+      console.log('🔐 Verificando firma de Redsys...')
+      console.log('🔐 Parámetros recibidos:', {
+        parametersLength: merchantParameters?.length || 0,
+        signatureReceived: signature?.substring(0, 20) + '...',
+        hasSecretKey: !!SECRET_KEY,
+        secretKeyLength: SECRET_KEY?.length || 0
+      })
+
       const calculatedSignature = this.createSignature(merchantParameters)
+      
+      console.log('🔐 Firmas comparadas:', {
+        received: signature?.substring(0, 20) + '...',
+        calculated: calculatedSignature?.substring(0, 20) + '...',
+        match: calculatedSignature === signature
+      })
+
       return calculatedSignature === signature
     } catch (error) {
-      console.error('Error verificando firma de Redsys:', error)
+      console.error('❌ Error verificando firma de Redsys:', error)
       return false
     }
   }

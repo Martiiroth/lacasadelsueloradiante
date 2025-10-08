@@ -263,7 +263,8 @@ export async function POST(request: NextRequest) {
             shipping: orderData.shipping_cents / 100,
             tax: orderData.tax_cents / 100,
             total: orderData.total_cents / 100,
-            createdAt: orderData.created_at
+            createdAt: orderData.created_at,
+            shippingAddress: orderData.shipping_address
           }
 
           console.log('📬 Datos del email a enviar:', {
@@ -271,7 +272,9 @@ export async function POST(request: NextRequest) {
             status: emailData.status,
             clientEmail: emailData.clientEmail,
             orderNumber: emailData.orderNumber,
-            confirmationNumberFromDB: orderData.confirmation_number
+            confirmationNumberFromDB: orderData.confirmation_number,
+            hasShippingAddress: !!orderData.shipping_address,
+            shippingAddressType: typeof orderData.shipping_address
           })
 
           await EmailService.sendNewOrderNotification(emailData)

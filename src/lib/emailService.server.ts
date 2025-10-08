@@ -49,6 +49,9 @@ interface OrderEmailData {
     quantity: number
     price: number
   }>
+  subtotal?: number
+  shipping?: number
+  tax?: number
   total: number
   createdAt: string
   shippingAddress?: string

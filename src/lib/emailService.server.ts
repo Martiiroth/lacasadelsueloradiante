@@ -315,13 +315,14 @@ class ServerEmailService {
 
   // Método específico para notificar cuando se crea un nuevo pedido
   static async sendNewOrderNotification(orderData: OrderEmailData): Promise<boolean> {
-    // Para pedidos nuevos, establecer el status como 'pending'
-    const newOrderData = {
+    // Mantener el status que se pasa desde el llamador
+    // Si no se especifica status, usar 'pending' por defecto
+    const finalOrderData = {
       ...orderData,
-      status: 'pending'
+      status: orderData.status || 'pending'
     }
     
-    return this.sendOrderStatusNotification(newOrderData)
+    return this.sendOrderStatusNotification(finalOrderData)
   }
 
   // Verificar configuración del email

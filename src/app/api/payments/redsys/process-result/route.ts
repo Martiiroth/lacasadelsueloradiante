@@ -199,8 +199,12 @@ export async function POST(request: NextRequest) {
 
       console.log('✅ Orden actualizada a processing:', orderId)
       
+      // Esperar un momento para asegurar que la actualización se propague
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       // Enviar correo de confirmación de pedido
       try {
+        // Verificar que la orden efectivamente se actualizó
         const { data: orderData } = await supabase
           .from('orders')
           .select(`
@@ -224,12 +228,22 @@ export async function POST(request: NextRequest) {
           .eq('id', orderId)
           .single()
 
+        console.log('📧 Estado de la orden para envío de correo:', {
+          orderId: orderData?.id,
+          status: orderData?.status,
+          paymentStatus: orderData?.payment_status
+        })
+
         if (orderData) {
+          // Verificar que el estado es correcto antes de enviar
+          if (orderData.status !== 'processing') {
+            console.warn('⚠️ Advertencia: El estado de la orden no es processing:', orderData.status)
+          }
           // Preparar datos para el email
           const emailData = {
             orderId: orderData.id,
             orderNumber: orderData.confirmation_number,
-            status: orderData.status,
+            status: orderData.status, // Este debería ser 'processing' ahora
             clientName: orderData.clients 
               ? `${orderData.clients.first_name} ${orderData.clients.last_name}`
               : orderData.guest_email || 'Cliente',
@@ -246,8 +260,15 @@ export async function POST(request: NextRequest) {
             createdAt: orderData.created_at
           }
 
+          console.log('📬 Datos del email a enviar:', {
+            orderId: emailData.orderId,
+            status: emailData.status,
+            clientEmail: emailData.clientEmail,
+            orderNumber: emailData.orderNumber
+          })
+
           await EmailService.sendNewOrderNotification(emailData)
-          console.log('📧 Correo de confirmación enviado para orden:', orderId)
+          console.log('📧 Correo de confirmación enviado para orden:', orderId, 'con estado:', emailData.status)
 
           return NextResponse.json({
             success: true,

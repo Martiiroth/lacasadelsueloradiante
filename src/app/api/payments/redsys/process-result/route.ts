@@ -166,12 +166,23 @@ export async function POST(request: NextRequest) {
 
     // Actualizar estado de la orden según el resultado del pago
     if (isSuccess) {
+      // Generar número de confirmación si no existe
+      const confirmationNumber = `ORD-${orderId.split('-')[0].toUpperCase()}`
+      
+      console.log('🔄 Actualizando orden con:', {
+        orderId,
+        status: 'processing',
+        payment_status: 'paid',
+        confirmation_number: confirmationNumber
+      })
+      
       // Pago exitoso - cambiar a processing (en proceso de preparación)
       const { error: updateError } = await supabase
         .from('orders')
         .update({ 
           status: 'processing',
-          payment_status: 'paid'
+          payment_status: 'paid',
+          confirmation_number: confirmationNumber
         })
         .eq('id', orderId)
 
@@ -240,9 +251,11 @@ export async function POST(request: NextRequest) {
             console.warn('⚠️ Advertencia: El estado de la orden no es processing:', orderData.status)
           }
           // Preparar datos para el email
+          const orderNumber = orderData.confirmation_number || `ORD-${orderData.id.split('-')[0].toUpperCase()}`
+          
           const emailData = {
             orderId: orderData.id,
-            orderNumber: orderData.confirmation_number,
+            orderNumber: orderNumber,
             status: orderData.status, // Este debería ser 'processing' ahora
             clientName: orderData.clients 
               ? `${orderData.clients.first_name} ${orderData.clients.last_name}`
@@ -264,7 +277,9 @@ export async function POST(request: NextRequest) {
             orderId: emailData.orderId,
             status: emailData.status,
             clientEmail: emailData.clientEmail,
-            orderNumber: emailData.orderNumber
+            orderNumber: emailData.orderNumber,
+            confirmationNumberFromDB: orderData.confirmation_number,
+            generatedOrderNumber: orderNumber
           })
 
           await EmailService.sendNewOrderNotification(emailData)

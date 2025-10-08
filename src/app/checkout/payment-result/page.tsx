@@ -28,27 +28,30 @@ function PaymentResultContent() {
     const processPaymentResult = async () => {
       try {
         // Si tenemos parámetros de Redsys, procesarlos
-        if (dsSignatureVersion && dsMerchantParameters && dsSignature) {
+        if (dsSignatureVersion && dsMerchantParameters && dsSignature && orderId) {
           console.log('🔄 Procesando respuesta de Redsys en página de resultado...')
           
-          // Enviar parámetros al callback para procesar
-          const response = await fetch('/api/payments/redsys/callback', {
+          // Crear endpoint específico para procesar desde frontend
+          const response = await fetch('/api/payments/redsys/process-result', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Type': 'application/json',
             },
-            body: new URLSearchParams({
+            body: JSON.stringify({
               Ds_SignatureVersion: dsSignatureVersion,
               Ds_MerchantParameters: dsMerchantParameters,
-              Ds_Signature: dsSignature
+              Ds_Signature: dsSignature,
+              orderId: orderId
             })
           })
 
           if (!response.ok) {
-            throw new Error(`Error procesando pago: ${response.status}`)
+            const errorData = await response.text()
+            throw new Error(`Error procesando pago: ${response.status} - ${errorData}`)
           }
 
-          console.log('✅ Respuesta de Redsys procesada correctamente')
+          const result = await response.json()
+          console.log('✅ Respuesta de Redsys procesada:', result)
         }
         
         // Marcar como procesado

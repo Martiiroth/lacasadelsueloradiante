@@ -14,25 +14,72 @@ function PaymentResultContent() {
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(true)
   const [orderDetails, setOrderDetails] = useState<any>(null)
+  const [processingError, setProcessingError] = useState<string | null>(null)
 
   const status = searchParams.get('status')
   const orderId = searchParams.get('order')
+  
+  // Obtener parámetros de Redsys de la URL si están presentes
+  const dsSignatureVersion = searchParams.get('Ds_SignatureVersion')
+  const dsMerchantParameters = searchParams.get('Ds_MerchantParameters')
+  const dsSignature = searchParams.get('Ds_Signature')
 
   useEffect(() => {
-    // Simular verificación del pago (opcional)
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1500)
+    const processPaymentResult = async () => {
+      try {
+        // Si tenemos parámetros de Redsys, procesarlos
+        if (dsSignatureVersion && dsMerchantParameters && dsSignature) {
+          console.log('🔄 Procesando respuesta de Redsys en página de resultado...')
+          
+          // Enviar parámetros al callback para procesar
+          const response = await fetch('/api/payments/redsys/callback', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+              Ds_SignatureVersion: dsSignatureVersion,
+              Ds_MerchantParameters: dsMerchantParameters,
+              Ds_Signature: dsSignature
+            })
+          })
 
+          if (!response.ok) {
+            throw new Error(`Error procesando pago: ${response.status}`)
+          }
+
+          console.log('✅ Respuesta de Redsys procesada correctamente')
+        }
+        
+        // Marcar como procesado
+        console.log('✅ Resultado de pago procesado correctamente')
+        
+      } catch (error) {
+        console.error('Error procesando resultado de pago:', error)
+        setProcessingError(error instanceof Error ? error.message : 'Error procesando pago')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    // Dar un pequeño delay para que se complete cualquier procesamiento
+    const timer = setTimeout(processPaymentResult, 1000)
     return () => clearTimeout(timer)
-  }, [])
+  }, [dsSignatureVersion, dsMerchantParameters, dsSignature, orderId])
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Verificando estado del pago...</p>
+          <p className="text-gray-600">
+            {dsSignatureVersion ? 'Procesando pago con Redsys...' : 'Verificando estado del pago...'}
+          </p>
+          {processingError && (
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-800 text-sm">{processingError}</p>
+            </div>
+          )}
         </div>
       </div>
     )

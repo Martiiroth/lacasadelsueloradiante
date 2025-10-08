@@ -9,13 +9,13 @@ import { createClient } from '@/utils/supabase/server'
 import EmailService from '@/lib/emailService.server'
 
 export async function POST(request: NextRequest) {
-  console.log('🔔 ===== CALLBACK DE REDSYS RECIBIDO =====')
+  console.log('🔔 ===== CALLBACK DE REDSYS RECIBIDO VIA POST =====')
   
   try {
     // Obtener parámetros de Redsys del body
     const formData = await request.formData()
     
-    console.log('📦 Datos del formulario:', {
+    console.log('📦 Datos del formulario POST:', {
       hasSignatureVersion: !!formData.get('Ds_SignatureVersion'),
       hasParameters: !!formData.get('Ds_MerchantParameters'),
       hasSignature: !!formData.get('Ds_Signature')
@@ -27,6 +27,46 @@ export async function POST(request: NextRequest) {
       Ds_Signature: formData.get('Ds_Signature') as string
     }
 
+    return await processRedsysCallback(redsysResponse)
+  } catch (error) {
+    console.error('Error procesando callback POST de Redsys:', error)
+    return new NextResponse('', { status: 500 })
+  }
+}
+
+// Redsys también puede enviar notificaciones por GET
+export async function GET(request: NextRequest) {
+  console.log('🔔 ===== CALLBACK DE REDSYS RECIBIDO VIA GET =====')
+  
+  try {
+    // Obtener parámetros de Redsys desde URL
+    const { searchParams } = new URL(request.url)
+    
+    console.log('📦 Parámetros GET de Redsys:', {
+      hasSignatureVersion: !!searchParams.get('Ds_SignatureVersion'),
+      hasParameters: !!searchParams.get('Ds_MerchantParameters'),
+      hasSignature: !!searchParams.get('Ds_Signature')
+    })
+    
+    const redsysResponse: RedsysResponse = {
+      Ds_SignatureVersion: searchParams.get('Ds_SignatureVersion') as string,
+      Ds_MerchantParameters: searchParams.get('Ds_MerchantParameters') as string,
+      Ds_Signature: searchParams.get('Ds_Signature') as string
+    }
+
+    // Procesar la respuesta usando la función común
+    return await processRedsysCallback(redsysResponse)
+  } catch (error) {
+    console.error('Error procesando callback GET de Redsys:', error)
+    return new NextResponse('', { status: 500 })
+  }
+}
+
+// Función común para procesar callbacks de Redsys
+async function processRedsysCallback(redsysResponse: RedsysResponse) {
+  console.log('🔄 Procesando respuesta de Redsys...')
+  
+  try {
     // Validar que tenemos todos los parámetros
     if (!redsysResponse.Ds_MerchantParameters || !redsysResponse.Ds_Signature) {
       console.error('Faltan parámetros de Redsys')
@@ -217,9 +257,4 @@ export async function POST(request: NextRequest) {
     console.error('Error procesando callback de Redsys:', error)
     return new NextResponse('', { status: 500 })
   }
-}
-
-// Redsys también puede enviar notificaciones por GET
-export async function GET(request: NextRequest) {
-  return POST(request)
 }

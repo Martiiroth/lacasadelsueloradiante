@@ -209,22 +209,22 @@ export default function AdminClients() {
     <AdminLayout>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <UsersIcon className="h-8 w-8 mr-3 text-indigo-600" />
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="mb-4 lg:mb-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+                <UsersIcon className="h-6 w-6 sm:h-8 sm:w-8 mr-2 sm:mr-3 text-indigo-600" />
                 Gestión de Clientes
               </h1>
-              <p className="mt-2 text-gray-600">Administra los clientes registrados en la plataforma</p>
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">Administra los clientes registrados en la plataforma</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+              <div className="text-sm text-gray-500 text-center sm:text-left">
                 Mostrando {Math.min(displayedCount, clients.length)} de {clients.length} clientes
               </div>
               <button
                 onClick={() => router.push('/admin/clients/create')}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Nuevo Cliente
@@ -290,9 +290,11 @@ export default function AdminClients() {
           </div>
         </div>
 
-        {/* Clients Table */}
+        {/* Clients List - Responsive Design */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
+          
+          {/* Desktop Table View - Hidden on mobile */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -363,7 +365,6 @@ export default function AdminClients() {
                           ))}
                         </select>
                         
-                        {/* Icono de dropdown personalizado */}
                         <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
                           {updatingRole === client.id ? (
                             <div className="animate-spin rounded-full h-3 w-3 border border-gray-500 border-t-transparent"></div>
@@ -374,7 +375,6 @@ export default function AdminClients() {
                           )}
                         </div>
 
-                        {/* Tooltip con descripción del rol actual */}
                         {client.role?.description && (
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                             {client.role.description}
@@ -445,14 +445,146 @@ export default function AdminClients() {
             </table>
           </div>
 
+          {/* Mobile Card View - Shown only on mobile/tablet */}
+          <div className="lg:hidden">
+            <div className="divide-y divide-gray-200">
+              {clients.slice(0, displayedCount).map((client) => (
+                <div key={client.id} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center flex-1">
+                      <div className="flex-shrink-0 h-12 w-12">
+                        <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                          <span className="text-base font-medium text-indigo-600">
+                            {client.first_name.charAt(0)}{client.last_name.charAt(0)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <div className="text-sm font-medium text-gray-900">
+                          {client.first_name} {client.last_name}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {client.email}
+                        </div>
+                        {client.phone && (
+                          <div className="text-sm text-gray-500">
+                            {client.phone}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex space-x-2 ml-4">
+                      <button
+                        onClick={() => router.push(`/admin/clients/${client.id}`)}
+                        className="text-indigo-600 hover:text-indigo-900 p-1"
+                        title="Ver detalles"
+                      >
+                        <EyeIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => router.push(`/admin/clients/${client.id}/edit`)}
+                        className="text-gray-600 hover:text-gray-900 p-1"
+                        title="Editar"
+                      >
+                        <PencilIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 block mb-1">ROL</span>
+                      <div className="relative group">
+                        <select
+                          value={client.role_id || ''}
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              changeClientRole(client.id, parseInt(e.target.value))
+                            }
+                          }}
+                          disabled={updatingRole === client.id}
+                          className={`text-xs font-medium rounded-full px-3 py-1 pr-8 border-0 focus:ring-2 focus:ring-indigo-500 outline-none appearance-none bg-opacity-100 transition-all duration-200 ${AdminService.getRoleColor(client.role?.name || 'guest')} ${updatingRole === client.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:opacity-80 hover:shadow-md'}`}
+                        >
+                          {availableRoles.map(role => (
+                            <option key={role.id} value={role.id} className="bg-white text-gray-900">
+                              {AdminService.getRoleLabel(role.name as any)}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                          {updatingRole === client.id ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border border-gray-500 border-t-transparent"></div>
+                          ) : (
+                            <svg className="h-3 w-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 block mb-1">ESTADO</span>
+                      <button
+                        onClick={() => toggleClientStatus(client.id, client.is_active)}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${
+                          client.is_active 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        {client.is_active ? (
+                          <>
+                            <CheckCircleIcon className="h-3 w-3 mr-1" />
+                            Activo
+                          </>
+                        ) : (
+                          <>
+                            <XCircleIcon className="h-3 w-3 mr-1" />
+                            Inactivo
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 block mb-1">ESTADÍSTICAS</span>
+                      <div className="text-sm text-gray-900">
+                        {client.stats ? (
+                          <>
+                            <div className="font-medium">
+                              €{(client.stats.total_spent_cents / 100).toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {client.stats.total_orders} pedidos
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-gray-400">Sin pedidos</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-xs font-medium text-gray-500 block mb-1">REGISTRO</span>
+                      <div className="text-sm text-gray-900">
+                        {new Date(client.created_at).toLocaleDateString('es-ES')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Pagination Controls */}
           {clients.length > 0 && displayedCount < clients.length && (
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-              <div className="flex justify-center items-center space-x-4">
+            <div className="px-4 sm:px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex flex-col sm:flex-row justify-center items-center space-y-3 sm:space-y-0 sm:space-x-4">
                 <button
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loadingMore ? (
                     <>
@@ -475,7 +607,7 @@ export default function AdminClients() {
                 <button
                   onClick={handleShowAll}
                   disabled={loadingMore}
-                  className="inline-flex items-center px-6 py-2 border-2 border-indigo-600 text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-2 border-2 border-indigo-600 text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Mostrar todos ({clients.length})
                 </button>

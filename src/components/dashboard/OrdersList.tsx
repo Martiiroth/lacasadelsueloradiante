@@ -215,7 +215,9 @@ export default function OrdersList({ showFilters = true, limit }: OrdersListProp
       {/* Lista de Pedidos */}
       {orders.length > 0 ? (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
+          
+          {/* Desktop Table View - Hidden on mobile */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -280,6 +282,57 @@ export default function OrdersList({ showFilters = true, limit }: OrdersListProp
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View - Shown only on mobile */}
+          <div className="md:hidden">
+            <div className="divide-y divide-gray-200">
+              {orders.map((order) => (
+                <div key={order.id} className="p-4 hover:bg-gray-50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start flex-1">
+                      <ShoppingBagIcon className="h-6 w-6 text-gray-400 mr-3 mt-1" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">
+                          Pedido #{order.id.slice(0, 8)}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {ClientService.formatDateShort(order.created_at)}
+                        </div>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/dashboard/orders/${order.id}`}
+                      className="text-blue-600 hover:text-blue-500 p-1"
+                      title="Ver pedido"
+                    >
+                      <EyeIcon className="h-5 w-5" />
+                    </Link>
+                  </div>
+                  
+                  <div className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                    <div className="text-center">
+                      <div className="text-xs font-medium text-gray-500 uppercase mb-1">Estado</div>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${ClientService.getOrderStatusColor(order.status)}`}>
+                        {ClientService.getOrderStatusLabel(order.status)}
+                      </span>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs font-medium text-gray-500 uppercase mb-1">Total</div>
+                      <div className="font-medium text-gray-900">
+                        {ClientService.formatPrice(order.total_cents)}
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-xs font-medium text-gray-500 uppercase mb-1">Productos</div>
+                      <div className="text-gray-500">
+                        {order.order_items?.length || 0}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Paginación */}

@@ -138,11 +138,11 @@ export default function OrderSummary({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
+                        {item.variant?.title || 'Variante'}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
                         {item.variant?.product?.title || 'Producto'}
                       </p>
-                      {item.variant?.title && (
-                        <p className="text-sm text-gray-500">{item.variant.title}</p>
-                      )}
                       <p className="text-sm text-gray-500">
                         Cantidad: {item.qty}
                       </p>
@@ -244,6 +244,18 @@ export default function OrderSummary({
                   <p className="font-medium text-gray-900">{paymentMethod.name}</p>
                   {paymentMethod.provider && (
                     <p className="text-sm text-gray-600">Proveedor: {paymentMethod.provider}</p>
+                  )}
+                  
+                  {/* Información adicional para transferencia bancaria */}
+                  {paymentMethod.name.toLowerCase().includes('transferencia') && (
+                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                      <p className="text-sm font-medium text-blue-900 mb-2">📋 Recordatorio:</p>
+                      <ul className="text-xs text-blue-700 space-y-1">
+                        <li>• Realiza la transferencia a: <strong>ES18 2100 8453 5102 0007 7305</strong> (CaixaBank)</li>
+                        <li>• Incluye en el concepto el número de pedido que recibirás</li>
+                        <li>• El pedido se procesará en 24-48h tras recibir el pago</li>
+                      </ul>
+                    </div>
                   )}
                 </div>
               </div>

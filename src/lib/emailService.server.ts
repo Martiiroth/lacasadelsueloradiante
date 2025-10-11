@@ -204,6 +204,56 @@ class ServerEmailService {
           </div>
         </div>
 
+        ${data.status === 'pending' ? `
+        <div style="background: #fef3c7; padding: 20px; border: 2px solid #f59e0b; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #92400e; display: flex; align-items: center;">
+            <span style="display: inline-block; width: 24px; height: 24px; margin-right: 8px;">💳</span>
+            Instrucciones de Pago - Transferencia Bancaria
+          </h3>
+          
+          <div style="background: white; padding: 15px; border-radius: 6px; margin: 15px 0;">
+            <h4 style="margin-top: 0; color: #92400e;">Datos para la transferencia:</h4>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #92400e; width: 30%;">IBAN:</td>
+                <td style="padding: 8px 0; font-family: monospace; font-size: 16px; color: #1f2937;">ES18 2100 8453 5102 0007 7305</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #92400e;">Titular:</td>
+                <td style="padding: 8px 0; color: #1f2937;">La Casa del Suelo Radiante S.L.</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #92400e;">Banco:</td>
+                <td style="padding: 8px 0; color: #1f2937;">CaixaBank</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #92400e;">Importe:</td>
+                <td style="padding: 8px 0; color: #1f2937; font-weight: bold; font-size: 18px;">€${data.total.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; font-weight: bold; color: #92400e;">Concepto:</td>
+                <td style="padding: 8px 0; font-family: monospace; font-size: 16px; color: #1f2937; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">Pedido #${data.orderNumber}</td>
+              </tr>
+            </table>
+          </div>
+
+          <div style="background: #fffbeb; border: 1px solid #fbbf24; padding: 15px; border-radius: 6px; margin: 15px 0;">
+            <h4 style="margin-top: 0; color: #92400e;">📋 Instrucciones importantes:</h4>
+            <ul style="margin: 0; padding-left: 20px; color: #92400e;">
+              <li style="margin-bottom: 8px;">Realiza la transferencia por el importe exacto: <strong>€${data.total.toFixed(2)}</strong></li>
+              <li style="margin-bottom: 8px;">Incluye <strong>obligatoriamente</strong> el concepto: <strong>Pedido #${data.orderNumber}</strong></li>
+              <li style="margin-bottom: 8px;">Una vez recibida la transferencia, procesaremos tu pedido en 24-48 horas laborables</li>
+              <li style="margin-bottom: 8px;">Recibirás un email de confirmación cuando procesemos el pago</li>
+              <li style="margin-bottom: 0;">Si tienes dudas, contacta con nosotros indicando tu número de pedido</li>
+            </ul>
+          </div>
+          
+          <p style="text-align: center; color: #92400e; font-weight: bold; margin: 15px 0 0 0;">
+            ⏰ El pedido se procesará automáticamente una vez confirmemos la recepción del pago
+          </p>
+        </div>
+        ` : ''}
+
         ${shippingAddressText ? `
         <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h4 style="margin-top: 0; color: #0369a1;">Información de Envío del Pedido</h4>

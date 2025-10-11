@@ -165,30 +165,89 @@ export default function PaymentForm({ onSubmit, onBack, isLoading = false }: Pay
             </h3>
             <div className="space-y-3">
               {paymentMethods.map((method) => (
-                <label
-                  key={method.id}
-                  className={`flex items-center p-4 rounded-lg border cursor-pointer transition-colors ${
-                    selectedPaymentMethod === method.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value={method.id}
-                    checked={selectedPaymentMethod === method.id}
-                    onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
-                    disabled={isLoading}
-                  />
-                  <div className="ml-3 flex-1">
-                    <p className="font-medium text-gray-900">{method.name}</p>
-                    {method.provider && (
-                      <p className="text-sm text-gray-500">Proveedor: {method.provider}</p>
-                    )}
-                  </div>
-                </label>
+                <div key={method.id}>
+                  <label
+                    className={`flex items-center p-4 rounded-lg border cursor-pointer transition-colors ${
+                      selectedPaymentMethod === method.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value={method.id}
+                      checked={selectedPaymentMethod === method.id}
+                      onChange={(e) => setSelectedPaymentMethod(e.target.value)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      disabled={isLoading}
+                    />
+                    <div className="ml-3 flex-1">
+                      <p className="font-medium text-gray-900">{method.name}</p>
+                      {method.provider && (
+                        <p className="text-sm text-gray-500">Proveedor: {method.provider}</p>
+                      )}
+                    </div>
+                  </label>
+                  
+                  {/* Información de Transferencia Bancaria */}
+                  {selectedPaymentMethod === method.id && method.name.toLowerCase().includes('transferencia') && (
+                    <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="font-semibold text-blue-900 mb-3 flex items-center">
+                        <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                        Datos para la Transferencia Bancaria
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Número de cuenta (IBAN):</p>
+                          <div className="flex items-center justify-between mt-1">
+                            <code className="text-lg font-mono bg-white px-3 py-2 rounded border text-gray-900 flex-1 mr-2">
+                              ES18 2100 8453 5102 0007 7305
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => navigator.clipboard?.writeText('ES18210084535102000773051')}
+                              className="text-blue-600 hover:text-blue-800 p-2 rounded transition-colors"
+                              title="Copiar número de cuenta"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Titular:</p>
+                          <p className="text-sm text-blue-800">La Casa del Suelo Radiante S.L.</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">Banco:</p>
+                          <p className="text-sm text-blue-800">CaixaBank</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm font-medium text-blue-900 mb-1">Concepto importante:</p>
+                          <div className="flex items-center justify-between">
+                            <code className="text-sm font-mono bg-white px-2 py-1 rounded border text-gray-900 flex-1 mr-2">
+                              Incluir número de pedido al realizar la transferencia
+                            </code>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white p-3 rounded border border-blue-200">
+                          <p className="text-xs text-blue-700">
+                            <strong>Importante:</strong> Una vez realizada la transferencia, el pedido se procesará en un plazo máximo de 24-48 horas laborables. 
+                            Incluye el número de pedido en el concepto para identificar tu pago correctamente.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>

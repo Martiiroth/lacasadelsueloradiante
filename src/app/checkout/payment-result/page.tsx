@@ -8,13 +8,16 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useCart } from '@/contexts/CartContext'
 
 function PaymentResultContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { clearCart } = useCart()
   const [isLoading, setIsLoading] = useState(true)
   const [orderDetails, setOrderDetails] = useState<any>(null)
   const [processingError, setProcessingError] = useState<string | null>(null)
+  const [cartCleared, setCartCleared] = useState(false)
 
   const status = searchParams.get('status')
   const orderId = searchParams.get('order')
@@ -54,8 +57,24 @@ function PaymentResultContent() {
           console.log('✅ Respuesta de Redsys procesada:', result)
         }
         
-        // Marcar como procesado
+        // Marcar como procesado y vaciar carrito si el pago fue exitoso
         console.log('✅ Resultado de pago procesado correctamente')
+        
+        // Si el pago fue exitoso y aún no se ha vaciado el carrito, vaciarlo
+        if (status === 'success' && !cartCleared) {
+          try {
+            console.log('🛒 Vaciando carrito después del pago exitoso...')
+            const success = await clearCart()
+            if (success) {
+              setCartCleared(true)
+              console.log('✅ Carrito vaciado exitosamente')
+            } else {
+              console.warn('⚠️ No se pudo vaciar el carrito automáticamente')
+            }
+          } catch (error) {
+            console.error('Error vaciando carrito:', error)
+          }
+        }
         
       } catch (error) {
         console.error('Error procesando resultado de pago:', error)

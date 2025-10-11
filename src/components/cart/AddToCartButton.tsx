@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useCart } from '../../contexts/CartContext'
+import React, { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { useCart } from '../../contexts/CartContext'
 import type { ProductVariant } from '../../types/products'
 
 interface AddToCartButtonProps {

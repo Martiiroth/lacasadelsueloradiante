@@ -2,6 +2,7 @@
 
 import { Fragment } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { useCart } from '../../contexts/CartContext'
 import { Dialog, Transition } from '@headlessui/react'
 import { useAuth } from '../../contexts/AuthContext'
@@ -132,23 +133,37 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             {cartItems.map((item) => (
                               <li key={item.id} className="py-6 flex">
                                 <div className="flex items-center space-x-4 w-full">
-                                  {/* Placeholder para imagen */}
-                                  <div className="flex-shrink-0 w-16 h-16 bg-gray-200 rounded-md flex items-center justify-center">
-                                    <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                                    </svg>
+                                  {/* Imagen del producto/variante */}
+                                  <div className="flex-shrink-0 w-16 h-16 relative">
+                                    {item.variant?.product?.image ? (
+                                      <Image
+                                        src={item.variant.product.image.url}
+                                        alt={item.variant.product.image.alt || item.variant?.title || ''}
+                                        fill
+                                        className="object-cover rounded-md"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full bg-gray-200 rounded-md flex items-center justify-center">
+                                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                      </div>
+                                    )}
                                   </div>
 
                                   {/* Información del item */}
                                   <div className="flex-1 min-w-0">
-                                    <h3 className="text-sm font-medium text-gray-900">
-                                      Producto ID: {item.variant_id}
+                                    <h3 className="text-sm font-medium text-gray-900 truncate">
+                                      {item.variant?.title || `Variante ${item.variant_id}`}
                                     </h3>
-                                    <p className="text-sm text-gray-600">
-                                      €{(item.price_at_addition_cents / 100).toFixed(2)} c/u
+                                    <p className="text-xs text-gray-500 truncate">
+                                      {item.variant?.product?.title}
                                     </p>
-                                    <p className="text-sm text-gray-500">
-                                      Cantidad: {item.qty}
+                                    <p className="text-xs text-gray-500">
+                                      SKU: {item.variant?.sku || 'N/A'}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      €{(item.price_at_addition_cents / 100).toFixed(2)} c/u × {item.qty}
                                     </p>
                                   </div>
 

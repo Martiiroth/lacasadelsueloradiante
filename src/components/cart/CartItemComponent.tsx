@@ -69,8 +69,11 @@ export default function CartItemComponent({
       {/* Información del producto */}
       <div className="flex-1 min-w-0">
         <h3 className="text-sm font-medium text-gray-900 truncate">
-          {product.title}
+          {variant.title}
         </h3>
+        <p className="text-xs text-gray-500 truncate">
+          {product.title}
+        </p>
         <p className="text-xs text-gray-500">
           SKU: {variant.sku}
         </p>

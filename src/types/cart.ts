@@ -22,6 +22,12 @@ export interface CartItem {
     sku: string
     price_public_cents: number
     stock: number
+    variant_images?: Array<{
+      id: string
+      url: string
+      alt: string
+      position: number
+    }>
     product: {
       id: string
       title: string
@@ -29,6 +35,7 @@ export interface CartItem {
       image?: {
         url: string
         alt: string
+        position?: number
       }
     }
   }

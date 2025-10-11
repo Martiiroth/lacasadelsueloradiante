@@ -44,8 +44,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.log('💰 Verificando totales para Redsys:', {
+      orderId: order.id,
+      orderTotalCents: order.total_cents,
+      requestedAmountCents: amountInCents,
+      match: order.total_cents === amountInCents
+    })
+
     // Verificar que el importe coincide con el de la orden
     if (order.total_cents !== amountInCents) {
+      console.error('❌ Mismatch de importe:', {
+        expected: order.total_cents,
+        received: amountInCents,
+        difference: order.total_cents - amountInCents
+      })
       return NextResponse.json(
         { error: 'El importe no coincide con el de la orden' },
         { status: 400 }

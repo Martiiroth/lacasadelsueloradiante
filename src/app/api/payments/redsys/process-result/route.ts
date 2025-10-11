@@ -138,10 +138,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Verificar que la orden existe
+    // Verificar que la orden existe y obtener client_id
     const { data: existingOrder } = await supabase
       .from('orders')
-      .select('id, status, payment_status')
+      .select('id, status, payment_status, client_id')
       .eq('id', orderId)
       .single()
 
@@ -204,6 +204,43 @@ export async function POST(request: NextRequest) {
       })
 
       console.log('✅ Orden actualizada a processing:', orderId)
+      
+      // Vaciar carrito del cliente después del pago exitoso
+      if (existingOrder.client_id) {
+        try {
+          console.log('🛒 Vaciando carrito del cliente:', existingOrder.client_id)
+          
+          // Buscar el carrito del cliente
+          const { data: clientCart } = await supabase
+            .from('carts')
+            .select('id')
+            .eq('client_id', existingOrder.client_id)
+            .single()
+          
+          if (clientCart) {
+            // Vaciar items del carrito
+            const { error: clearError } = await supabase
+              .from('cart_items')
+              .delete()
+              .eq('cart_id', clientCart.id)
+            
+            if (clearError) {
+              console.error('Error vaciando carrito:', clearError)
+            } else {
+              // Actualizar timestamp del carrito
+              await supabase
+                .from('carts')
+                .update({ updated_at: new Date().toISOString() })
+                .eq('id', clientCart.id)
+              
+              console.log('✅ Carrito vaciado exitosamente para cliente:', existingOrder.client_id)
+            }
+          }
+        } catch (error) {
+          console.error('Error vaciando carrito del cliente:', error)
+          // No bloquear el proceso principal por error en vaciar carrito
+        }
+      }
       
       // Esperar un momento para asegurar que la actualización se propague
       await new Promise(resolve => setTimeout(resolve, 500))

@@ -29,6 +29,12 @@ export interface OrderItem {
     id: string
     title: string
     sku: string
+    variant_images?: Array<{
+      id: string
+      url: string
+      alt: string
+      position: number
+    }>
     product: {
       id: string
       title: string
@@ -36,6 +42,7 @@ export interface OrderItem {
       image?: {
         url: string
         alt: string
+        position?: number
       }
     }
   }

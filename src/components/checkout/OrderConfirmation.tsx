@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useCart } from '@/contexts/CartContext'
 // Componente de icono de check simple
 const CheckIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="currentColor" viewBox="0 0 20 20">
@@ -21,10 +22,26 @@ export default function OrderConfirmationComponent({
   onNewOrder 
 }: OrderConfirmationProps) {
   const { order, order_items, invoice, confirmation_number } = confirmation
+  const { clearCart } = useCart()
 
   useEffect(() => {
     // Scroll al inicio cuando se muestra la confirmación
     window.scrollTo(0, 0)
+    
+    // Asegurar que el carrito se vacia cuando se muestra la confirmación
+    const ensureCartIsCleared = async () => {
+      try {
+        console.log('🛒 Vaciando carrito en confirmación de pedido...')
+        const success = await clearCart()
+        if (success) {
+          console.log('✅ Carrito vaciado en confirmación')
+        }
+      } catch (error) {
+        console.error('Error vaciando carrito en confirmación:', error)
+      }
+    }
+    
+    ensureCartIsCleared()
   }, [])
 
   const formatPrice = (cents: number): string => {
@@ -118,6 +135,84 @@ export default function OrderConfirmationComponent({
             </div>
           </div>
 
+          {/* Instrucciones de Transferencia Bancaria */}
+          {order.status === 'pending' && (
+            <div className="mb-8 p-6 bg-amber-50 border border-amber-200 rounded-lg">
+              <h2 className="text-lg font-semibold text-amber-900 mb-4 flex items-center">
+                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+                Instrucciones de Pago - Transferencia Bancaria
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-sm font-medium text-amber-900 mb-2">Número de cuenta (IBAN):</p>
+                  <div className="flex items-center justify-between">
+                    <code className="text-lg font-mono bg-white px-3 py-2 rounded border text-gray-900 flex-1 mr-2">
+                      ES18 2100 8453 5102 0007 7305
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard?.writeText('ES18210084535102000773051')}
+                      className="text-amber-600 hover:text-amber-800 p-2 rounded transition-colors"
+                      title="Copiar número de cuenta"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-sm font-medium text-amber-900 mb-2">Concepto obligatorio:</p>
+                  <div className="flex items-center justify-between">
+                    <code className="text-lg font-mono bg-white px-3 py-2 rounded border text-gray-900 flex-1 mr-2">
+                      Pedido #{confirmation_number}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard?.writeText(`Pedido #${confirmation_number}`)}
+                      className="text-amber-600 hover:text-amber-800 p-2 rounded transition-colors"
+                      title="Copiar concepto"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm">
+                <div>
+                  <p className="font-medium text-amber-900">Titular:</p>
+                  <p className="text-amber-800">La Casa del Suelo Radiante S.L.</p>
+                </div>
+                <div>
+                  <p className="font-medium text-amber-900">Banco:</p>
+                  <p className="text-amber-800">CaixaBank</p>
+                </div>
+                <div>
+                  <p className="font-medium text-amber-900">Importe:</p>
+                  <p className="text-amber-800 text-lg font-bold">{formatPrice(order.total_cents)}</p>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded border border-amber-200">
+                <h3 className="font-medium text-amber-900 mb-2">📋 Instrucciones importantes:</h3>
+                <ul className="text-sm text-amber-800 space-y-1">
+                  <li>• Realiza la transferencia por el importe exacto: <strong>{formatPrice(order.total_cents)}</strong></li>
+                  <li>• Incluye obligatoriamente el concepto: <strong>Pedido #{confirmation_number}</strong></li>
+                  <li>• Una vez recibida la transferencia, procesaremos tu pedido en 24-48 horas laborables</li>
+                  <li>• Recibirás un email de confirmación cuando procesemos el pago</li>
+                  <li>• Si tienes dudas, contacta con nosotros indicando tu número de pedido</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
           {/* Dirección de envío */}
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-gray-900 mb-3">
@@ -170,11 +265,11 @@ export default function OrderConfirmationComponent({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">
+                      {item.variant?.title || 'Variante'}
+                    </p>
+                    <p className="text-sm text-gray-600 truncate">
                       {item.variant?.product?.title || 'Producto'}
                     </p>
-                    {item.variant?.title && (
-                      <p className="text-sm text-gray-600">{item.variant.title}</p>
-                    )}
                     {item.variant?.sku && (
                       <p className="text-xs text-gray-500">SKU: {item.variant.sku}</p>
                     )}

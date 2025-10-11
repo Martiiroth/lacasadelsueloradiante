@@ -69,6 +69,12 @@ export class CartService {
             sku,
             price_public_cents,
             stock,
+            variant_images (
+              id,
+              url,
+              alt,
+              position
+            ),
             product:products (
               id,
               title,
@@ -89,17 +95,23 @@ export class CartService {
         return []
       }
 
-      // Transformar datos para incluir la primera imagen
-      return (data || []).map((item: any) => ({
-        ...item,
-        variant: {
-          ...item.variant,
-          product: {
-            ...item.variant.product,
-            image: item.variant.product.product_images?.[0]
+      // Transformar datos para incluir la imagen de la variación o la primera imagen del producto
+      return (data || []).map((item: any) => {
+        const variantImage = item.variant.variant_images?.sort((a: any, b: any) => (a.position || 0) - (b.position || 0))?.[0]
+        const productImage = item.variant.product.product_images?.sort((a: any, b: any) => (a.position || 0) - (b.position || 0))?.[0]
+        
+        return {
+          ...item,
+          variant: {
+            ...item.variant,
+            product: {
+              ...item.variant.product,
+              // Priorizar imagen de variación, si no existe usar imagen del producto
+              image: variantImage || productImage
+            }
           }
         }
-      }))
+      })
     } catch (error) {
       console.error('Error in getCartItems:', error)
       return []

@@ -219,13 +219,20 @@ export class OrderService {
             id,
             title,
             sku,
+            variant_images (
+              id,
+              url,
+              alt,
+              position
+            ),
             product:products (
               id,
               title,
               slug,
               images:product_images (
                 url,
-                alt
+                alt,
+                position
               )
             )
           )
@@ -282,15 +289,39 @@ export class OrderService {
         console.warn(`${failedUpdates.length} stock updates failed, but order was created successfully`)
       }
 
-      // Calcular total de la orden
-      const total_cents = orderItems.reduce((total, item) => {
+      // Obtener método de envío para incluir su costo
+      const { data: shippingMethod, error: shippingError } = await supabase
+        .from('shipping_methods')
+        .select('*')
+        .eq('id', orderData.shipping_method_id)
+        .single()
+
+      if (shippingError || !shippingMethod) {
+        console.error('Error fetching shipping method for total calculation:', shippingError)
+        throw new Error('Invalid shipping method')
+      }
+
+      // Calcular total de la orden incluyendo envío
+      const subtotal_cents = orderItems.reduce((total, item) => {
         return total + (item.price_cents * item.qty)
       }, 0)
+      
+      const total_cents = subtotal_cents + shippingMethod.price_cents
+
+      console.log('💰 Calculando total de la orden:', {
+        subtotal_cents,
+        shipping_cents: shippingMethod.price_cents,
+        total_cents,
+        shipping_method: shippingMethod.name
+      })
 
       // Actualizar total de la orden
       const { error: updateError } = await supabase
         .from('orders')
-        .update({ total_cents })
+        .update({ 
+          total_cents,
+          shipping_method_id: orderData.shipping_method_id 
+        })
         .eq('id', order.id)
 
       if (updateError) {
@@ -525,13 +556,20 @@ export class OrderService {
               id,
               title,
               sku,
+              variant_images (
+                id,
+                url,
+                alt,
+                position
+              ),
               product:products (
                 id,
                 title,
                 slug,
                 images:product_images (
                   url,
-                  alt
+                  alt,
+                  position
                 )
               )
             )
@@ -545,7 +583,13 @@ export class OrderService {
         return null
       }
 
-      return data
+      // Transformar items con imágenes correctas
+      const transformedData = {
+        ...data,
+        order_items: this.transformOrderItemsWithImages(data.order_items || [])
+      }
+
+      return transformedData
     } catch (error) {
       console.error('Error in getOrder:', error)
       return null
@@ -565,10 +609,21 @@ export class OrderService {
               id,
               title,
               sku,
+              variant_images (
+                id,
+                url,
+                alt,
+                position
+              ),
               product:products (
                 id,
                 title,
-                slug
+                slug,
+                images:product_images (
+                  url,
+                  alt,
+                  position
+                )
               )
             )
           )
@@ -581,7 +636,13 @@ export class OrderService {
         return []
       }
 
-      return data || []
+      // Transformar items con imágenes correctas para cada orden
+      const transformedData = (data || []).map(order => ({
+        ...order,
+        order_items: this.transformOrderItemsWithImages(order.order_items || [])
+      }))
+
+      return transformedData
     } catch (error) {
       console.error('Error in getClientOrders:', error)
       return []
@@ -736,5 +797,30 @@ export class OrderService {
       valid: issues.length === 0,
       issues
     }
+  }
+
+  // Helper para transformar order items con imágenes correctas
+  static transformOrderItemsWithImages(orderItems: any[]): any[] {
+    return orderItems.map((item: any) => {
+      if (item.variant && item.variant.variant_images && item.variant.product) {
+        const variantImage = item.variant.variant_images
+          .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))[0]
+        const productImage = item.variant.product.images
+          ?.sort((a: any, b: any) => (a.position || 0) - (b.position || 0))[0]
+        
+        return {
+          ...item,
+          variant: {
+            ...item.variant,
+            product: {
+              ...item.variant.product,
+              // Priorizar imagen de variación, si no existe usar imagen del producto
+              image: variantImage || productImage
+            }
+          }
+        }
+      }
+      return item
+    })
   }
 }

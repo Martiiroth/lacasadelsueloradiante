@@ -19,7 +19,10 @@ import {
 export default function AdminClients() {
   const router = useRouter()
   const [clients, setClients] = useState<AdminClient[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [displayedCount, setDisplayedCount] = useState(20)
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<AdminFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
@@ -36,14 +39,27 @@ export default function AdminClients() {
   const loadClients = async () => {
     try {
       setLoading(true)
-      const data = await AdminService.getAllClients(filters)
+      // Cargar hasta 1000 clientes (o un número grande razonable)
+      const data = await AdminService.getAllClients(filters, 1000, 0)
       setClients(data)
+      setTotalCount(data.length)
+      setDisplayedCount(20) // Reset display count
     } catch (err) {
       console.error('Error loading clients:', err)
       setError('Error al cargar los clientes')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleLoadMore = () => {
+    const newDisplayedCount = displayedCount + 20
+    setDisplayedCount(newDisplayedCount)
+  }
+
+  const handleShowAll = () => {
+    // Show all filtered clients
+    setDisplayedCount(10000) // Set to a large number
   }
 
   const loadRoles = async () => {
@@ -204,7 +220,7 @@ export default function AdminClients() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-sm text-gray-500">
-                Total: {clients.length} clientes
+                Mostrando {Math.min(displayedCount, clients.length)} de {clients.length} clientes
               </div>
               <button
                 onClick={() => router.push('/admin/clients/create')}
@@ -301,7 +317,7 @@ export default function AdminClients() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {clients.map((client) => (
+                {clients.slice(0, displayedCount).map((client) => (
                   <tr key={client.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -428,6 +444,44 @@ export default function AdminClients() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {clients.length > 0 && displayedCount < clients.length && (
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div className="flex justify-center items-center space-x-4">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingMore ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Cargando...
+                    </>
+                  ) : (
+                    <>
+                      Ver más clientes
+                      <svg className="ml-2 -mr-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={handleShowAll}
+                  disabled={loadingMore}
+                  className="inline-flex items-center px-6 py-2 border-2 border-indigo-600 text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Mostrar todos ({clients.length})
+                </button>
+              </div>
+            </div>
+          )}
 
           {clients.length === 0 && (
             <div className="text-center py-12">

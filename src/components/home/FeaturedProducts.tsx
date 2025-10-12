@@ -513,28 +513,6 @@ export default function FeaturedProducts({
                   </div>
                 </div>
 
-                {/* Filtro de ordenamiento */}
-                <div className="mb-6">
-                  <h4 className="text-sm font-medium text-gray-700 mb-3">
-                    Ordenar por
-                  </h4>
-                  <select
-                    value={`${sortBy}-${sortOrder}`}
-                    onChange={(e) => {
-                      const [field, order] = e.target.value.split('-')
-                      setSortBy(field)
-                      setSortOrder(order as 'asc' | 'desc')
-                    }}
-                    className="w-full text-sm border border-gray-300 rounded-md px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[48px]"
-                  >
-                    <option value="created_at-desc">Más recientes</option>
-                    <option value="title-asc">Nombre A-Z</option>
-                    <option value="title-desc">Nombre Z-A</option>
-                    <option value="price-asc">Precio menor</option>
-                    <option value="price-desc">Precio mayor</option>
-                  </select>
-                </div>
-
                 {/* Control de IVA - Solo para usuarios autenticados */}
                 {user && (
                   <div className="mb-6">

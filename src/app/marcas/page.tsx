@@ -124,25 +124,11 @@ export default function BrandsPage() {
                         </p>
                       )}
 
-                      {brand.description && (
-                        <p className="text-xs text-gray-600 line-clamp-2">
-                          {brand.description}
-                        </p>
-                      )}
+
                     </div>
                   </div>
 
-                  {/* Website link indicator */}
-                  {brand.website && (
-                    <div className="px-6 pb-4">
-                      <div className="text-xs text-blue-600 flex items-center justify-center">
-                        <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                        Sitio web
-                      </div>
-                    </div>
-                  )}
+
                 </Link>
               ))}
             </div>

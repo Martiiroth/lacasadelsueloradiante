@@ -30,18 +30,14 @@ export interface BrandData {
 export interface CreateBrandData {
   name: string
   slug: string
-  description?: string
   logo_url?: string
-  website?: string
   is_active?: boolean
 }
 
 export interface UpdateBrandData {
   name?: string
   slug?: string
-  description?: string
   logo_url?: string
-  website?: string
   is_active?: boolean
 }
 

@@ -22,9 +22,7 @@ export class BrandService {
           id,
           name,
           slug,
-          description,
           logo_url,
-          website,
           is_active,
           created_at,
           updated_at
@@ -36,9 +34,7 @@ export class BrandService {
       }
 
       if (filters.search) {
-        query = query.or(
-          `name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
-        )
+        query = query.ilike('name', `%${filters.search}%`)
       }
 
       // Ordenar por nombre
@@ -87,9 +83,7 @@ export class BrandService {
           id,
           name,
           slug,
-          description,
           logo_url,
-          website,
           is_active,
           created_at,
           updated_at
@@ -304,9 +298,7 @@ export class BrandService {
           id,
           name,
           slug,
-          description,
           logo_url,
-          website,
           is_active,
           created_at,
           updated_at,

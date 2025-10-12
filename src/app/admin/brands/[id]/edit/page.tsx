@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { UpdateBrandData, Brand } from '@/types/brands'
 import { BrandService } from '@/lib/brands'
+import { ImageService } from '@/lib/imageService'
 import AdminLayout from '@/components/admin/AdminLayout'
 import {
   ArrowLeftIcon,
@@ -33,9 +34,7 @@ export default function EditBrand({ params }: EditBrandPageProps) {
   const [formData, setFormData] = useState<UpdateBrandData>({
     name: '',
     slug: '',
-    description: '',
     logo_url: '',
-    website: '',
     is_active: true
   })
 
@@ -63,9 +62,7 @@ export default function EditBrand({ params }: EditBrandPageProps) {
       setFormData({
         name: brandData.name,
         slug: brandData.slug,
-        description: brandData.description || '',
         logo_url: brandData.logo_url || '',
-        website: brandData.website || '',
         is_active: brandData.is_active
       })
     } catch (err) {
@@ -286,33 +283,7 @@ export default function EditBrand({ params }: EditBrandPageProps) {
                 </div>
               </div>
 
-              <div className="mt-6">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción
-                </label>
-                <textarea
-                  id="description"
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe la marca y sus características..."
-                />
-              </div>
 
-              <div className="mt-6">
-                <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-2">
-                  Sitio Web
-                </label>
-                <input
-                  type="url"
-                  id="website"
-                  value={formData.website}
-                  onChange={(e) => handleInputChange('website', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://www.marca.com"
-                />
-              </div>
             </div>
 
             {/* Logo Upload */}
@@ -349,28 +320,49 @@ export default function EditBrand({ params }: EditBrandPageProps) {
                     <PhotoIcon className="mx-auto h-12 w-12 text-gray-400" />
                     <div className="mt-4">
                       <label htmlFor="logo-upload" className="cursor-pointer">
-                        <span className="mt-2 block text-sm font-medium text-gray-900">
-                          Sube el logo de la marca
+                        <span className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                          <PhotoIcon className="w-5 h-5 mr-2 text-gray-400" />
+                          Subir logo
                         </span>
                         <input
                           id="logo-upload"
                           type="file"
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0]
                             if (file) {
-                              // Create temporary URL for preview
-                              const url = URL.createObjectURL(file)
-                              handleImageUpload(url)
-                              // In production, upload to storage here
+                              try {
+                                setError(null)
+                                const url = await ImageService.uploadImage(file)
+                                handleImageUpload(url)
+                                console.log('File uploaded successfully:', file.name)
+                              } catch (err) {
+                                console.error('Error uploading image:', err)
+                                setError(err instanceof Error ? err.message : 'Error al subir la imagen')
+                              }
                             }
                           }}
-                          className="hidden"
+                          className="sr-only"
                         />
                       </label>
                       <p className="text-xs text-gray-500 mt-2">
                         PNG, JPG hasta 2MB
                       </p>
+                      
+                      {/* URL input alternativo */}
+                      <div className="mt-4 text-left">
+                        <label htmlFor="logo-url" className="block text-xs font-medium text-gray-700 mb-1">
+                          O ingresa URL del logo:
+                        </label>
+                        <input
+                          type="url"
+                          id="logo-url"
+                          value={formData.logo_url || ''}
+                          onChange={(e) => handleInputChange('logo_url', e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                          placeholder="https://ejemplo.com/logo.png"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}

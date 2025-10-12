@@ -13,7 +13,6 @@ import {
   PencilIcon,
   TrashIcon,
   PlusIcon,
-  LinkIcon,
   PhotoIcon
 } from '@heroicons/react/24/outline'
 
@@ -206,9 +205,7 @@ export default function AdminBrands() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Estado
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Sitio Web
-                    </th>
+
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Fecha de Creación
                     </th>
@@ -238,11 +235,6 @@ export default function AdminBrands() {
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{brand.name}</div>
                             <div className="text-sm text-gray-500">{brand.slug}</div>
-                            {brand.description && (
-                              <div className="text-xs text-gray-400 mt-1 max-w-xs truncate">
-                                {brand.description}
-                              </div>
-                            )}
                           </div>
                         </div>
                       </td>
@@ -258,21 +250,7 @@ export default function AdminBrands() {
                           {brand.is_active ? 'Activa' : 'Inactiva'}
                         </button>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {brand.website ? (
-                          <a
-                            href={brand.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 text-blue-600 hover:text-blue-700"
-                          >
-                            <LinkIcon className="w-4 h-4" />
-                            Visitar
-                          </a>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
+
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(brand.created_at).toLocaleDateString('es-ES')}
                       </td>

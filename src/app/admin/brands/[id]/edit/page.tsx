@@ -15,14 +15,15 @@ import {
 } from '@heroicons/react/24/outline'
 
 interface EditBrandPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function EditBrand({ params }: EditBrandPageProps) {
   const router = useRouter()
   const [brand, setBrand] = useState<Brand | null>(null)
+  const [paramsData, setParamsData] = useState<{ id: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,13 +40,19 @@ export default function EditBrand({ params }: EditBrandPageProps) {
   })
 
   useEffect(() => {
-    loadBrand()
-  }, [params.id])
+    const resolveParams = async () => {
+      const resolvedParams = await params
+      setParamsData(resolvedParams)
+      loadBrand(resolvedParams.id)
+    }
+    resolveParams()
+  }, [])
 
-  const loadBrand = async () => {
+  const loadBrand = async (brandId?: string) => {
+    if (!brandId) return
     try {
       setLoading(true)
-      const brandData = await BrandService.getBrandById(params.id)
+      const brandData = await BrandService.getBrandById(brandId)
       
       if (!brandData) {
         setError('Marca no encontrada')
@@ -97,7 +104,8 @@ export default function EditBrand({ params }: EditBrandPageProps) {
       }
 
       // Update brand
-      const updatedBrand = await BrandService.updateBrand(params.id, formData)
+      if (!paramsData?.id) throw new Error('ID de marca no válido')
+      const updatedBrand = await BrandService.updateBrand(paramsData.id, formData)
       
       if (!updatedBrand) {
         throw new Error('Error al actualizar la marca')

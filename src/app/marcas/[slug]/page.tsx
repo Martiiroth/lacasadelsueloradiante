@@ -11,16 +11,28 @@ import { useAuth } from '@/contexts/AuthContext'
 import type { BrandData } from '@/types/brands'
 import type { ProductCardData } from '@/types/products'
 
-export default function BrandPage() {
-  const params = useParams()
-  const slug = params?.slug as string
+interface BrandPageProps {
+  params: Promise<{
+    slug: string
+  }>
+}
+
+export default function BrandPage({ params }: BrandPageProps) {
   const { user } = useAuth()
-  
+  const [slug, setSlug] = useState<string>('')
   const [brand, setBrand] = useState<BrandData | null>(null)
   const [products, setProducts] = useState<ProductCardData[]>([])
   const [loading, setLoading] = useState(true)
   const [productsLoading, setProductsLoading] = useState(true)
   const [displayedCount, setDisplayedCount] = useState(12)
+
+  useEffect(() => {
+    const resolveParams = async () => {
+      const resolvedParams = await params
+      setSlug(resolvedParams.slug)
+    }
+    resolveParams()
+  }, [params])
 
   useEffect(() => {
     if (slug) {

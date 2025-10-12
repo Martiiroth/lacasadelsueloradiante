@@ -537,36 +537,45 @@ export default function FeaturedProducts({
                   <h4 className="text-sm font-medium text-gray-700 mb-3">
                     Marcas
                   </h4>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* Botón "Todas las marcas" */}
                     <button
                       onClick={() => setSelectedBrand('')}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      className={`aspect-square p-2 rounded-lg border-2 transition-all flex items-center justify-center text-xs font-medium ${
                         selectedBrand === ''
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-600 hover:bg-gray-50'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-500 hover:bg-gray-50'
                       }`}
+                      title="Todas las marcas"
                     >
-                      Todas las marcas
+                      Todas
                     </button>
                     
+                    {/* Logos de marcas */}
                     {brands.map((brand) => (
                       <button
                         key={brand.id}
                         onClick={() => setSelectedBrand(brand.id)}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
+                        className={`aspect-square p-2 rounded-lg border-2 transition-all flex items-center justify-center ${
                           selectedBrand === brand.id
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                            : 'text-gray-600 hover:bg-gray-50'
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
+                        title={brand.name}
                       >
-                        {brand.logo_url && (
+                        {brand.logo_url ? (
                           <img
                             src={brand.logo_url}
                             alt={`${brand.name} logo`}
-                            className="w-5 h-5 object-contain"
+                            className="w-full h-full object-contain"
                           />
+                        ) : (
+                          <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center">
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                          </div>
                         )}
-                        <span>{brand.name}</span>
                       </button>
                     ))}
                   </div>
@@ -667,14 +676,16 @@ export default function FeaturedProducts({
                       )}
                       {selectedBrand && (
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 gap-1">
-                          {brands.find(b => b.id === selectedBrand)?.logo_url && (
+                          {brands.find(b => b.id === selectedBrand)?.logo_url ? (
                             <img
                               src={brands.find(b => b.id === selectedBrand)?.logo_url}
-                              alt="logo"
-                              className="w-3 h-3 object-contain"
+                              alt={brands.find(b => b.id === selectedBrand)?.name}
+                              className="w-4 h-4 object-contain"
+                              title={brands.find(b => b.id === selectedBrand)?.name}
                             />
+                          ) : (
+                            <span>{brands.find(b => b.id === selectedBrand)?.name}</span>
                           )}
-                          {brands.find(b => b.id === selectedBrand)?.name}
                           <button
                             onClick={() => setSelectedBrand('')}
                             className="ml-1 text-purple-600 hover:text-purple-800"

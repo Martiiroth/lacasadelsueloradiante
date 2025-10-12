@@ -7,6 +7,7 @@ import { PricingProvider } from '../hooks/usePricing'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import WhatsAppButton from '../components/ui/WhatsAppButton'
+import NetworkErrorHandler from '../components/NetworkErrorHandler'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -46,6 +47,7 @@ export default function RootLayout({
                 </main>
                 <Footer />
                 <WhatsAppButton />
+                <NetworkErrorHandler />
               </div>
             </PricingProvider>
           </CartProvider>

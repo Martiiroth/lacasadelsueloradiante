@@ -16,6 +16,8 @@ export class BrandService {
    */
   static async getBrands(filters: BrandFilters = {}): Promise<BrandListResponse> {
     try {
+      console.log('🔍 BrandService.getBrands called with filters:', filters)
+      
       let query = this.supabase
         .from('brands')
         .select(`
@@ -30,22 +32,29 @@ export class BrandService {
 
       // Aplicar filtros
       if (filters.is_active !== undefined) {
+        console.log('🔍 Applying is_active filter:', filters.is_active)
         query = query.eq('is_active', filters.is_active)
       }
 
       if (filters.search) {
+        console.log('🔍 Applying search filter:', filters.search)
         query = query.ilike('name', `%${filters.search}%`)
       }
 
       // Ordenar por nombre
       query = query.order('name', { ascending: true })
 
+      console.log('🔍 Executing brands query...')
       const { data: brands, error, count } = await query
 
       if (error) {
-        console.error('Error fetching brands:', error)
+        console.error('❌ Error fetching brands:', error)
+        console.error('❌ Error details:', error.message, error.code, error.hint)
         return { brands: [], total: 0 }
       }
+
+      console.log('✅ Brands fetched:', brands?.length || 0, 'brands')
+      console.log('✅ Brands data:', brands)
 
       // Si necesitamos contar productos por marca
       const brandsWithCounts = await Promise.all(

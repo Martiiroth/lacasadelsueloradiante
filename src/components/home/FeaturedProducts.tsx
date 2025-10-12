@@ -372,12 +372,55 @@ export default function FeaturedProducts({
 
     const loadBrands = async () => {
       try {
+        console.log('🏷️ Loading brands...')
         const result = await BrandService.getBrands({ is_active: true })
-        if (result) {
-          setBrands(result.brands.slice(0, 20)) // Mostrar las primeras 20 marcas
+        console.log('🏷️ Brands result:', result)
+        
+        if (result && result.brands && result.brands.length > 0) {
+          console.log('🏷️ Brands loaded:', result.brands.length, 'brands')
+          result.brands.forEach(brand => {
+            console.log('🏷️ Brand:', brand.name, 'Logo:', brand.logo_url)
+          })
+          setBrands(result.brands.slice(0, 20))
+        } else {
+          // Marcas de prueba mientras se configura la BD
+          console.log('🏷️ No brands from DB, using test brands')
+          const testBrands = [
+            {
+              id: '1',
+              name: 'Rehau',
+              slug: 'rehau',
+              logo_url: 'https://cdn.worldvectorlogo.com/logos/rehau.svg',
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            {
+              id: '2',
+              name: 'Uponor',
+              slug: 'uponor',
+              logo_url: 'https://cdn.worldvectorlogo.com/logos/uponor.svg',
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            },
+            {
+              id: '3',
+              name: 'Giacomini',
+              slug: 'giacomini',
+              logo_url: 'https://www.giacomini.com/wp-content/themes/giacomini/assets/img/giacomini-logo.png',
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ]
+          setBrands(testBrands)
         }
       } catch (err) {
-        console.error('Error loading brands:', err)
+        console.error('❌ Error loading brands:', err)
+        // Marcas de fallback en caso de error
+        console.log('🏷️ Using fallback brands due to error')
+        setBrands([])
       }
     }
     

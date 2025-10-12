@@ -12,8 +12,53 @@ import NetworkErrorHandler from '../components/NetworkErrorHandler'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'La Casa del Suelo Radiante',
-  description: 'Tu tienda especializada en suelo radiante',
+  title: {
+    default: 'La Casa del Suelo Radiante',
+    template: '%s | La Casa del Suelo Radiante'
+  },
+  description: 'Tu tienda especializada en suelo radiante y sistemas de calefacción. Productos profesionales para instaladores, distribuidores y particulares.',
+  keywords: ['suelo radiante', 'calefacción', 'sistemas de calefacción', 'instalación', 'productos profesionales'],
+  authors: [{ name: 'La Casa del Suelo Radiante' }],
+  creator: 'La Casa del Suelo Radiante',
+  publisher: 'La Casa del Suelo Radiante',
+  robots: 'index, follow',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/images/logo.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/images/logo.png',
+  },
+  manifest: '/manifest.json',
+  openGraph: {
+    type: 'website',
+    locale: 'es_ES',
+    url: 'https://lacasadelsueloradiante.es',
+    siteName: 'La Casa del Suelo Radiante',
+    title: 'La Casa del Suelo Radiante - Sistemas de Calefacción',
+    description: 'Tu tienda especializada en suelo radiante y sistemas de calefacción profesionales.',
+    images: [
+      {
+        url: '/images/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'La Casa del Suelo Radiante - Logo',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'La Casa del Suelo Radiante',
+    description: 'Tu tienda especializada en suelo radiante y sistemas de calefacción profesionales.',
+    images: ['/images/logo.png'],
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
 }
 
 export default function RootLayout({
@@ -25,6 +70,12 @@ export default function RootLayout({
     <html lang="es">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/images/logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/images/logo.png" />
+        <meta name="theme-color" content="#2563eb" />
+        <meta name="msapplication-TileColor" content="#2563eb" />
+        <meta name="msapplication-TileImage" content="/images/logo.png" />
         <style dangerouslySetInnerHTML={{
           __html: `
             @media (max-width: 1023px) {

@@ -1497,6 +1497,7 @@ export class AdminService {
           is_on_sale: data.is_on_sale ?? false,
           meta_title: data.meta_title,
           meta_description: data.meta_description,
+          brand_id: data.brand_id || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })

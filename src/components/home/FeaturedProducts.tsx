@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import type { ProductCardData, Category } from '../../types/products'
+import type { Brand } from '../../types/brands'
 import { ProductService } from '../../lib/products'
+import { BrandService } from '../../lib/brands'
 import ProductCard from '../products/ProductCard'
 import { useAuth } from '../../contexts/AuthContext'
 import { usePricing } from '../../hooks/usePricing'
@@ -234,10 +236,12 @@ export default function FeaturedProducts({
   const [totalCount, setTotalCount] = useState(0)
   const [displayedCount, setDisplayedCount] = useState(limit)
   const [categories, setCategories] = useState<Category[]>([])
+  const [brands, setBrands] = useState<Brand[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedBrand, setSelectedBrand] = useState('')
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [searchTerm, setSearchTerm] = useState('')
@@ -260,6 +264,7 @@ export default function FeaturedProducts({
     try {
       const filters = {
         category: selectedCategory || undefined,
+        brand_id: selectedBrand || undefined,
         is_on_sale: onSaleOnly ? true : undefined,
         search: searchTerm || undefined,
       }
@@ -302,6 +307,7 @@ export default function FeaturedProducts({
     try {
       const filters = {
         category: selectedCategory || undefined,
+        brand_id: selectedBrand || undefined,
         is_on_sale: onSaleOnly ? true : undefined,
         search: searchTerm || undefined,
       }
@@ -363,8 +369,20 @@ export default function FeaturedProducts({
         console.error('Error loading categories:', err)
       }
     }
+
+    const loadBrands = async () => {
+      try {
+        const result = await BrandService.getBrands({ is_active: true })
+        if (result) {
+          setBrands(result.brands.slice(0, 20)) // Mostrar las primeras 20 marcas
+        }
+      } catch (err) {
+        console.error('Error loading brands:', err)
+      }
+    }
     
     loadCategories()
+    loadBrands()
   }, [isHydrated, showFilters])
 
   // Cargar productos de forma optimizada con verificación previa
@@ -380,6 +398,7 @@ export default function FeaturedProducts({
       try {
         const filters = {
           category: selectedCategory || undefined,
+          brand_id: selectedBrand || undefined,
           is_on_sale: onSaleOnly ? true : undefined,
           search: searchTerm || undefined,
         }
@@ -416,7 +435,7 @@ export default function FeaturedProducts({
     }
 
     loadProducts()
-  }, [isHydrated, selectedCategory, sortBy, sortOrder, onSaleOnly, limit, searchTerm])
+  }, [isHydrated, selectedCategory, selectedBrand, sortBy, sortOrder, onSaleOnly, limit, searchTerm])
 
   const renderContent = () => {
     if (showFilters && !onSaleOnly) {
@@ -436,9 +455,9 @@ export default function FeaturedProducts({
                       Filtros
                     </h3>
                     {/* Indicador de filtros activos en móvil */}
-                    {(selectedCategory || searchTerm) && (
+                    {(selectedCategory || selectedBrand || searchTerm) && (
                       <span className="ml-2 lg:hidden inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-blue-600 rounded-full">
-                        {(selectedCategory ? 1 : 0) + (searchTerm ? 1 : 0)}
+                        {(selectedCategory ? 1 : 0) + (selectedBrand ? 1 : 0) + (searchTerm ? 1 : 0)}
                       </span>
                     )}
                   </div>
@@ -513,6 +532,46 @@ export default function FeaturedProducts({
                   </div>
                 </div>
 
+                {/* Filtro por marcas */}
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    Marcas
+                  </h4>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setSelectedBrand('')}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        selectedBrand === ''
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          : 'text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      Todas las marcas
+                    </button>
+                    
+                    {brands.map((brand) => (
+                      <button
+                        key={brand.id}
+                        onClick={() => setSelectedBrand(brand.id)}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
+                          selectedBrand === brand.id
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                            : 'text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {brand.logo_url && (
+                          <img
+                            src={brand.logo_url}
+                            alt={`${brand.name} logo`}
+                            className="w-5 h-5 object-contain"
+                          />
+                        )}
+                        <span>{brand.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Control de IVA - Solo para usuarios autenticados */}
                 {user && (
                   <div className="mb-6">
@@ -566,7 +625,7 @@ export default function FeaturedProducts({
                 )}
 
                 {/* Badges de filtros activos */}
-                {(selectedCategory || searchTerm) && (
+                {(selectedCategory || selectedBrand || searchTerm) && (
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-medium text-gray-700">
@@ -576,6 +635,7 @@ export default function FeaturedProducts({
                         onClick={() => {
                           setSearchTerm('')
                           setSelectedCategory('')
+                          setSelectedBrand('')
                         }}
                         className="text-xs text-red-600 hover:text-red-700 font-medium"
                       >
@@ -600,6 +660,24 @@ export default function FeaturedProducts({
                           <button
                             onClick={() => setSelectedCategory('')}
                             className="ml-1 text-blue-600 hover:text-blue-800"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      )}
+                      {selectedBrand && (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 gap-1">
+                          {brands.find(b => b.id === selectedBrand)?.logo_url && (
+                            <img
+                              src={brands.find(b => b.id === selectedBrand)?.logo_url}
+                              alt="logo"
+                              className="w-3 h-3 object-contain"
+                            />
+                          )}
+                          {brands.find(b => b.id === selectedBrand)?.name}
+                          <button
+                            onClick={() => setSelectedBrand('')}
+                            className="ml-1 text-purple-600 hover:text-purple-800"
                           >
                             ×
                           </button>

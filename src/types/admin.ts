@@ -184,6 +184,7 @@ export interface AdminProduct {
   meta_title?: string
   meta_description?: string
   og_image?: string
+  brand_id?: string
   created_at: string
   updated_at: string
   // Additional product properties
@@ -258,6 +259,7 @@ export interface CreateProductData {
   is_on_sale?: boolean
   meta_title?: string
   meta_description?: string
+  brand_id?: string
   variants: CreateVariantData[]
   categories?: string[] // IDs de categorías
   images?: CreateImageData[]
@@ -290,6 +292,7 @@ export interface UpdateProductData {
   is_on_sale?: boolean
   meta_title?: string
   meta_description?: string
+  brand_id?: string
   resources?: ResourceData[]
   status?: 'active' | 'draft' | 'archived'
   handle?: string

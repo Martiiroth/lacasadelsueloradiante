@@ -151,11 +151,20 @@ export interface ProductCardData {
   price_cents: number
   role_price_cents?: number
   in_stock: boolean
+  brand_id?: string
+  brand?: {
+    id: string
+    name: string
+    slug: string
+    logo_url?: string
+  }
 }
 
 export interface ProductFilters {
   category?: string // Filtro por una categoría específica
   categories?: string[] // Filtro por múltiples categorías
+  brand_id?: string // Filtro por ID de marca
+  brand_slug?: string // Filtro por slug de marca
   min_price?: number
   max_price?: number
   in_stock_only?: boolean

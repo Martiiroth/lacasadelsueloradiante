@@ -74,6 +74,21 @@ export default function ProductCard({ product }: ProductCardProps) {
               {product.title}
             </h3>
             
+            {product.brand && (
+              <div className="flex items-center gap-2 mb-2">
+                {product.brand.logo_url && (
+                  <OptimizedImage
+                    src={product.brand.logo_url}
+                    alt={`${product.brand.name} logo`}
+                    className="w-6 h-6 object-contain"
+                    width={24}
+                    height={24}
+                  />
+                )}
+                <span className="text-xs text-gray-500">{product.brand.name}</span>
+              </div>
+            )}
+            
             {product.short_description && (
               <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2">
                 {product.short_description}

@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { AdminService } from '@/lib/adminService'
+import { BrandService } from '@/lib/brands'
 import type { CreateProductData, CreateVariantData, AdminCategory, VariantRolePrice, ResourceData } from '@/types/admin'
+import type { Brand } from '@/types/brands'
 import ImageUpload, { type ImageData } from '@/components/admin/ImageUpload'
 import RolePriceManager from '@/components/admin/RolePriceManager'
 import ResourceManager from '@/components/admin/ResourceManager'
-import { ArrowLeftIcon, CubeIcon, TagIcon, PhotoIcon, CheckIcon, PlusIcon, MinusIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, CubeIcon, TagIcon, PhotoIcon, CheckIcon, PlusIcon, MinusIcon, XMarkIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -15,6 +17,8 @@ export default function CreateProductPage() {
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [loadingCategories, setLoadingCategories] = useState(false)
+  const [brands, setBrands] = useState<Brand[]>([])
+  const [loadingBrands, setLoadingBrands] = useState(false)
   const [images, setImages] = useState<ImageData[]>([])
   const [resources, setResources] = useState<ResourceData[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -28,6 +32,7 @@ export default function CreateProductPage() {
     is_on_sale: false,
     meta_title: '',
     meta_description: '',
+    brand_id: '',
     variants: [{
       sku: '',
       title: 'Variante por defecto',
@@ -51,6 +56,7 @@ export default function CreateProductPage() {
 
   useEffect(() => {
     loadCategories()
+    loadBrands()
   }, [])
 
   const loadCategories = async () => {
@@ -62,6 +68,18 @@ export default function CreateProductPage() {
       console.error('Error loading categories:', error)
     } finally {
       setLoadingCategories(false)
+    }
+  }
+
+  const loadBrands = async () => {
+    try {
+      setLoadingBrands(true)
+      const result = await BrandService.getBrands({ is_active: true })
+      setBrands(result.brands)
+    } catch (error) {
+      console.error('Error loading brands:', error)
+    } finally {
+      setLoadingBrands(false)
     }
   }
 
@@ -183,6 +201,13 @@ export default function CreateProductPage() {
         categories: (prev.categories || []).filter(id => id !== categoryId)
       }))
     }
+  }
+
+  const handleBrandChange = (brandId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      brand_id: brandId || undefined
+    }))
   }
 
   return (
@@ -625,6 +650,91 @@ export default function CreateProductPage() {
                 <p className="mt-2 text-sm text-gray-500">
                   No hay categorías disponibles. Crea categorías primero.
                 </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Brand Selection */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <BuildingStorefrontIcon className="h-5 w-5 mr-2 text-gray-400" />
+              Marca
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Selecciona la marca del producto (opcional)
+            </p>
+          </div>
+          <div className="px-6 py-4">
+            {loadingBrands ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : (
+              <div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Option: No brand */}
+                  <div className="relative">
+                    <input
+                      id="brand-none"
+                      type="radio"
+                      name="brand"
+                      value=""
+                      checked={!formData.brand_id}
+                      onChange={(e) => handleBrandChange(e.target.value)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                    />
+                    <label htmlFor="brand-none" className="ml-2 block text-sm text-gray-900">
+                      Sin marca específica
+                    </label>
+                  </div>
+                  
+                  {/* Brand options */}
+                  {brands.map((brand) => (
+                    <div key={brand.id} className="relative">
+                      <input
+                        id={`brand-${brand.id}`}
+                        type="radio"
+                        name="brand"
+                        value={brand.id}
+                        checked={formData.brand_id === brand.id}
+                        onChange={(e) => handleBrandChange(e.target.value)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                      />
+                      <label htmlFor={`brand-${brand.id}`} className="ml-2 flex items-center text-sm text-gray-900">
+                        {brand.logo_url && (
+                          <img
+                            src={brand.logo_url}
+                            alt={`${brand.name} logo`}
+                            className="w-6 h-6 object-contain mr-2 bg-gray-100 rounded p-0.5"
+                          />
+                        )}
+                        {brand.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                
+                {brands.length === 0 && (
+                  <div className="text-center py-8">
+                    <BuildingStorefrontIcon className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2 text-sm text-gray-500">
+                      No hay marcas disponibles.
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Crea marcas desde el panel de administración.
+                    </p>
+                  </div>
+                )}
+
+                {formData.brand_id && (
+                  <p className="mt-3 text-xs text-gray-500">
+                    Marca seleccionada: <span className="font-medium text-indigo-600">
+                      {brands.find(b => b.id === formData.brand_id)?.name || 'Desconocida'}
+                    </span>
+                  </p>
+                )}
               </div>
             )}
           </div>

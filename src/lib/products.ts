@@ -146,6 +146,13 @@ export class ProductService {
           short_description,
           is_new,
           is_on_sale,
+          brand_id,
+          brands (
+            id,
+            name,
+            slug,
+            logo_url
+          ),
           product_images (
             url,
             alt,
@@ -194,6 +201,15 @@ export class ProductService {
             total_pages: 0
           }
         }
+      }
+
+      // Filtro por marca (ID o slug)
+      if (filters.brand_id) {
+        console.log('🔍 Applying brand_id filter:', filters.brand_id)
+        query = query.eq('brand_id', filters.brand_id)
+      } else if (filters.brand_slug) {
+        console.log('🔍 Applying brand_slug filter:', filters.brand_slug)
+        query = query.eq('brands.slug', filters.brand_slug)
       }
 
       if (filters.is_new) {
@@ -273,7 +289,14 @@ export class ProductService {
           image: product.product_images?.[0],
           price_cents: minPublicPrice,
           role_price_cents: rolePrice,
-          in_stock: product.product_variants.some((v: any) => v.stock > 0)
+          in_stock: product.product_variants.some((v: any) => v.stock > 0),
+          brand_id: product.brand_id,
+          brand: product.brands ? {
+            id: product.brands.id,
+            name: product.brands.name,
+            slug: product.brands.slug,
+            logo_url: product.brands.logo_url
+          } : undefined
         }
       })
 

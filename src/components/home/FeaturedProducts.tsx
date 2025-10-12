@@ -5,6 +5,8 @@ import Link from 'next/link'
 import type { ProductCardData, Category } from '../../types/products'
 import { ProductService } from '../../lib/products'
 import ProductCard from '../products/ProductCard'
+import { useAuth } from '../../contexts/AuthContext'
+import { usePricing } from '../../hooks/usePricing'
 import { useHydration } from '../../hooks/useHydration'
 import { LoadingState, ProductSkeleton, FilterSkeleton } from '../ui/LoadingState'
 
@@ -226,6 +228,8 @@ export default function FeaturedProducts({
   onSaleOnly = false,
   limit = 8
 }: FeaturedProductsProps) {
+  const { user } = useAuth()
+  const { showWithVAT, toggleVAT } = usePricing()
   const [products, setProducts] = useState<ProductCardData[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [displayedCount, setDisplayedCount] = useState(limit)
@@ -266,7 +270,8 @@ export default function FeaturedProducts({
           direction: sortOrder 
         },
         1,
-        newDisplayedCount
+        newDisplayedCount,
+        user?.client?.customer_role?.name
       )
 
       if (result) {
@@ -308,7 +313,8 @@ export default function FeaturedProducts({
           direction: sortOrder 
         },
         1,
-        totalCount // Cargamos todos los productos disponibles
+        totalCount, // Cargamos todos los productos disponibles
+        user?.client?.customer_role?.name
       )
 
       if (result) {
@@ -385,7 +391,8 @@ export default function FeaturedProducts({
             direction: sortOrder 
           },
           1,
-          100 // Cargamos un número mayor para tener productos disponibles
+          100, // Cargamos un número mayor para tener productos disponibles
+          user?.client?.customer_role?.name
         )
 
         if (result) {
@@ -495,6 +502,58 @@ export default function FeaturedProducts({
                     <option value="price-desc">Precio mayor</option>
                   </select>
                 </div>
+
+                {/* Control de IVA - Solo para usuarios autenticados */}
+                {user && (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">
+                      Visualización de precios
+                    </h4>
+                    <div className="bg-gray-50 rounded-lg p-3 border">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium text-gray-600">Ver precios:</span>
+                        <div className="flex bg-white rounded-md border border-gray-200 p-1">
+                          <button
+                            onClick={toggleVAT}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                              showWithVAT
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-gray-600 hover:text-gray-800'
+                            }`}
+                          >
+                            Con IVA
+                          </button>
+                          <button
+                            onClick={toggleVAT}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                              !showWithVAT
+                                ? 'bg-blue-600 text-white shadow-sm'
+                                : 'text-gray-600 hover:text-gray-800'
+                            }`}
+                          >
+                            Sin IVA
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Información del rol si aplica */}
+                      {user?.client?.customer_role?.name && ['instalador', 'distribuidor', 'mayorista'].includes(user.client.customer_role.name) && (
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-500">Tu rol:</span>
+                          <span className="font-medium text-green-600 capitalize flex items-center">
+                            <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+                            {user.client.customer_role.name}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Información de IVA */}
+                      <div className="mt-2 text-xs text-gray-500 text-center">
+                        IVA España: 21% • {showWithVAT ? 'Incluido' : 'Excluido'}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Badges de filtros activos */}
                 {(selectedCategory || searchTerm) && (

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { ProductCardData } from '../../types/products'
 import { ProductService } from '../../lib/products'
 import ProductCard from '../products/ProductCard'
+import { useAuth } from '../../contexts/AuthContext'
 import { useHydration } from '../../hooks/useHydration'
 import { LoadingState, ProductSkeleton } from '../ui/LoadingState'
 
@@ -13,6 +14,7 @@ interface SaleProductsProps {
 }
 
 export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
+  const { user } = useAuth()
   const [products, setProducts] = useState<ProductCardData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -41,7 +43,8 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
           { is_on_sale: true },
           { field: 'created_at', direction: 'desc' },
           1,
-          limit
+          limit,
+          user?.client?.customer_role?.name
         )
 
         if (result) {

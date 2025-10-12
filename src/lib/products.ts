@@ -127,7 +127,8 @@ export class ProductService {
     filters: ProductFilters = {},
     sort: ProductSort = { field: 'created_at', direction: 'desc' },
     page: number = 1,
-    perPage: number = 12
+    perPage: number = 12,
+    userRole?: string
   ): Promise<ProductListResponse | null> {
     try {
       // Debug log para desarrollo
@@ -153,7 +154,11 @@ export class ProductService {
           product_variants (
             id,
             price_public_cents,
-            stock
+            stock,
+            role_prices (
+              *,
+              customer_roles (*)
+            )
           ),
           product_categories (
             category_id
@@ -243,17 +248,34 @@ export class ProductService {
       console.log(`📊 ProductService: ${data?.length || 0} productos encontrados`)
 
       // Transformar datos para ProductCardData
-      const products: ProductCardData[] = (data || []).map((product: any) => ({
-        id: product.id,
-        slug: product.slug,
-        title: product.title,
-        short_description: product.short_description,
-        is_new: product.is_new,
-        is_on_sale: product.is_on_sale,
-        image: product.product_images?.[0],
-        price_cents: Math.min(...product.product_variants.map((v: any) => v.price_public_cents)),
-        in_stock: product.product_variants.some((v: any) => v.stock > 0)
-      }))
+      const products: ProductCardData[] = (data || []).map((product: any) => {
+        // Encontrar el precio mínimo público y de rol
+        const minPublicPrice = Math.min(...product.product_variants.map((v: any) => v.price_public_cents))
+        
+        // Buscar precio de rol para el variant con precio más bajo
+        const cheapestVariant = product.product_variants.find((v: any) => v.price_public_cents === minPublicPrice)
+        let rolePrice = null
+        
+        if (userRole && cheapestVariant?.role_prices) {
+          const userRolePrice = cheapestVariant.role_prices.find((rp: any) => 
+            rp.customer_roles?.name === userRole
+          )
+          rolePrice = userRolePrice?.price_cents
+        }
+
+        return {
+          id: product.id,
+          slug: product.slug,
+          title: product.title,
+          short_description: product.short_description,
+          is_new: product.is_new,
+          is_on_sale: product.is_on_sale,
+          image: product.product_images?.[0],
+          price_cents: minPublicPrice,
+          role_price_cents: rolePrice,
+          in_stock: product.product_variants.some((v: any) => v.stock > 0)
+        }
+      })
 
       return {
         products,

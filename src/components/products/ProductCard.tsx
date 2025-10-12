@@ -14,9 +14,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   const { user } = useAuth()
   const { calculatePrice, formatPrice, showWithVAT } = usePricing()
 
-  // Convertir de céntimos a euros para el cálculo
-  const basePriceEuros = product.price_cents / 100
-  const priceInfo = calculatePrice(basePriceEuros, user?.client?.customer_role?.name)
+  // Usar precio público y precio de rol si existe
+  const priceInfo = calculatePrice(product.price_cents, product.role_price_cents)
   
   const hasRoleDiscount = priceInfo.showDiscount
 

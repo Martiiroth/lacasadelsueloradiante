@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 interface PricingContextType {
   showWithVAT: boolean
   toggleVAT: () => void
-  calculatePrice: (basePrice: number, userRole?: string) => {
+  calculatePrice: (publicPriceCents: number, rolePriceCents?: number) => {
     displayPrice: number
     originalPrice: number
     discount: number
@@ -17,15 +17,6 @@ interface PricingContextType {
 }
 
 const PricingContext = createContext<PricingContextType | undefined>(undefined)
-
-// Configuración de descuentos por rol
-const ROLE_DISCOUNTS: Record<string, number> = {
-  'instalador': 15, // 15% descuento
-  'distribuidor': 25, // 25% descuento
-  'mayorista': 35, // 35% descuento
-  'cliente': 0, // Sin descuento
-  'admin': 0 // Sin descuento
-}
 
 const VAT_RATE = 0.21 // 21% IVA España
 
@@ -47,27 +38,37 @@ export function PricingProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('showWithVAT', JSON.stringify(newValue))
   }
 
-  const calculatePrice = (basePrice: number, userRole?: string) => {
-    // Determinar el rol del usuario
-    const currentRole = userRole || user?.client?.customer_role?.name || 'cliente'
+  const calculatePrice = (publicPriceCents: number, rolePriceCents?: number) => {
+    // Convertir céntimos a euros
+    const publicPriceEuros = publicPriceCents / 100
+    const rolePriceEuros = rolePriceCents ? rolePriceCents / 100 : publicPriceEuros
     
-    // Obtener descuento por rol
-    const discountPercentage = ROLE_DISCOUNTS[currentRole] || 0
+    // Determinar si hay descuento por rol
+    const hasRoleDiscount = rolePriceCents && rolePriceCents < publicPriceCents
+    const discountPercentage = hasRoleDiscount 
+      ? Math.round(((publicPriceCents - rolePriceCents) / publicPriceCents) * 100)
+      : 0
     
-    // Calcular precio con descuento (precio base sin IVA)
-    const discountedPrice = basePrice * (1 - discountPercentage / 100)
+    // Los precios en BD ya incluyen IVA
+    // Precio base con IVA será el precio de rol si existe, sino el precio público
+    const basePriceWithVAT = rolePriceEuros
     
-    // Calcular precio con IVA
-    const priceWithVAT = discountedPrice * (1 + VAT_RATE)
+    // Calcular precio sin IVA (quitando el 21%)
+    const basePriceWithoutVAT = basePriceWithVAT / (1 + VAT_RATE)
     
     // Precio a mostrar según preferencia
-    const displayPrice = showWithVAT ? priceWithVAT : discountedPrice
+    const displayPrice = showWithVAT ? basePriceWithVAT : basePriceWithoutVAT
+    
+    // Precio original (sin descuento) - también incluye IVA en BD
+    const originalPriceWithVAT = publicPriceEuros
+    const originalPriceWithoutVAT = originalPriceWithVAT / (1 + VAT_RATE)
+    const originalPrice = showWithVAT ? originalPriceWithVAT : originalPriceWithoutVAT
     
     return {
       displayPrice: Math.round(displayPrice * 100) / 100,
-      originalPrice: showWithVAT ? basePrice * (1 + VAT_RATE) : basePrice,
+      originalPrice: Math.round(originalPrice * 100) / 100,
       discount: discountPercentage,
-      showDiscount: discountPercentage > 0
+      showDiscount: hasRoleDiscount || false
     }
   }
 
@@ -80,8 +81,11 @@ export function PricingProvider({ children }: { children: ReactNode }) {
     }).format(price)
   }
 
-  const getVATAmount = (priceWithoutVAT: number): number => {
-    return Math.round(priceWithoutVAT * VAT_RATE * 100) / 100
+  const getVATAmount = (priceWithVAT: number): number => {
+    // Calcular el IVA contenido en un precio que ya incluye IVA
+    const priceWithoutVAT = priceWithVAT / (1 + VAT_RATE)
+    const vatAmount = priceWithVAT - priceWithoutVAT
+    return Math.round(vatAmount * 100) / 100
   }
 
   return (

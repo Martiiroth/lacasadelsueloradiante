@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '../contexts/AuthContext'
 import { CartProvider } from '../contexts/CartContext'
+import { PricingProvider } from '../hooks/usePricing'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
 import WhatsAppButton from '../components/ui/WhatsAppButton'
@@ -37,14 +38,16 @@ export default function RootLayout({
       <body className={`${inter.className} overflow-x-hidden`}>
         <AuthProvider>
           <CartProvider>
-            <div className="min-h-screen flex flex-col">
-              <Navbar />
-              <main className="flex-1">
-                {children}
-              </main>
-              <Footer />
-              <WhatsAppButton />
-            </div>
+            <PricingProvider>
+              <div className="min-h-screen flex flex-col">
+                <Navbar />
+                <main className="flex-1">
+                  {children}
+                </main>
+                <Footer />
+                <WhatsAppButton />
+              </div>
+            </PricingProvider>
           </CartProvider>
         </AuthProvider>
       </body>

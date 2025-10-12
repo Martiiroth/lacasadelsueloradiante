@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import type { ProductCardData } from '../../types/products'
 import { useAuth } from '../../contexts/AuthContext'
+import { usePricing } from '../../hooks/usePricing'
 import OptimizedImage from '../ui/OptimizedImage'
 
 interface ProductCardProps {
@@ -11,13 +12,13 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { user } = useAuth()
+  const { calculatePrice, formatPrice, showWithVAT } = usePricing()
 
-  const formatPrice = (cents: number) => {
-    return (cents / 100).toFixed(2)
-  }
-
-  const displayPrice = product.role_price_cents || product.price_cents
-  const hasDiscount = product.role_price_cents && product.role_price_cents < product.price_cents
+  // Convertir de céntimos a euros para el cálculo
+  const basePriceEuros = product.price_cents / 100
+  const priceInfo = calculatePrice(basePriceEuros, user?.client?.customer_role?.name)
+  
+  const hasRoleDiscount = priceInfo.showDiscount
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full flex flex-col">
@@ -45,9 +46,14 @@ export default function ProductCard({ product }: ProductCardProps) {
                 Oferta
               </span>
             )}
-            {hasDiscount && user && (
+            {hasRoleDiscount && user && (
               <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                Precio especial
+                -{priceInfo.discount}%
+              </span>
+            )}
+            {!showWithVAT && (
+              <span className="bg-gray-600 text-white text-xs px-2 py-1 rounded">
+                Sin IVA
               </span>
             )}
           </div>
@@ -79,21 +85,33 @@ export default function ProductCard({ product }: ProductCardProps) {
           {/* Precio */}
           <div className="mt-auto">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div className="flex items-center gap-2">
-                {hasDiscount && user ? (
-                  <>
-                    <span className="text-base sm:text-lg font-bold text-green-600">
-                      €{formatPrice(product.role_price_cents!)}
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  {hasRoleDiscount && user ? (
+                    <>
+                      <span className="text-base sm:text-lg font-bold text-green-600">
+                        {formatPrice(priceInfo.displayPrice)}
+                      </span>
+                      <span className="text-xs sm:text-sm text-gray-500 line-through">
+                        {formatPrice(priceInfo.originalPrice)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-base sm:text-lg font-bold text-gray-800">
+                      {formatPrice(priceInfo.displayPrice)}
                     </span>
-                    <span className="text-xs sm:text-sm text-gray-500 line-through">
-                      €{formatPrice(product.price_cents)}
+                  )}
+                </div>
+                
+                {/* Indicador de IVA */}
+                <div className="text-xs text-gray-500">
+                  {showWithVAT ? 'IVA incluido' : 'Sin IVA'}
+                  {hasRoleDiscount && user && (
+                    <span className="ml-2 text-green-600 font-medium">
+                      Descuento {priceInfo.discount}%
                     </span>
-                  </>
-                ) : (
-                  <span className="text-base sm:text-lg font-bold text-gray-800">
-                    €{formatPrice(displayPrice)}
-                  </span>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Indicador de stock */}

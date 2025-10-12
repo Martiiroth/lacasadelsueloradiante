@@ -21,14 +21,14 @@ function getTransporter() {
     }
 
     transporter = nodemailer.createTransport({
-      host: 'smtppro.zoho.eu', // Cambiar a .com si es cuenta global
-      port: 465,
-      secure: true, // SSL
+      host: 'mail.lacasadelsueloradiante.es',
+      port: 465, // Puerto SSL según configuración del servidor
+      secure: true, // SSL directo
       auth: {
         user: emailUser,
         pass: emailPassword,
       },
-      // Configuración adicional para Zoho
+      // Configuración para servidor personalizado
       tls: {
         rejectUnauthorized: false
       }

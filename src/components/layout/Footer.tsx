@@ -32,7 +32,7 @@ export default function Footer() {
                 <MapPinIcon className="h-4 w-4 mt-0.5 text-blue-400 flex-shrink-0" />
                 <span className="text-gray-300">
                   APOSTOL SANTIAGO 59<br />
-                  [Código Postal], [Ciudad]
+                  
                 </span>
               </div>
               <div className="flex items-center space-x-2">
@@ -97,14 +97,7 @@ export default function Footer() {
                 >
                   📧 Enviar Consulta
                 </a>
-                <a 
-                  href="https://wa.me/[NUMERO-WHATSAPP]" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block text-gray-300 hover:text-blue-400 transition-colors text-sm mt-1"
-                >
-                  💬 WhatsApp
-                </a>
+            
               </div>
             </nav>
           </div>
@@ -149,7 +142,6 @@ export default function Footer() {
               <div className="text-xs text-gray-400 space-y-1">
                 <p><strong>T&V SERVICIOS Y COMPLEMENTOS, S.L.</strong></p>
                 <p>CIF: B86715893</p>
-                <p>Registro Mercantil: [Datos]</p>
               </div>
             </div>
           </div>

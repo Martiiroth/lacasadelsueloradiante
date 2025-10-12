@@ -19,16 +19,16 @@ export default function PoliticasPrivacidad() {
               1. Responsable del tratamiento
             </h2>
             <p className="text-gray-600 leading-relaxed mb-4">
-              La Casa del Suelo Radiante, S.L. es la responsable del tratamiento de los datos personales 
+              T&V SERVICIOS Y COMPLEMENTOS, S.L. es la responsable del tratamiento de los datos personales 
               que nos facilite a través de este sitio web.
             </p>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p><strong>Datos de contacto:</strong></p>
-              <p>Razón Social: La Casa del Suelo Radiante, S.L.</p>
-              <p>Dirección: [Dirección completa]</p>
-              <p>CIF: [CIF de la empresa]</p>
-              <p>Email: info@lacasadelsueloradiante.com</p>
-              <p>Teléfono: [Teléfono de contacto]</p>
+              <p>Razón Social: T&V SERVICIOS Y COMPLEMENTOS, S.L.</p>
+              <p>Domicilio Fiscal: APOSTOL SANTIAGO 59</p>
+              <p>CIF: B86715893</p>
+              <p>Email: consultas@lacasadelsueloradiante.es</p>
+              <p>Teléfono: +34 689 571 381</p>
             </div>
           </section>
 
@@ -146,8 +146,8 @@ export default function PoliticasPrivacidad() {
             <div className="bg-blue-50 p-4 rounded-lg mt-4">
               <p className="text-sm text-blue-800">
                 <strong>Para ejercer sus derechos:</strong> Envíe un email a 
-                <a href="mailto:privacidad@lacasadelsueloradiante.com" className="underline ml-1">
-                  privacidad@lacasadelsueloradiante.com
+                <a href="mailto:consultas@lacasadelsueloradiante.es" className="underline ml-1">
+                  consultas@lacasadelsueloradiante.es
                 </a>
               </p>
             </div>

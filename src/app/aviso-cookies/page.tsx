@@ -264,12 +264,12 @@ export default function AvisoCookies() {
             <div className="bg-blue-50 p-4 rounded-lg mt-4">
               <p className="text-blue-800">
                 <strong>Email:</strong> 
-                <a href="mailto:cookies@lacasadelsueloradiante.com" className="underline ml-1">
-                  cookies@lacasadelsueloradiante.com
+                <a href="mailto:consultas@lacasadelsueloradiante.es" className="underline ml-1">
+                  consultas@lacasadelsueloradiante.es
                 </a>
               </p>
               <p className="text-blue-800 mt-1">
-                <strong>Teléfono:</strong> [Teléfono de contacto]
+                <strong>Teléfono:</strong> +34 689 571 381
               </p>
             </div>
           </section>

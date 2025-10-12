@@ -26,16 +26,16 @@ export default function AvisoLegal() {
             <div className="bg-gray-50 p-6 rounded-lg border-l-4 border-blue-500">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <p><strong>Razón Social:</strong> La Casa del Suelo Radiante, S.L.</p>
-                  <p><strong>CIF:</strong> B-[Número CIF]</p>
+                  <p><strong>Razón Social:</strong> T&V SERVICIOS Y COMPLEMENTOS, S.L.</p>
+                  <p><strong>CIF:</strong> B86715893</p>
                   <p><strong>Registro Mercantil:</strong> [Datos registro]</p>
                   <p><strong>Actividad:</strong> Venta y instalación de sistemas de calefacción</p>
                 </div>
                 <div>
-                  <p><strong>Dirección:</strong> [Dirección completa]</p>
+                  <p><strong>Domicilio Fiscal:</strong> APOSTOL SANTIAGO 59</p>
                   <p><strong>Código Postal:</strong> [CP], [Ciudad]</p>
-                  <p><strong>Teléfono:</strong> [Teléfono]</p>
-                  <p><strong>Email:</strong> info@lacasadelsueloradiante.com</p>
+                  <p><strong>Teléfono:</strong> +34 689 571 381</p>
+                  <p><strong>Email:</strong> consultas@lacasadelsueloradiante.es</p>
                 </div>
               </div>
             </div>
@@ -237,11 +237,11 @@ export default function AvisoLegal() {
             <div className="bg-blue-50 p-6 rounded-lg">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-blue-800"><strong>📧 Email:</strong> legal@lacasadelsueloradiante.com</p>
-                  <p className="text-blue-800"><strong>📞 Teléfono:</strong> [Teléfono de contacto]</p>
+                  <p className="text-blue-800"><strong>📧 Email:</strong> consultas@lacasadelsueloradiante.es</p>
+                  <p className="text-blue-800"><strong>📞 Teléfono:</strong> +34 689 571 381</p>
                 </div>
                 <div>
-                  <p className="text-blue-800"><strong>📍 Dirección:</strong> [Dirección completa]</p>
+                  <p className="text-blue-800"><strong>📍 Domicilio Fiscal:</strong> APOSTOL SANTIAGO 59</p>
                   <p className="text-blue-800"><strong>🕐 Horario:</strong> Lunes a Viernes, 9:00 - 18:00</p>
                 </div>
               </div>

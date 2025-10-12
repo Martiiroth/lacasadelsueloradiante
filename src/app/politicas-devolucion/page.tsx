@@ -276,10 +276,10 @@ export default function PoliticasDevolucion() {
                 <div>
                   <h4 className="font-semibold text-blue-800 mb-2">Atención al cliente:</h4>
                   <p className="text-blue-700 text-sm mb-1">
-                    📧 <strong>Email:</strong> devoluciones@lacasadelsueloradiante.com
+                    📧 <strong>Email:</strong> consultas@lacasadelsueloradiante.es
                   </p>
                   <p className="text-blue-700 text-sm mb-1">
-                    📞 <strong>Teléfono:</strong> [Teléfono de contacto]
+                    📞 <strong>Teléfono:</strong> +34 689 571 381
                   </p>
                   <p className="text-blue-700 text-sm">
                     🕐 <strong>Horario:</strong> Lunes a Viernes, 9:00 - 18:00
@@ -289,9 +289,9 @@ export default function PoliticasDevolucion() {
                 <div>
                   <h4 className="font-semibold text-blue-800 mb-2">Dirección para devoluciones:</h4>
                   <div className="text-blue-700 text-sm">
-                    <p>La Casa del Suelo Radiante, S.L.</p>
+                    <p>T&V SERVICIOS Y COMPLEMENTOS, S.L.</p>
                     <p>Dpto. Devoluciones</p>
-                    <p>[Dirección completa]</p>
+                    <p>APOSTOL SANTIAGO 59</p>
                     <p>[CP], [Ciudad]</p>
                   </div>
                 </div>

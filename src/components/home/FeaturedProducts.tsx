@@ -241,6 +241,7 @@ export default function FeaturedProducts({
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [searchTerm, setSearchTerm] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const isHydrated = useHydration()
 
   // Función para cargar más productos
@@ -428,11 +429,42 @@ export default function FeaturedProducts({
             {/* Sidebar de filtros - Responsivo */}
             <div className="w-full lg:w-64 lg:flex-shrink-0 mb-6 lg:mb-0">
               <div className="bg-white rounded-lg shadow-sm border p-4 lg:p-6 lg:sticky lg:top-8">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 lg:mb-6">
-                  Filtros
-                </h3>
+                {/* Header con botón plegable en móvil */}
+                <div className="flex items-center justify-between mb-4 lg:mb-6">
+                  <div className="flex items-center">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Filtros
+                    </h3>
+                    {/* Indicador de filtros activos en móvil */}
+                    {(selectedCategory || searchTerm) && (
+                      <span className="ml-2 lg:hidden inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-blue-600 rounded-full">
+                        {(selectedCategory ? 1 : 0) + (searchTerm ? 1 : 0)}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setFiltersOpen(!filtersOpen)}
+                    className="lg:hidden p-2 -mr-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                    aria-label={filtersOpen ? 'Cerrar filtros' : 'Abrir filtros'}
+                  >
+                    <svg 
+                      className={`w-5 h-5 transform transition-transform ${filtersOpen ? 'rotate-180' : ''}`}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </div>
 
-                {/* Buscador */}
+                {/* Contenido plegable de filtros */}
+                <div className={`lg:block transition-all duration-300 ease-in-out overflow-hidden ${
+                  filtersOpen 
+                    ? 'max-h-[2000px] opacity-100' 
+                    : 'max-h-0 opacity-0'
+                } lg:max-h-none lg:opacity-100`}>
+                  {/* Buscador */}
                 <div className="mb-6">
                   <h4 className="text-sm font-medium text-gray-700 mb-3">
                     Buscar productos
@@ -598,6 +630,7 @@ export default function FeaturedProducts({
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             </div>
           </LoadingState>

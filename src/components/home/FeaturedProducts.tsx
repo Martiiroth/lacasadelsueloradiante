@@ -418,6 +418,30 @@ export default function FeaturedProducts({
         }
       } catch (err) {
         console.error('❌ Error loading brands:', err)
+        
+        // Fallback: usar marcas de prueba si falla la carga
+        console.log('🏷️ Using fallback test brands due to error')
+        const testBrands = [
+          {
+            id: '1',
+            name: 'Rehau',
+            slug: 'rehau',
+            logo_url: 'https://cdn.worldvectorlogo.com/logos/rehau.svg',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          },
+          {
+            id: '2', 
+            name: 'Uponor',
+            slug: 'uponor',
+            logo_url: 'https://cdn.worldvectorlogo.com/logos/uponor.svg',
+            is_active: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ]
+        setBrands(testBrands)
         // Marcas de fallback en caso de error
         console.log('🏷️ Using fallback brands due to error')
         setBrands([])

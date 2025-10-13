@@ -33,20 +33,8 @@ export class ImageService {
 
       console.log('Uploading file to Supabase Storage:', fileName)
 
-      // Verificar si el bucket existe primero
-      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets()
-      
-      if (bucketError) {
-        console.error('Error checking buckets:', bucketError)
-        throw new Error('No se pudo verificar el estado del almacenamiento')
-      }
-
-      const brandLogosBucket = buckets?.find(bucket => bucket.name === 'brand-logos')
-      
-      if (!brandLogosBucket) {
-        console.error('Bucket brand-logos not found. Available buckets:', buckets?.map(b => b.name))
-        throw new Error('El bucket de imágenes no está configurado. Contacta al administrador.')
-      }
+      // Nota: Saltamos la verificación de buckets porque listBuckets() puede fallar con claves anónimas
+      // pero el bucket existe y es accesible directamente
 
       // Subir archivo a Supabase Storage
       const { data, error } = await supabase.storage
@@ -59,6 +47,12 @@ export class ImageService {
       if (error) {
         console.error('Supabase storage error:', error)
         console.error('Error details:', JSON.stringify(error, null, 2))
+        
+        // Si es un error de bucket no encontrado, dar instrucciones específicas
+        if (error.message?.includes('bucket') || (error as any).statusCode === 400) {
+          throw new Error(`Bucket no configurado. Ve a tu dashboard de Supabase > Storage y crea el bucket 'brand-logos' como público.`)
+        }
+        
         throw new Error(`Error al subir imagen: ${error.message}`)
       }
 
@@ -78,13 +72,20 @@ export class ImageService {
     } catch (error) {
       console.error('Error uploading image:', error)
       
+      // Mostrar mensaje específico según el error
+      if ((error as any)?.message?.includes('row-level security policy')) {
+        console.error('🔒 RLS ERROR: Las políticas de Storage no están configuradas correctamente.')
+        console.error('📋 SOLUCIÓN: Ve a tu dashboard de Supabase → Storage → Policies')
+        console.error('📋 Crea políticas para el bucket "brand-logos" (lectura pública + subida autenticada)')
+      }
+      
       // Fallback temporal: usar URL blob hasta que se configure Storage
       console.warn('Falling back to temporary URL due to storage error')
       const temporaryUrl = URL.createObjectURL(file)
       console.log('Created temporary URL:', temporaryUrl)
       
       // Mostrar error pero no fallar completamente
-      console.error('Storage configuration needed. Using temporary URL as fallback.')
+      console.error('⚠️ STORAGE NO CONFIGURADO: Usando URL temporal. Las imágenes no persistirán.')
       
       return temporaryUrl
     }

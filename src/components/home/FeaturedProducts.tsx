@@ -648,8 +648,8 @@ export default function FeaturedProducts({
                   </div>
                 </div>
 
-                {/* Control de IVA - Solo para usuarios autenticados */}
-                {user && (
+                {/* Control de IVA - Siempre visible */}
+                {true && (
                   <div className="mb-6">
                     <h4 className="text-sm font-medium text-gray-700 mb-3">
                       Visualización de precios
@@ -682,7 +682,7 @@ export default function FeaturedProducts({
                       </div>
                       
                       {/* Información del rol si aplica */}
-                      {user?.client?.customer_role?.name && ['instalador', 'distribuidor', 'mayorista'].includes(user.client.customer_role.name) && (
+                      {user?.client?.customer_role?.name && (
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-gray-500">Tu rol:</span>
                           <span className="font-medium text-green-600 capitalize flex items-center">

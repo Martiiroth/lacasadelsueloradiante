@@ -98,6 +98,17 @@ export default function LoginPage() {
             </div>
           </div>
 
+          <div className="flex items-center justify-between">
+            <div className="text-sm">
+              <a
+                href="/auth/forgot-password"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
+                ¿Has olvidado tu contraseña?
+              </a>
+            </div>
+          </div>
+
           {(formError || error) && (
             <div className="text-red-600 text-sm text-center">
               {formError || error}

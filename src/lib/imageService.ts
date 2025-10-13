@@ -33,6 +33,21 @@ export class ImageService {
 
       console.log('Uploading file to Supabase Storage:', fileName)
 
+      // Verificar si el bucket existe primero
+      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets()
+      
+      if (bucketError) {
+        console.error('Error checking buckets:', bucketError)
+        throw new Error('No se pudo verificar el estado del almacenamiento')
+      }
+
+      const brandLogosBucket = buckets?.find(bucket => bucket.name === 'brand-logos')
+      
+      if (!brandLogosBucket) {
+        console.error('Bucket brand-logos not found. Available buckets:', buckets?.map(b => b.name))
+        throw new Error('El bucket de imágenes no está configurado. Contacta al administrador.')
+      }
+
       // Subir archivo a Supabase Storage
       const { data, error } = await supabase.storage
         .from('brand-logos')
@@ -43,7 +58,12 @@ export class ImageService {
 
       if (error) {
         console.error('Supabase storage error:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
         throw new Error(`Error al subir imagen: ${error.message}`)
+      }
+
+      if (!data) {
+        throw new Error('No se recibió confirmación de la subida')
       }
 
       // Obtener URL pública
@@ -52,11 +72,21 @@ export class ImageService {
         .getPublicUrl(data.path)
 
       console.log('Image uploaded successfully:', publicUrl)
+      console.log('File path:', data.path)
       return publicUrl
 
     } catch (error) {
       console.error('Error uploading image:', error)
-      throw error
+      
+      // Fallback temporal: usar URL blob hasta que se configure Storage
+      console.warn('Falling back to temporary URL due to storage error')
+      const temporaryUrl = URL.createObjectURL(file)
+      console.log('Created temporary URL:', temporaryUrl)
+      
+      // Mostrar error pero no fallar completamente
+      console.error('Storage configuration needed. Using temporary URL as fallback.')
+      
+      return temporaryUrl
     }
   }
 

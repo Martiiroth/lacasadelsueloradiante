@@ -67,7 +67,7 @@ export default function VariantSelector({
                   ? 'border-blue-500 bg-blue-50' 
                   : 'border-gray-200 hover:border-gray-300'
                 }
-                ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : ''}
+                ${isOutOfStock ? 'opacity-75' : ''}
               `}
             >
               <input
@@ -76,7 +76,7 @@ export default function VariantSelector({
                 value={variant.id}
                 checked={isSelected}
                 onChange={(e) => setSelectedVariantId(e.target.value)}
-                disabled={isOutOfStock}
+                disabled={false}
                 className="sr-only"
               />
               
@@ -136,10 +136,12 @@ export default function VariantSelector({
                 </div>
               )}
               
-              {/* Overlay para variantes sin stock */}
+              {/* Indicador de bajo pedido */}
               {isOutOfStock && (
-                <div className="absolute inset-0 bg-white bg-opacity-60 rounded-lg flex items-center justify-center">
-                  <span className="text-sm font-medium text-gray-600">Sin stock</span>
+                <div className="absolute top-2 left-2">
+                  <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    Bajo pedido
+                  </span>
                 </div>
               )}
             </label>

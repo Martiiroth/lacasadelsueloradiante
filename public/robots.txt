@@ -1,24 +1,42 @@
-<!-- Archivo robots.txt para SEO -->
+# robots.txt para La Casa del Suelo Radiante
+
 User-agent: *
 Allow: /
 
-# Sitemap
-Sitemap: https://lacasadelsueloradiante.es/sitemap.xml
-
-# Disallow admin areas
-Disallow: /admin/
-Disallow: /api/
-Disallow: /_next/
-Disallow: /auth/
-
-# Allow important pages
-Allow: /
-Allow: /productos/
-Allow: /categorias/
+# Permitir páginas principales e importantes
+Allow: /productos
+Allow: /categorias
+Allow: /ofertas
+Allow: /contacto
 Allow: /politicas-privacidad
 Allow: /aviso-legal
 Allow: /aviso-cookies
 Allow: /politicas-devolucion
 
-# Crawl delay (optional)
+# Bloquear áreas administrativas y técnicas
+Disallow: /admin
+Disallow: /api
+Disallow: /_next/
+Disallow: /auth/login
+Disallow: /auth/register
+Disallow: /.well-known/
+Disallow: /scripts/
+Disallow: /database/
+
+# Permitir acceso a recursos estáticos
+Allow: /images/
+Allow: /public/
+Allow: /*.css
+Allow: /*.js
+Allow: /*.jpg
+Allow: /*.jpeg
+Allow: /*.png
+Allow: /*.gif
+Allow: /*.webp
+Allow: /*.svg
+
+# Sitemap
+Sitemap: https://www.lacasadelsueloradiante.es/sitemap.xml
+
+# Crawl-delay para ser respetuoso
 Crawl-delay: 1

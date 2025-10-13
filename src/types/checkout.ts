@@ -29,6 +29,7 @@ export interface OrderItem {
     id: string
     title: string
     sku: string
+    stock: number
     variant_images?: Array<{
       id: string
       url: string

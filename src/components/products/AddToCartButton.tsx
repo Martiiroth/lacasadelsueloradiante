@@ -47,13 +47,12 @@ export default function AddToCartButton({
       return
     }
 
+    // Permitir pedidos bajo pedido pero con advertencia
     if (variant.stock <= 0) {
-      setMessage('Este producto no está disponible')
-      setTimeout(() => setMessage(''), 3000)
-      return
+      // No bloquear, solo mostrar advertencia
     }
 
-    if (quantity > variant.stock) {
+    if (variant.stock > 0 && quantity > variant.stock) {
       setMessage(`Solo hay ${variant.stock} unidades disponibles`)
       setTimeout(() => setMessage(''), 3000)
       return
@@ -71,7 +70,11 @@ export default function AddToCartButton({
       })
 
       if (success) {
-        setMessage('¡Producto añadido al carrito!')
+        if (variant.stock <= 0) {
+          setMessage('¡Producto bajo pedido añadido al carrito! Tiempo de entrega: 7-15 días.')
+        } else {
+          setMessage('¡Producto añadido al carrito!')
+        }
       } else {
         setMessage('Error al añadir al carrito')
       }
@@ -83,7 +86,7 @@ export default function AddToCartButton({
     }
   }
 
-  const isDisabled = disabled || !variant || variant.stock <= 0 || cartLoading
+  const isDisabled = disabled || !variant || cartLoading
 
   return (
     <div className={`space-y-3 ${className}`}>
@@ -111,7 +114,7 @@ export default function AddToCartButton({
         ) : !variant ? (
           'Selecciona una variante'
         ) : variant.stock <= 0 ? (
-          'Sin stock'
+          `Pedir bajo pedido (${quantity})`
         ) : (
           `Añadir al carrito (${quantity})`
         )}
@@ -137,22 +140,24 @@ export default function AddToCartButton({
         </p>
       )}
 
-      {/* Opción de backorder si no hay stock */}
-      {variant && variant.stock <= 0 && user && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-          <p className="text-sm text-gray-600 mb-2">
-            Este producto no está en stock actualmente.
-          </p>
-          <button
-            className="text-sm text-blue-600 hover:text-blue-800 underline"
-            onClick={() => {
-              // TODO: Implementar sistema de backorders
-              setMessage('Funcionalidad de reserva próximamente disponible')
-              setTimeout(() => setMessage(''), 3000)
-            }}
-          >
-            Notificarme cuando esté disponible
-          </button>
+      {/* Advertencia para productos bajo pedido */}
+      {variant && variant.stock <= 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+          <div className="flex items-start space-x-2">
+            <div className="flex-shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-orange-800">
+                Producto bajo pedido
+              </p>
+              <p className="text-sm text-orange-700 mt-1">
+                Este producto no está actualmente en stock. Se fabricará/enviará una vez confirmado el pedido. Tiempo de entrega: 7-15 días laborables.
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

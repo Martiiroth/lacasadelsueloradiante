@@ -57,11 +57,11 @@ export default function ProductCard({ product }: ProductCardProps) {
             )}
           </div>
 
-          {/* Stock status */}
+          {/* Stock status - Solo mostrar overlay si completamente sin stock */}
           {!product.in_stock && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-              <span className="bg-gray-800 text-white px-3 py-1 rounded text-sm">
-                Sin stock
+            <div className="absolute top-2 right-2">
+              <span className="bg-orange-500 text-white px-2 py-1 rounded text-xs font-medium">
+                Bajo pedido
               </span>
             </div>
           )}
@@ -116,10 +116,10 @@ export default function ProductCard({ product }: ProductCardProps) {
               {/* Indicador de stock */}
               <div className="flex items-center">
                 <div className={`w-2 h-2 rounded-full mr-2 ${
-                  product.in_stock ? 'bg-green-500' : 'bg-red-500'
+                  product.in_stock ? 'bg-green-500' : 'bg-orange-500'
                 }`} />
                 <span className="text-xs text-gray-500">
-                  {product.in_stock ? 'Disponible' : 'Sin stock'}
+                  {product.in_stock ? 'Disponible' : 'Bajo pedido'}
                 </span>
               </div>
             </div>

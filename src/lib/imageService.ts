@@ -1,11 +1,9 @@
-// Servicio básico para manejo de imágenes
-// TODO: Integrar con Supabase Storage en producción
+import { createClient } from '@/utils/supabase/client'
 
+// Servicio para manejo de imágenes con Supabase Storage
 export class ImageService {
   /**
-   * Sube una imagen y retorna la URL
-   * Por ahora solo maneja URLs temporales para preview
-   * En producción esto debería subir a Supabase Storage
+   * Sube una imagen a Supabase Storage y retorna la URL pública
    */
   static async uploadImage(file: File): Promise<string> {
     try {
@@ -26,30 +24,74 @@ export class ImageService {
         throw new Error('El archivo es muy grande. Máximo 2MB')
       }
 
-      // Por ahora, crear URL temporal para preview
-      const temporaryUrl = URL.createObjectURL(file)
-      
-      // TODO: Implementar subida real a Supabase Storage
-      /*
+      // Crear cliente de Supabase
+      const supabase = createClient()
+
+      // Generar nombre único para el archivo
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
+
+      console.log('Uploading file to Supabase Storage:', fileName)
+
+      // Subir archivo a Supabase Storage
       const { data, error } = await supabase.storage
         .from('brand-logos')
-        .upload(`${Date.now()}-${file.name}`, file)
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase storage error:', error)
+        throw new Error(`Error al subir imagen: ${error.message}`)
+      }
 
+      // Obtener URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('brand-logos')
         .getPublicUrl(data.path)
 
+      console.log('Image uploaded successfully:', publicUrl)
       return publicUrl
-      */
-
-      console.log('Image upload simulated for file:', file.name)
-      return temporaryUrl
 
     } catch (error) {
       console.error('Error uploading image:', error)
       throw error
+    }
+  }
+
+  /**
+   * Elimina una imagen de Supabase Storage
+   */
+  static async deleteImage(imageUrl: string): Promise<boolean> {
+    try {
+      const supabase = createClient()
+
+      // Extraer el path del archivo desde la URL
+      const urlParts = imageUrl.split('/')
+      const fileName = urlParts[urlParts.length - 1]
+
+      if (!fileName) {
+        throw new Error('No se pudo extraer el nombre del archivo de la URL')
+      }
+
+      console.log('Deleting file from Supabase Storage:', fileName)
+
+      const { error } = await supabase.storage
+        .from('brand-logos')
+        .remove([fileName])
+
+      if (error) {
+        console.error('Error deleting image:', error)
+        return false
+      }
+
+      console.log('Image deleted successfully:', fileName)
+      return true
+
+    } catch (error) {
+      console.error('Error deleting image:', error)
+      return false
     }
   }
 

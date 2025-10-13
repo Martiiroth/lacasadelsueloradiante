@@ -62,12 +62,10 @@ export default function ProductPage() {
         console.log('🎯 Product data loaded:', productData)
         setProduct(productData)
         
-        // Seleccionar primera variante disponible
+        // Seleccionar primera variante (permitir stock 0 para "bajo pedido")
         if (productData.variants && productData.variants.length > 0) {
-          const firstAvailable = productData.variants.find(v => v.stock > 0) 
-            || productData.variants[0]
-          setSelectedVariantId(firstAvailable.id)
-          console.log('🔧 Selected variant:', firstAvailable.title || firstAvailable.sku)
+          setSelectedVariantId(productData.variants[0].id)
+          console.log('🔧 Selected variant:', productData.variants[0].title || productData.variants[0].sku)
         }
       } catch (err) {
         console.error('❌ Error loading product:', err)
@@ -286,16 +284,16 @@ export default function ProductPage() {
                         id="quantity"
                         type="number"
                         min="1"
-                        max={selectedVariant.stock}
+                        max={selectedVariant.stock > 0 ? selectedVariant.stock : 999}
                         value={quantity}
                         onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                         className="w-16 px-3 py-2 text-center border-0 focus:outline-none"
                       />
                       <button
                         type="button"
-                        onClick={() => setQuantity(Math.min(selectedVariant.stock, quantity + 1))}
+                        onClick={() => setQuantity(selectedVariant.stock > 0 ? Math.min(selectedVariant.stock, quantity + 1) : quantity + 1)}
                         className="p-2 hover:bg-gray-100 transition-colors"
-                        disabled={quantity >= selectedVariant.stock}
+                        disabled={selectedVariant.stock > 0 && quantity >= selectedVariant.stock}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -307,7 +305,7 @@ export default function ProductPage() {
                   <div className="flex-1">
                     <AddToCartButton
                       variant={selectedVariant}
-                      disabled={selectedVariant.stock === 0}
+                      disabled={false}
                       quantity={quantity}
                     />
                   </div>

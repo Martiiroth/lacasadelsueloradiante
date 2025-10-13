@@ -155,7 +155,8 @@ export class CartService {
         // Si existe, validar que la cantidad total no exceda el stock
         const newTotalQty = existingItem.qty + data.qty
         
-        if (newTotalQty > variantData.stock) {
+        // Permitir productos bajo pedido (stock 0), validar solo si hay stock limitado
+        if (variantData.stock > 0 && newTotalQty > variantData.stock) {
           const available = variantData.stock - existingItem.qty
           console.error('❌ Stock insuficiente:', {
             currentInCart: existingItem.qty,
@@ -176,8 +177,8 @@ export class CartService {
         })
       }
 
-      // Validar stock para nuevo item
-      if (data.qty > variantData.stock) {
+      // Permitir productos bajo pedido (stock 0), validar solo si hay stock limitado
+      if (variantData.stock > 0 && data.qty > variantData.stock) {
         console.error('❌ Stock insuficiente para nuevo item:', {
           requested: data.qty,
           available: variantData.stock
@@ -259,8 +260,8 @@ export class CartService {
         stock: variantData.stock
       })
 
-      // Validar que la nueva cantidad no exceda el stock
-      if (data.qty > variantData.stock) {
+      // Permitir productos bajo pedido (stock 0), validar solo si hay stock limitado
+      if (variantData.stock > 0 && data.qty > variantData.stock) {
         console.error('❌ Stock insuficiente para actualización:', {
           requested: data.qty,
           available: variantData.stock

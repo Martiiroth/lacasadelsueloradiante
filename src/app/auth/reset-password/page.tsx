@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 
 function ResetPasswordForm() {
@@ -13,26 +14,33 @@ function ResetPasswordForm() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [validToken, setValidToken] = useState(false)
-  const [token, setToken] = useState<string | null>(null)
   const [verifying, setVerifying] = useState(true)
+  const supabase = createClient()
 
   useEffect(() => {
-    // Obtener el token de la URL
-    const tokenParam = searchParams.get('token')
+    // Verificar si tenemos los tokens de Supabase en la URL
+    const access_token = searchParams.get('access_token')
+    const refresh_token = searchParams.get('refresh_token')
     
-    if (!tokenParam) {
-      setError('Enlace de recuperación inválido')
+    if (!access_token || !refresh_token) {
+      setError('Enlace de recuperación inválido o expirado')
       setVerifying(false)
       return
     }
 
-    setToken(tokenParam)
-    
-    // Validar el token (opcional - para mejor UX)
-    // El token se validará realmente cuando se envíe el formulario
-    setValidToken(true)
-    setVerifying(false)
-  }, [searchParams])
+    // Establecer la sesión con los tokens de Supabase
+    supabase.auth.setSession({
+      access_token,
+      refresh_token,
+    }).then(({ error }: { error: any }) => {
+      if (error) {
+        setError('Enlace de recuperación inválido o expirado')
+      } else {
+        setValidToken(true)
+      }
+      setVerifying(false)
+    })
+  }, [searchParams, supabase.auth])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,14 +66,24 @@ function ResetPasswordForm() {
     }
 
     try {
+      const access_token = searchParams.get('access_token')
+      const refresh_token = searchParams.get('refresh_token')
+
+      if (!access_token || !refresh_token) {
+        setError('Enlace de recuperación inválido o expirado')
+        setLoading(false)
+        return
+      }
+
       const response = await fetch('/api/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          token,
-          newPassword: password
+          access_token,
+          refresh_token,
+          new_password: password
         }),
       })
 
@@ -77,7 +95,7 @@ function ResetPasswordForm() {
         setSuccess(true)
         // Redirigir al login después de 3 segundos
         setTimeout(() => {
-          router.push('/auth/login')
+          router.push('/auth/login?message=Contraseña actualizada correctamente')
         }, 3000)
       }
     } catch (err) {

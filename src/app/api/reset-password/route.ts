@@ -1,72 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPasswordResetService } from '@/lib/passwordResetService'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, newPassword } = await request.json()
+    const { access_token, refresh_token, new_password } = await request.json()
 
-    if (!token || !newPassword) {
+    if (!access_token || !refresh_token || !new_password) {
       return NextResponse.json(
-        { error: 'Token y nueva contraseña son requeridos' },
+        { error: 'Token de acceso, token de refresh y nueva contraseña son requeridos' },
         { status: 400 }
       )
     }
 
-    if (newPassword.length < 6) {
+    if (new_password.length < 6) {
       return NextResponse.json(
         { error: 'La contraseña debe tener al menos 6 caracteres' },
         { status: 400 }
       )
     }
 
-    const emailService = getPasswordResetService()
-    
-    // Validar token
-    const tokenValidation = await emailService.validateToken(token)
-    
-    if (!tokenValidation.valid || !tokenValidation.email) {
+    const supabase = await createClient()
+
+    // Establecer la sesión con los tokens de recuperación
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token,
+      refresh_token,
+    })
+
+    if (sessionError) {
+      console.error('Error estableciendo sesión:', sessionError)
       return NextResponse.json(
         { error: 'Token inválido o expirado' },
         { status: 400 }
       )
     }
 
-    // Actualizar contraseña en Supabase Auth
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
-    // Buscar el usuario por email para obtener su ID
-    const { data: authUsers } = await supabase.auth.admin.listUsers()
-    const user = authUsers?.users.find(u => u.email === tokenValidation.email)
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Usuario no encontrado' },
-        { status: 404 }
-      )
-    }
-
-    // Actualizar contraseña
-    const { error: updateError } = await supabase.auth.admin.updateUserById(
-      user.id,
-      { password: newPassword }
-    )
+    // Actualizar la contraseña usando la funcionalidad nativa de Supabase
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: new_password
+    })
 
     if (updateError) {
-      console.error('❌ Error actualizando contraseña:', updateError)
+      console.error('Error actualizando contraseña:', updateError)
       return NextResponse.json(
-        { error: 'Error actualizando la contraseña' },
+        { error: 'Error al actualizar la contraseña' },
         { status: 500 }
       )
     }
-
-    // Marcar token como usado
-    await emailService.markTokenAsUsed(token)
-
-    console.log(`✅ Contraseña actualizada para: ${tokenValidation.email}`)
 
     return NextResponse.json(
       { message: 'Contraseña actualizada correctamente' },
@@ -74,7 +54,7 @@ export async function POST(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error('❌ Error en reset-password:', error)
+    console.error('Error en reset-password:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

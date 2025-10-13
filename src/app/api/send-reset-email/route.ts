@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getPasswordResetService } from '@/lib/passwordResetService'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,36 +12,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar que el email existe en Supabase Auth
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = await createClient()
 
-    // Buscar usuario por email
-    const { data: authUsers } = await supabase.auth.admin.listUsers()
-    const userExists = authUsers?.users.some(user => user.email === email)
+    // Usar la funcionalidad nativa de Supabase para reset de contraseña
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+    })
 
-    if (!userExists) {
-      // Por seguridad, no revelamos si el email existe o no
+    if (error) {
+      console.error('Error al enviar reset email:', error)
+      // Por seguridad, siempre devolvemos éxito incluso si hay error
       return NextResponse.json(
-        { message: 'Si el email existe, recibirás instrucciones para recuperar tu contraseña' },
+        { message: 'Si el email existe, recibirás un enlace de recuperación' },
         { status: 200 }
       )
     }
-
-    // Generar token y enviarlo por email
-    const emailService = getPasswordResetService()
-    const token = await emailService.generateResetToken(email)
-    
-    const resetUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password?token=${token}`
-    
-    await emailService.sendPasswordResetEmail({
-      email,
-      token,
-      resetUrl,
-      companyName: 'La Casa del Suelo Radiante'
-    })
 
     console.log(`✅ Email de recuperación enviado a: ${email}`)
 

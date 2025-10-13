@@ -1,13 +1,8 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 function ResetPasswordForm() {
   const router = useRouter()
@@ -17,37 +12,26 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [validSession, setValidSession] = useState(false)
+  const [validToken, setValidToken] = useState(false)
+  const [token, setToken] = useState<string | null>(null)
+  const [verifying, setVerifying] = useState(true)
 
   useEffect(() => {
-    // Verificar si hay una sesión válida para reset de contraseña
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        setValidSession(true)
-      } else {
-        // Intentar obtener tokens de la URL
-        const accessToken = searchParams.get('access_token')
-        const refreshToken = searchParams.get('refresh_token')
-        
-        if (accessToken && refreshToken) {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          })
-          
-          if (!error) {
-            setValidSession(true)
-          } else {
-            setError('Enlace de recuperación inválido o expirado')
-          }
-        } else {
-          setError('Enlace de recuperación inválido')
-        }
-      }
+    // Obtener el token de la URL
+    const tokenParam = searchParams.get('token')
+    
+    if (!tokenParam) {
+      setError('Enlace de recuperación inválido')
+      setVerifying(false)
+      return
     }
 
-    checkSession()
+    setToken(tokenParam)
+    
+    // Validar el token (opcional - para mejor UX)
+    // El token se validará realmente cuando se envíe el formulario
+    setValidToken(true)
+    setVerifying(false)
   }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,12 +58,21 @@ function ResetPasswordForm() {
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          newPassword: password
+        }),
       })
 
-      if (error) {
-        setError('Error al actualizar la contraseña: ' + error.message)
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Error al actualizar la contraseña')
       } else {
         setSuccess(true)
         // Redirigir al login después de 3 segundos
@@ -94,7 +87,7 @@ function ResetPasswordForm() {
     }
   }
 
-  if (!validSession && !error) {
+  if (verifying) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -105,7 +98,7 @@ function ResetPasswordForm() {
     )
   }
 
-  if (error && !validSession) {
+  if (error && !validToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 text-center">

@@ -1,12 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -28,14 +23,20 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const response = await fetch('/api/send-reset-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
       })
 
-      if (error) {
-        setError('Error al enviar el correo de recuperación: ' + error.message)
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(result.error || 'Error al enviar el correo de recuperación')
       } else {
-        setMessage('Te hemos enviado un enlace de recuperación a tu correo electrónico')
+        setMessage(result.message)
         setEmailSent(true)
       }
     } catch (err) {

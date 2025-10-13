@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import type { ProductCardData, Category } from '../../types/products'
 import type { Brand } from '../../types/brands'
@@ -247,6 +247,7 @@ export default function FeaturedProducts({
   const [searchTerm, setSearchTerm] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
   const isHydrated = useHydration()
+  const productsRef = useRef<HTMLDivElement>(null)
 
   // Función para cargar más productos
   const handleLoadMore = async () => {
@@ -503,6 +504,31 @@ export default function FeaturedProducts({
 
     loadProducts()
   }, [isHydrated, selectedCategory, selectedBrand, sortBy, sortOrder, onSaleOnly, limit, searchTerm])
+
+  // Scroll automático cuando cambian los filtros
+  useEffect(() => {
+    if (!isHydrated) return
+    
+    // Solo hacer scroll si hay filtros activos
+    if (selectedCategory || selectedBrand || searchTerm) {
+      const scrollToProducts = () => {
+        if (productsRef.current) {
+          const yOffset = -80 // Offset para header
+          const element = productsRef.current
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
+          
+          window.scrollTo({
+            top: y,
+            behavior: 'smooth'
+          })
+        }
+      }
+      
+      // Pequeño delay para que los productos se rendericen
+      const timeoutId = setTimeout(scrollToProducts, 100)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [selectedCategory, selectedBrand, searchTerm, isHydrated])
 
   const renderContent = () => {
     if (showFilters && !onSaleOnly) {
@@ -770,7 +796,7 @@ export default function FeaturedProducts({
           </LoadingState>
 
           {/* Contenido principal */}
-          <div className="flex-1">
+          <div className="flex-1" ref={productsRef}>
             <ProductGrid 
               products={products}
               loading={loading || loadingMore}
@@ -787,17 +813,19 @@ export default function FeaturedProducts({
       )
     } else {
       return (
-        <ProductGrid 
-          products={products}
-          loading={loading || loadingMore}
-          error={error}
-          displayedCount={displayedCount}
-          totalCount={totalCount}
-          onSaleOnly={onSaleOnly}
-          onRetry={handleRetry}
-          onLoadMore={handleLoadMore}
-          onShowAll={handleShowAll}
-        />
+        <div ref={productsRef}>
+          <ProductGrid 
+            products={products}
+            loading={loading || loadingMore}
+            error={error}
+            displayedCount={displayedCount}
+            totalCount={totalCount}
+            onSaleOnly={onSaleOnly}
+            onRetry={handleRetry}
+            onLoadMore={handleLoadMore}
+            onShowAll={handleShowAll}
+          />
+        </div>
       )
     }
   }

@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import FeaturedProducts from '../components/home/FeaturedProducts'
 import SaleProducts from '../components/home/SaleProducts'
-import OurStore from '../components/home/OurStore'
 import RegisterPopup from '../components/RegisterPopup'
 
 export default function HomePage() {
@@ -127,9 +126,6 @@ export default function HomePage() {
         showFilters={true}
         limit={8}
       />
-
-      {/* Sección Nuestra Tienda */}
-      <OurStore />
 
       {/* Sección de Servicios */}
       <section className="py-16 bg-gray-50">

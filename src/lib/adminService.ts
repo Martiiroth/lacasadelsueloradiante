@@ -12,7 +12,6 @@ import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'
 import EmailService from './emailService'
-import ServerEmailService from './emailService.server'
 import { config } from 'dotenv'
 import path from 'path'
 
@@ -493,7 +492,7 @@ export class AdminService {
           registrationSource: 'admin' as const
         }
         
-        const emailSent = await ServerEmailService.sendNewRegistrationNotification(registrationData)
+        const emailSent = await EmailService.sendNewRegistrationNotification(registrationData)
         
         if (emailSent) {
           console.log('✅ Notificación de nuevo cliente enviada al admin')

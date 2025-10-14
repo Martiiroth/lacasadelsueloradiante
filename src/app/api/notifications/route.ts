@@ -6,15 +6,32 @@ export async function POST(request: NextRequest) {
     console.log('📧 Notifications API - Received request')
     
     const body = await request.json()
-    const { action, orderData } = body
+    const { action, orderData, registrationData } = body
 
     console.log('📧 Notifications API - Action:', action)
-    console.log('📧 Notifications API - OrderData keys:', Object.keys(orderData || {}))
+    console.log('📧 Notifications API - Data keys:', Object.keys(orderData || registrationData || {}))
 
-    if (!action || !orderData) {
-      console.error('❌ Notifications API - Missing required fields')
+    if (!action) {
+      console.error('❌ Notifications API - Missing action')
       return NextResponse.json(
-        { success: false, message: 'Action y orderData son requeridos' },
+        { success: false, message: 'Action es requerido' },
+        { status: 400 }
+      )
+    }
+
+    // Validar que tenemos los datos necesarios según la acción
+    if (['send_order_notification', 'send_new_order_notification'].includes(action) && !orderData) {
+      console.error('❌ Notifications API - Missing orderData for order action')
+      return NextResponse.json(
+        { success: false, message: 'orderData es requerido para acciones de pedidos' },
+        { status: 400 }
+      )
+    }
+
+    if (action === 'send_new_registration_notification' && !registrationData) {
+      console.error('❌ Notifications API - Missing registrationData for registration action')
+      return NextResponse.json(
+        { success: false, message: 'registrationData es requerido para notificaciones de registro' },
         { status: 400 }
       )
     }
@@ -33,6 +50,10 @@ export async function POST(request: NextRequest) {
       case 'verify_configuration':
         console.log('📧 Verifying email configuration...')
         result = await ServerEmailService.verifyEmailConfiguration()
+        break
+      case 'send_new_registration_notification':
+        console.log('📧 Sending new registration notification...')
+        result = await ServerEmailService.sendNewRegistrationNotification(registrationData)
         break
       default:
         console.error('❌ Invalid action:', action)

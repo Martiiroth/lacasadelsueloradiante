@@ -19,6 +19,22 @@ interface OrderEmailData {
   invoiceNumber?: string
 }
 
+interface NewRegistrationEmailData {
+  clientName: string
+  clientEmail: string
+  phone?: string
+  nif_cif?: string
+  region?: string
+  city?: string
+  address_line1?: string
+  postal_code?: string
+  activity?: string
+  company_name?: string
+  company_position?: string
+  registrationDate: string
+  registrationSource: 'public' | 'admin'
+}
+
 class EmailService {
   // Enviar notificación de cambio de estado
   static async sendOrderStatusNotification(orderData: OrderEmailData): Promise<boolean> {
@@ -82,6 +98,28 @@ class EmailService {
       return result.success
     } catch (error) {
       console.error('Error verifying email configuration:', error)
+      return false
+    }
+  }
+
+  // Enviar notificación de nuevo registro al admin
+  static async sendNewRegistrationNotification(registrationData: NewRegistrationEmailData): Promise<boolean> {
+    try {
+      const response = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'send_new_registration_notification',
+          registrationData
+        })
+      })
+
+      const result = await response.json()
+      return result.success
+    } catch (error) {
+      console.error('Error sending new registration notification:', error)
       return false
     }
   }

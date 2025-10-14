@@ -16,6 +16,7 @@
  */
 
 import { supabase } from './supabase'
+import EmailService from './emailService'
 import type { LoginCredentials, RegisterData, Client, UserWithClient } from '../types/auth'
 
 export class AuthService {
@@ -84,6 +85,36 @@ export class AuthService {
             // El trigger podria haber funcionado de todas formas
           } else {
             console.log('Client record created successfully')
+            
+            // Enviar notificación de nuevo registro al admin
+            try {
+              const registrationData = {
+                clientName: `${registerData.first_name} ${registerData.last_name}`,
+                clientEmail: registerData.email,
+                phone: registerData.phone,
+                nif_cif: registerData.nif_cif,
+                region: registerData.region,
+                city: registerData.city,
+                address_line1: registerData.address_line1,
+                postal_code: registerData.postal_code,
+                activity: registerData.activity,
+                company_name: registerData.company_name,
+                company_position: registerData.company_position,
+                registrationDate: new Date().toISOString(),
+                registrationSource: 'public' as const
+              }
+              
+              const emailSent = await EmailService.sendNewRegistrationNotification(registrationData)
+              
+              if (emailSent) {
+                console.log('✅ Notificación de nuevo registro enviada al admin')
+              } else {
+                console.log('⚠️ No se pudo enviar la notificación de nuevo registro')
+              }
+            } catch (emailError) {
+              console.error('Error enviando notificación de registro por email:', emailError)
+              // No fallar el registro si el email falla
+            }
           }
         } catch (error) {
           console.error('Error creating client record:', error)

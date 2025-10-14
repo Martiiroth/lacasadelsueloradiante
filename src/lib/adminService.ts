@@ -12,6 +12,7 @@ import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'
 import EmailService from './emailService'
+import ServerEmailService from './emailService.server'
 import { config } from 'dotenv'
 import path from 'path'
 
@@ -473,6 +474,36 @@ export class AdminService {
       }
 
       console.log('Client record created successfully with role:', defaultRole?.id || 'none')
+
+      // Enviar notificación de nuevo registro al admin
+      try {
+        const registrationData = {
+          clientName: `${data.first_name} ${data.last_name}`,
+          clientEmail: data.email,
+          phone: data.phone,
+          nif_cif: data.nif_cif,
+          region: data.region,
+          city: data.city,
+          address_line1: data.address_line1,
+          postal_code: data.postal_code,
+          activity: data.activity,
+          company_name: data.company_name,
+          company_position: data.company_position,
+          registrationDate: new Date().toISOString(),
+          registrationSource: 'admin' as const
+        }
+        
+        const emailSent = await ServerEmailService.sendNewRegistrationNotification(registrationData)
+        
+        if (emailSent) {
+          console.log('✅ Notificación de nuevo cliente enviada al admin')
+        } else {
+          console.log('⚠️ No se pudo enviar la notificación de nuevo cliente')
+        }
+      } catch (emailError) {
+        console.error('Error enviando notificación de nuevo cliente por email:', emailError)
+        // No fallar la creación si el email falla
+      }
 
       console.log('Client creation completed successfully')
       return true

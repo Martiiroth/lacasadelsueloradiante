@@ -59,6 +59,23 @@ interface OrderEmailData {
   invoiceNumber?: string
 }
 
+// Tipos para datos de nuevo registro
+interface NewRegistrationEmailData {
+  clientName: string
+  clientEmail: string
+  phone?: string
+  nif_cif?: string
+  region?: string
+  city?: string
+  address_line1?: string
+  postal_code?: string
+  activity?: string
+  company_name?: string
+  company_position?: string
+  registrationDate: string
+  registrationSource: 'public' | 'admin'
+}
+
 // Mapeo de estados a textos legibles en español
 const statusMap = {
   'pending': 'Pendiente',
@@ -282,6 +299,138 @@ class ServerEmailService {
     `
   }
 
+  // Template para notificación de nuevo registro
+  private static createNewRegistrationEmailTemplate(data: NewRegistrationEmailData): string {
+    const sourceText = data.registrationSource === 'public' ? 'Registro público en la web' : 'Creado desde panel de admin'
+    const registrationDate = new Date(data.registrationDate).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Nuevo Cliente Registrado</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: #ffffff; border-radius: 10px; padding: 30px; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #e97316;">
+          <h1 style="color: #e97316; margin: 0; font-size: 28px;">🎉 Nuevo Cliente Registrado</h1>
+          <p style="color: #666; margin: 10px 0 0 0; font-size: 16px;">La Casa del Suelo Radiante</p>
+        </div>
+
+        <!-- Contenido principal -->
+        <div style="padding: 30px 0;">
+          <h2 style="color: #2c3e50; margin-top: 0;">¡Tenemos un nuevo cliente!</h2>
+          
+          <p style="font-size: 16px; margin-bottom: 25px;">
+            Se ha registrado un nuevo cliente en la plataforma. Aquí tienes sus datos:
+          </p>
+
+          <!-- Datos del cliente -->
+          <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #2c3e50; margin-top: 0; border-bottom: 2px solid #e97316; padding-bottom: 10px;">
+              Información del Cliente
+            </h3>
+            
+            <div style="display: grid; gap: 15px;">
+              <div>
+                <strong style="color: #e97316;">Nombre:</strong> 
+                <span style="margin-left: 10px;">${data.clientName}</span>
+              </div>
+              
+              <div>
+                <strong style="color: #e97316;">Email:</strong> 
+                <span style="margin-left: 10px;">${data.clientEmail}</span>
+              </div>
+              
+              ${data.phone ? `
+              <div>
+                <strong style="color: #e97316;">Teléfono:</strong> 
+                <span style="margin-left: 10px;">${data.phone}</span>
+              </div>
+              ` : ''}
+              
+              ${data.nif_cif ? `
+              <div>
+                <strong style="color: #e97316;">NIF/CIF:</strong> 
+                <span style="margin-left: 10px;">${data.nif_cif}</span>
+              </div>
+              ` : ''}
+              
+              ${data.company_name ? `
+              <div>
+                <strong style="color: #e97316;">Empresa:</strong> 
+                <span style="margin-left: 10px;">${data.company_name}</span>
+                ${data.company_position ? `<br><em style="margin-left: 65px; color: #666;">Cargo: ${data.company_position}</em>` : ''}
+              </div>
+              ` : ''}
+              
+              ${data.activity ? `
+              <div>
+                <strong style="color: #e97316;">Actividad:</strong> 
+                <span style="margin-left: 10px;">${data.activity}</span>
+              </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Dirección si está disponible -->
+          ${(data.address_line1 || data.city || data.region) ? `
+          <div style="background: #f1f5f9; padding: 25px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #2c3e50; margin-top: 0; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
+              📍 Dirección
+            </h3>
+            <div style="font-size: 14px; line-height: 1.8;">
+              ${data.address_line1 ? `<div>${data.address_line1}</div>` : ''}
+              ${data.postal_code && data.city ? `<div>${data.postal_code} ${data.city}</div>` : ''}
+              ${data.region ? `<div>${data.region}</div>` : ''}
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Información del registro -->
+          <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #22c55e;">
+            <h4 style="color: #166534; margin-top: 0;">📋 Detalles del Registro</h4>
+            <p style="margin: 5px 0;"><strong>Fecha:</strong> ${registrationDate}</p>
+            <p style="margin: 5px 0;"><strong>Origen:</strong> ${sourceText}</p>
+          </div>
+
+          <!-- Acciones sugeridas -->
+          <div style="background: #fef3c7; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #f59e0b;">
+            <h4 style="color: #92400e; margin-top: 0;">💡 Próximos Pasos Sugeridos</h4>
+            <ul style="margin: 10px 0; padding-left: 20px; color: #92400e;">
+              <li style="margin-bottom: 8px;">Revisar el perfil del cliente en el panel de admin</li>
+              <li style="margin-bottom: 8px;">Contactar al cliente para darle la bienvenida</li>
+              <li style="margin-bottom: 8px;">Ofrecer información sobre productos y servicios</li>
+              <li style="margin-bottom: 8px;">Verificar si necesita asesoramiento técnico</li>
+            </ul>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e1e5e9;">
+          <p style="color: #6b7280; font-size: 14px; margin: 0;">
+            Panel de Administración - La Casa del Suelo Radiante
+          </p>
+          <p style="color: #6b7280; font-size: 12px; margin: 10px 0 0 0;">
+            Este es un email automático de notificación.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `
+  }
+
   // Enviar notificación de cambio de estado
   static async sendOrderStatusNotification(orderData: OrderEmailData): Promise<boolean> {
     try {
@@ -394,6 +543,33 @@ class ServerEmailService {
       console.error('- Error type:', error instanceof Error ? error.constructor.name : typeof error)
       console.error('- Error message:', error instanceof Error ? error.message : String(error))
       console.error('- Full error:', error)
+      return false
+    }
+  }
+
+  // Enviar notificación de nuevo registro al admin
+  static async sendNewRegistrationNotification(registrationData: NewRegistrationEmailData): Promise<boolean> {
+    try {
+      const adminEmail = process.env.EMAIL_ADMIN_ADDRESS || 'admin@lacasadelsueloradiante.es'
+      const transporter = getTransporter()
+
+      const emailOptions = {
+        from: {
+          name: 'Sistema La Casa del Suelo Radiante',
+          address: process.env.EMAIL_USER || 'noreply@lacasadelsueloradiante.es'
+        },
+        to: adminEmail,
+        subject: `🎉 Nuevo Cliente Registrado - ${registrationData.clientName}`,
+        html: this.createNewRegistrationEmailTemplate(registrationData)
+      }
+
+      console.log(`📧 Enviando notificación de nuevo registro al admin: ${adminEmail}`)
+      const result = await transporter.sendMail(emailOptions)
+      console.log(`✅ Notificación de nuevo registro enviada correctamente para ${registrationData.clientName}`)
+      
+      return true
+    } catch (error) {
+      console.error('❌ Error enviando notificación de nuevo registro:', error)
       return false
     }
   }

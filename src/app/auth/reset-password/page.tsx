@@ -18,28 +18,48 @@ function ResetPasswordForm() {
   const supabase = createClient()
 
   useEffect(() => {
-    // Verificar si tenemos los tokens de Supabase en la URL
+    // Verificar si tenemos tokens en la URL (formato moderno o PKCE)
     const access_token = searchParams.get('access_token')
     const refresh_token = searchParams.get('refresh_token')
-    
-    if (!access_token || !refresh_token) {
-      setError('Enlace de recuperación inválido o expirado')
-      setVerifying(false)
+    const pkce_token = searchParams.get('token')
+    const type = searchParams.get('type')
+
+    // Formato moderno con access_token y refresh_token
+    if (access_token && refresh_token) {
+      supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      }).then(({ error }: { error: any }) => {
+        if (error) {
+          setError('Enlace de recuperación inválido o expirado')
+        } else {
+          setValidToken(true)
+        }
+        setVerifying(false)
+      })
       return
     }
 
-    // Establecer la sesión con los tokens de Supabase
-    supabase.auth.setSession({
-      access_token,
-      refresh_token,
-    }).then(({ error }: { error: any }) => {
-      if (error) {
-        setError('Enlace de recuperación inválido o expirado')
-      } else {
-        setValidToken(true)
-      }
-      setVerifying(false)
-    })
+    // Formato PKCE con token único
+    if (pkce_token && type === 'recovery') {
+      // Usar verifyOtp para tokens PKCE
+      supabase.auth.verifyOtp({
+        token_hash: pkce_token,
+        type: 'recovery'
+      }).then(({ error, data }: { error: any, data: any }) => {
+        if (error) {
+          setError('Enlace de recuperación inválido o expirado')
+        } else {
+          setValidToken(true)
+        }
+        setVerifying(false)
+      })
+      return
+    }
+
+    // Si no hay tokens válidos
+    setError('Enlace de recuperación inválido o expirado')
+    setVerifying(false)
   }, [searchParams, supabase.auth])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,35 +88,53 @@ function ResetPasswordForm() {
     try {
       const access_token = searchParams.get('access_token')
       const refresh_token = searchParams.get('refresh_token')
+      const pkce_token = searchParams.get('token')
+      const type = searchParams.get('type')
 
-      if (!access_token || !refresh_token) {
-        setError('Enlace de recuperación inválido o expirado')
-        setLoading(false)
-        return
+      // Si tenemos formato moderno (access_token + refresh_token)
+      if (access_token && refresh_token) {
+        const response = await fetch('/api/reset-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            access_token,
+            refresh_token,
+            new_password: password
+          }),
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          setError(result.error || 'Error al actualizar la contraseña')
+        } else {
+          setSuccess(true)
+          setTimeout(() => {
+            router.push('/auth/login?message=Contraseña actualizada correctamente')
+          }, 3000)
+        }
       }
+      // Si tenemos formato PKCE (token único)
+      else if (pkce_token && type === 'recovery') {
+        // Usar Supabase directamente para actualizar la contraseña
+        const { error } = await supabase.auth.updateUser({
+          password: password
+        })
 
-      const response = await fetch('/api/reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          access_token,
-          refresh_token,
-          new_password: password
-        }),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        setError(result.error || 'Error al actualizar la contraseña')
-      } else {
-        setSuccess(true)
-        // Redirigir al login después de 3 segundos
-        setTimeout(() => {
-          router.push('/auth/login?message=Contraseña actualizada correctamente')
-        }, 3000)
+        if (error) {
+          setError(error.message || 'Error al actualizar la contraseña')
+        } else {
+          setSuccess(true)
+          setTimeout(() => {
+            router.push('/auth/login?message=Contraseña actualizada correctamente')
+          }, 3000)
+        }
+      }
+      // Si no hay tokens válidos
+      else {
+        setError('Enlace de recuperación inválido o expirado')
       }
     } catch (err) {
       setError('Error de conexión. Inténtalo de nuevo.')

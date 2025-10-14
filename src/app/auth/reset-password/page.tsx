@@ -19,6 +19,7 @@ function ResetPasswordForm() {
 
   useEffect(() => {
     // Verificar si tenemos tokens en la URL (formato moderno o PKCE)
+    // El redirectTo en resetPasswordForEmail() determina qué formato recibimos
     const access_token = searchParams.get('access_token')
     const refresh_token = searchParams.get('refresh_token')
     const pkce_token = searchParams.get('token')

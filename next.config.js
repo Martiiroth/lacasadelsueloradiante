@@ -8,6 +8,25 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // Configurar headers para servir archivos HTML en /templates/
+  async headers() {
+    return [
+      {
+        source: '/templates/:path*.html',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'text/html; charset=utf-8',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, s-maxage=3600',
+          },
+        ],
+      },
+    ]
+  },
+
   // Configuración del webpack para manejar módulos de servidor
   webpack: (config, { isServer }) => {
     if (!isServer) {

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirma tu registro - La Casa del Suelo Radiante</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            color: #e74c3c;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: #27ae60;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #219a52;
+        }
+        .welcome-box {
+            background-color: #e8f5e8;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #27ae60;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🔥 La Casa del Suelo Radiante</div>
+            <p>Sistemas de calefacción eficientes y sostenibles</p>
+        </div>
+
+        <h1>¡Bienvenido a La Casa del Suelo Radiante!</h1>
+        
+        <p>¡Hola y bienvenido!</p>
+        
+        <p>Gracias por registrarte en <strong>La Casa del Suelo Radiante</strong>. Para completar tu registro, confirma tu email haciendo clic en el botón de abajo:</p>
+        
+        <div style="text-align: center;">
+            <a href="{{ .ConfirmationURL }}" class="button">Confirmar mi Email</a>
+        </div>
+        
+        <div class="welcome-box">
+            <h3>🎉 ¡Ya casi terminamos!</h3>
+            <p>Una vez confirmado tu email, podrás:</p>
+            <ul>
+                <li>✅ Acceder a tu cuenta personal</li>
+                <li>🛒 Realizar pedidos y seguimiento</li>
+                <li>📞 Contactar con nuestro equipo técnico</li>
+                <li>📧 Recibir ofertas y novedades exclusivas</li>
+            </ul>
+        </div>
+        
+        <p><strong>Tu email:</strong> {{ .Email }}</p>
+        
+        <p>Si tienes problemas con el botón, copia y pega este enlace:</p>
+        <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+            {{ .ConfirmationURL }}
+        </p>
+        
+        <div class="footer">
+            <p><strong>La Casa del Suelo Radiante</strong></p>
+            <p>Calle Apostol Santiago 59, 28004 Madrid, España</p>
+            <p>📞 +34 91 123 45 67 | 📧 consultas@lacasadelsueloradiante.es</p>
+            <p>🌐 <a href="https://lacasadelsueloradiante.es">lacasadelsueloradiante.es</a></p>
+        </div>
+    </div>
+</body>
+</html>

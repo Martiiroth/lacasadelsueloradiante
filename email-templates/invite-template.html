@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invitación - La Casa del Suelo Radiante</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            color: #e74c3c;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .button:hover {
+            background-color: #2980b9;
+        }
+        .invitation-box {
+            background-color: #ebf3fd;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #3498db;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🔥 La Casa del Suelo Radiante</div>
+            <p>Sistemas de calefacción eficientes y sostenibles</p>
+        </div>
+
+        <h1>¡Has sido invitado!</h1>
+        
+        <p>¡Hola!</p>
+        
+        <p>Has sido invitado a formar parte de <strong>La Casa del Suelo Radiante</strong>, tu especialista en sistemas de calefacción por suelo radiante.</p>
+        
+        <div style="text-align: center;">
+            <a href="{{ .ConfirmationURL }}" class="button">Aceptar Invitación</a>
+        </div>
+        
+        <div class="invitation-box">
+            <h3>🎯 ¿Qué te espera?</h3>
+            <p>Al unirte a nuestra plataforma tendrás acceso a:</p>
+            <ul>
+                <li>💡 Asesoramiento técnico especializado</li>
+                <li>🛠️ Catálogo completo de productos</li>
+                <li>📊 Calculadoras y herramientas técnicas</li>
+                <li>🚀 Servicio de instalación profesional</li>
+            </ul>
+        </div>
+        
+        <p><strong>Email de invitación:</strong> {{ .Email }}</p>
+        <p><strong>Sitio web:</strong> {{ .SiteURL }}</p>
+        
+        <p>Si tienes problemas con el botón, copia y pega este enlace:</p>
+        <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+            {{ .ConfirmationURL }}
+        </p>
+        
+        <div class="footer">
+            <p><strong>La Casa del Suelo Radiante</strong></p>
+            <p>Calle Apostol Santiago 59, 28004 Madrid, España</p>
+            <p>📞 +34 91 123 45 67 | 📧 consultas@lacasadelsueloradiante.es</p>
+            <p>🌐 <a href="https://lacasadelsueloradiante.es">lacasadelsueloradiante.es</a></p>
+        </div>
+    </div>
+</body>
+</html>

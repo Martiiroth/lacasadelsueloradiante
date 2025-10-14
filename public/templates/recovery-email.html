@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Contraseña - La Casa del Suelo Radiante</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0;
+            background-color: #f8fafc;
+        }
+        
+        .email-container {
+            background-color: #ffffff;
+            margin: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .tagline {
+            font-size: 14px;
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .title {
+            color: #1f2937;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+        
+        .message {
+            font-size: 16px;
+            color: #4b5563;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        
+        .button-container {
+            text-align: center;
+            margin: 35px 0;
+        }
+        
+        .reset-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+        
+        .reset-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.4);
+        }
+        
+        .info-box {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        
+        .info-box .info-title {
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-list {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+            color: #92400e;
+        }
+        
+        .info-list li {
+            margin: 5px 0;
+        }
+        
+        .backup-link {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 25px 0;
+        }
+        
+        .backup-link p {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .backup-url {
+            word-break: break-all;
+            background-color: #f3f4f6;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        
+        .footer {
+            background-color: #f9fafb;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .company-info {
+            margin-bottom: 15px;
+        }
+        
+        .company-name {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+        
+        .contact-info {
+            font-size: 14px;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+        
+        .footer-links {
+            margin-top: 15px;
+        }
+        
+        .footer-link {
+            color: #dc2626;
+            text-decoration: none;
+            font-size: 14px;
+            margin: 0 10px;
+        }
+        
+        .footer-link:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+            }
+            
+            .header {
+                padding: 25px 20px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .reset-button {
+                padding: 14px 28px;
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">
+                🔥 La Casa del Suelo Radiante
+            </div>
+            <p class="tagline">Especialistas en calefacción eficiente</p>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <h1 class="title">Recupera tu contraseña</h1>
+            
+            <div class="message">
+                <p>Hola,</p>
+                <p>Has solicitado restablecer la contraseña de tu cuenta en <strong>La Casa del Suelo Radiante</strong>.</p>
+                <p>Haz clic en el botón de abajo para crear una nueva contraseña de forma segura:</p>
+            </div>
+            
+            <!-- Reset Button -->
+            <div class="button-container">
+                <a href="{{ .ConfirmationURL }}" class="reset-button">
+                    Restablecer Contraseña
+                </a>
+            </div>
+            
+            <!-- Security Info -->
+            <div class="info-box">
+                <div class="info-title">
+                    ⚠️ Información importante
+                </div>
+                <ul class="info-list">
+                    <li>Este enlace es válido por <strong>1 hora</strong> por motivos de seguridad</li>
+                    <li>Si no solicitaste este cambio, puedes ignorar este email</li>
+                    <li>Tu cuenta permanecerá segura si no usas este enlace</li>
+                    <li>Nunca compartas este enlace con otras personas</li>
+                </ul>
+            </div>
+            
+            <!-- Email info -->
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                    <strong>Tu email:</strong> {{ .Email }}<br>
+                    <strong>Sitio web:</strong> {{ .SiteURL }}
+                </p>
+            </div>
+            
+            <!-- Backup link -->
+            <div class="backup-link">
+                <p>Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+                <div class="backup-url">{{ .ConfirmationURL }}</div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div class="company-info">
+                <div class="company-name">La Casa del Suelo Radiante</div>
+                <div class="contact-info">
+                    📍 Calle Apostol Santiago 59, 28004 Madrid, España<br>
+                    📞 +34 91 123 45 67 | 📧 consultas@lacasadelsueloradiante.es
+                </div>
+            </div>
+            
+            <div class="footer-links">
+                <a href="https://lacasadelsueloradiante.es" class="footer-link">Sitio Web</a>
+                <a href="https://lacasadelsueloradiante.es/contacto" class="footer-link">Contacto</a>
+                <a href="https://lacasadelsueloradiante.es/productos" class="footer-link">Productos</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

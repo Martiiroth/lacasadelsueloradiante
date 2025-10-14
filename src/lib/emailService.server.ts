@@ -264,8 +264,8 @@ class ServerEmailService {
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0;">
           <h4 style="margin-top: 0; color: #2c3e50;">¿Necesitas ayuda?</h4>
           <p style="margin: 10px 0;">Si tienes alguna pregunta sobre tu pedido, no dudes en contactarnos:</p>
-          <p style="margin: 5px 0;"><strong>Email:</strong> consultas@lacasadelsueloradianteapp.com</p>
-          <p style="margin: 5px 0;"><strong>Teléfono:</strong> 123-456-789</p>
+          <p style="margin: 5px 0;"><strong>Email:</strong> consultas@lacasadelsueloradiante.es</p>
+          <p style="margin: 5px 0;"><strong>Teléfono:</strong> 689 57 13 81</p>
         </div>
         
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e1e5e9;">
@@ -285,7 +285,7 @@ class ServerEmailService {
   // Enviar notificación de cambio de estado
   static async sendOrderStatusNotification(orderData: OrderEmailData): Promise<boolean> {
     try {
-  const adminEmail = 'consultas@lacasadelsueloradianteapp.com'
+  const adminEmail = 'consultas@lacasadelsueloradiante.es'
       const statusText = this.getStatusText(orderData.status)
       const transporter = getTransporter()
 

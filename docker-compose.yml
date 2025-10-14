@@ -1,7 +1,9 @@
-version: '3.8'
+version: '3.9'
 
 # Cargar variables de entorno desde archivo .env
 # Docker Compose carga automáticamente .env si existe
+# Este docker-compose es solo para la aplicación web
+# Para nginx con SSL usar: docker-compose -f docker-compose-nginx.yml
 
 services:
   # Aplicación Next.js - Solo con Supabase
@@ -48,24 +50,9 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - app-network
-
-  # Nginx como proxy reverso - DESHABILITADO para evitar conflictos de puerto
-  # Usar nginx externo o cambiar puertos si es necesario
-  # nginx:
-  #   image: nginx:alpine
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-  #     - ./nginx/ssl:/etc/nginx/ssl
-  #   depends_on:
-  #     - nextjs-app
-  #   networks:
-  #     - app-network
+      - lacasadelsueloradiante_network
+    container_name: nextjs-app-container
 
 networks:
-  app-network:
-    driver: bridge
+  lacasadelsueloradiante_network:
+    external: true

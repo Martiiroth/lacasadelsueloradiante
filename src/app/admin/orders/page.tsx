@@ -342,6 +342,25 @@ export default function AdminOrders() {
                             {order.client.email}
                           </div>
                         </div>
+                      ) : order.billing_address ? (
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            <span className="inline-flex items-center">
+                              {order.billing_address.first_name} {order.billing_address.last_name}
+                              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Invitado
+                              </span>
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {order.billing_address.email}
+                          </div>
+                          {order.billing_address.phone && (
+                            <div className="text-xs text-gray-400">
+                              Tel: {order.billing_address.phone}
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-sm text-gray-500">Cliente no encontrado</span>
                       )}
@@ -439,6 +458,25 @@ export default function AdminOrders() {
                             <div className="text-xs text-gray-500">
                               {order.client.email}
                             </div>
+                          </div>
+                        ) : order.billing_address ? (
+                          <div className="mt-1">
+                            <div className="text-sm text-gray-900">
+                              <span className="inline-flex items-center">
+                                {order.billing_address.first_name} {order.billing_address.last_name}
+                                <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                  Invitado
+                                </span>
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {order.billing_address.email}
+                            </div>
+                            {order.billing_address.phone && (
+                              <div className="text-xs text-gray-400">
+                                Tel: {order.billing_address.phone}
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <span className="text-sm text-gray-500">Cliente no encontrado</span>

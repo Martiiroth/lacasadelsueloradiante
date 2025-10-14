@@ -388,6 +388,70 @@ export default function AdminOrderDetail() {
                       </button>
                     </div>
                   </div>
+                ) : order.billing_address ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <p className="text-sm font-medium text-gray-900">
+                        {order.billing_address.first_name} {order.billing_address.last_name}
+                      </p>
+                      <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Cliente Invitado
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">{order.billing_address.email}</p>
+                    </div>
+                    
+                    {order.billing_address.phone && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</p>
+                        <p className="text-sm text-gray-900">{order.billing_address.phone}</p>
+                      </div>
+                    )}
+                    
+                    {order.billing_address.nif_cif && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">NIF/CIF</p>
+                        <p className="text-sm text-gray-900">{order.billing_address.nif_cif}</p>
+                      </div>
+                    )}
+                    
+                    {order.billing_address.company_name && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</p>
+                        <p className="text-sm text-gray-900">{order.billing_address.company_name}</p>
+                        {order.billing_address.company_position && (
+                          <p className="text-xs text-gray-600">{order.billing_address.company_position}</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {order.billing_address.activity && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</p>
+                        <p className="text-sm text-gray-900">{order.billing_address.activity}</p>
+                      </div>
+                    )}
+
+                    {order.billing_address.city && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Dirección</p>
+                        <div className="text-sm text-gray-900 space-y-1">
+                          <p>{order.billing_address.address_line1}</p>
+                          {order.billing_address.address_line2 && <p>{order.billing_address.address_line2}</p>}
+                          <p>{order.billing_address.postal_code} {order.billing_address.city}</p>
+                          <p>{order.billing_address.region}</p>
+                          {order.billing_address.country && <p>{order.billing_address.country}</p>}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="pt-2 border-t border-gray-200">
+                      <p className="text-xs text-gray-500">
+                        Este pedido fue realizado por un cliente sin cuenta registrada
+                      </p>
+                    </div>
+                  </div>
                 ) : (
                   <p className="text-sm text-gray-500">Cliente no encontrado</p>
                 )}

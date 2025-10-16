@@ -13,55 +13,25 @@ function ResetPasswordForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const [validToken, setValidToken] = useState(false)
+  const [tokenValid, setTokenValid] = useState(false)
   const [verifying, setVerifying] = useState(true)
+
   const supabase = createClient()
 
   useEffect(() => {
-    // Verificar si tenemos tokens en la URL (formato moderno o PKCE)
-    // El redirectTo en resetPasswordForEmail() determina qué formato recibimos
-    const access_token = searchParams.get('access_token')
-    const refresh_token = searchParams.get('refresh_token')
-    const pkce_token = searchParams.get('token')
+    const token = searchParams.get('token')
     const type = searchParams.get('type')
 
-    // Formato moderno con access_token y refresh_token
-    if (access_token && refresh_token) {
-      supabase.auth.setSession({
-        access_token,
-        refresh_token,
-      }).then(({ error }: { error: any }) => {
-        if (error) {
-          setError('Enlace de recuperación inválido o expirado')
-        } else {
-          setValidToken(true)
-        }
-        setVerifying(false)
-      })
+    if (!token || type !== 'recovery') {
+      setError('Enlace de recuperación inválido o expirado')
+      setVerifying(false)
       return
     }
 
-    // Formato PKCE con token único
-    if (pkce_token && type === 'recovery') {
-      // Usar verifyOtp para tokens PKCE
-      supabase.auth.verifyOtp({
-        token_hash: pkce_token,
-        type: 'recovery'
-      }).then(({ error, data }: { error: any, data: any }) => {
-        if (error) {
-          setError('Enlace de recuperación inválido o expirado')
-        } else {
-          setValidToken(true)
-        }
-        setVerifying(false)
-      })
-      return
-    }
-
-    // Si no hay tokens válidos
-    setError('Enlace de recuperación inválido o expirado')
+    // El token de recuperación es válido para actualizar contraseña
+    setTokenValid(true)
     setVerifying(false)
-  }, [searchParams, supabase.auth])
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,58 +57,33 @@ function ResetPasswordForm() {
     }
 
     try {
-      const access_token = searchParams.get('access_token')
-      const refresh_token = searchParams.get('refresh_token')
-      const pkce_token = searchParams.get('token')
-      const type = searchParams.get('type')
+      const token = searchParams.get('token')
+      if (!token) throw new Error('Token de recuperación faltante')
 
-      // Si tenemos formato moderno (access_token + refresh_token)
-      if (access_token && refresh_token) {
-        const response = await fetch('/api/reset-password', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            access_token,
-            refresh_token,
-            new_password: password
-          }),
-        })
+      // Llamar a la nueva API route específica para tokens de recuperación
+      const response = await fetch('/api/reset-password-recovery', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recovery_token: token,
+          new_password: password
+        }),
+      })
 
-        const result = await response.json()
+      const result = await response.json()
 
-        if (!response.ok) {
-          setError(result.error || 'Error al actualizar la contraseña')
-        } else {
-          setSuccess(true)
-          setTimeout(() => {
-            router.push('/auth/login?message=Contraseña actualizada correctamente')
-          }, 3000)
-        }
+      if (!response.ok) {
+        setError(result.error || 'Error al actualizar la contraseña')
+      } else {
+        setSuccess(true)
+        setTimeout(() => {
+          router.push('/auth/login?message=Contraseña actualizada correctamente')
+        }, 3000)
       }
-      // Si tenemos formato PKCE (token único)
-      else if (pkce_token && type === 'recovery') {
-        // Usar Supabase directamente para actualizar la contraseña
-        const { error } = await supabase.auth.updateUser({
-          password: password
-        })
-
-        if (error) {
-          setError(error.message || 'Error al actualizar la contraseña')
-        } else {
-          setSuccess(true)
-          setTimeout(() => {
-            router.push('/auth/login?message=Contraseña actualizada correctamente')
-          }, 3000)
-        }
-      }
-      // Si no hay tokens válidos
-      else {
-        setError('Enlace de recuperación inválido o expirado')
-      }
-    } catch (err) {
-      setError('Error de conexión. Inténtalo de nuevo.')
+    } catch (err: any) {
+      setError(err.message || 'Error de conexión. Inténtalo de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -155,35 +100,19 @@ function ResetPasswordForm() {
     )
   }
 
-  if (error && !validToken) {
+  if (error && !tokenValid) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8 text-center">
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
-                  Enlace inválido
-                </h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
+            <p className="text-red-700">{error}</p>
           </div>
-          <div>
-            <Link
-              href="/auth/forgot-password"
-              className="text-blue-600 hover:text-blue-500 text-sm font-medium"
-            >
-              Solicitar nuevo enlace de recuperación
-            </Link>
-          </div>
+          <Link
+            href="/auth/forgot-password"
+            className="text-blue-600 hover:text-blue-500 text-sm font-medium"
+          >
+            Solicitar nuevo enlace de recuperación
+          </Link>
         </div>
       </div>
     )
@@ -192,97 +121,55 @@ function ResetPasswordForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Nueva contraseña
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Introduce tu nueva contraseña
-          </p>
-        </div>
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Nueva contraseña
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Introduce tu nueva contraseña
+        </p>
 
         {!success ? (
           <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-4">
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  Nueva contraseña
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Nueva contraseña (mín. 6 caracteres)"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="confirmPassword" className="sr-only">
-                  Confirmar contraseña
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  placeholder="Confirmar nueva contraseña"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
+              <input
+                type="password"
+                placeholder="Nueva contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+                required
+              />
+              <input
+                type="password"
+                placeholder="Confirmar nueva contraseña"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md"
+                required
+              />
             </div>
 
-            {error && (
-              <div className="text-red-600 text-sm text-center">
-                {error}
-              </div>
-            )}
+            {error && <p className="text-red-600 text-sm">{error}</p>}
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {loading ? 'Actualizando...' : 'Actualizar contraseña'}
-              </button>
-            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Actualizando...' : 'Actualizar contraseña'}
+            </button>
           </form>
         ) : (
-          <div className="mt-8 space-y-6 text-center">
-            <div className="bg-green-50 border border-green-200 rounded-md p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-green-800">
-                    Contraseña actualizada
-                  </h3>
-                  <div className="mt-2 text-sm text-green-700">
-                    <p>
-                      Tu contraseña ha sido actualizada correctamente.
-                      Serás redirigido al inicio de sesión en unos segundos.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <Link
-                href="/auth/login"
-                className="text-blue-600 hover:text-blue-500 text-sm font-medium"
-              >
-                Ir al inicio de sesión ahora
-              </Link>
-            </div>
+          <div className="text-center mt-6">
+            <p className="text-green-700 mb-4">
+              Tu contraseña ha sido actualizada correctamente.
+            </p>
+            <Link
+              href="/auth/login"
+              className="text-blue-600 hover:text-blue-500"
+            >
+              Ir al inicio de sesión
+            </Link>
           </div>
         )}
       </div>
@@ -292,14 +179,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<p>Cargando...</p>}>
       <ResetPasswordForm />
     </Suspense>
   )

@@ -19,8 +19,7 @@ export default function HomePage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
             <p className="text-sm sm:text-base font-medium">
-              <strong>AVISO:</strong> Nos encontramos en proceso de migración del sistema. 
-              No se aceptan pedidos hasta el <strong>lunes 13 de octubre de 2025</strong>. 
+              <strong>AVISO:</strong> Nos encontramos en proceso de migración del sistema.  
               Disculpen las molestias.
             </p>
           </div>

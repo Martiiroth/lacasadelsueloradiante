@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // Usar la funcionalidad nativa de Supabase para reset de contraseña
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://lacasadelsueloradiante.es/auth/reset-password',
+      redirectTo: 'https://lacasadelsueloradiante.es/auth/callback',
     })
 
     if (error) {

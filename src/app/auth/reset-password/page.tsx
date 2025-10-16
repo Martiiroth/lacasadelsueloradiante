@@ -21,6 +21,22 @@ function ResetPasswordForm() {
   useEffect(() => {
     const token = searchParams.get('token')
     const type = searchParams.get('type')
+    const error = searchParams.get('error')
+    const errorCode = searchParams.get('error_code')
+    const errorDescription = searchParams.get('error_description')
+
+    // Manejar errores específicos de Supabase
+    if (error) {
+      if (errorCode === 'otp_expired') {
+        setError('El enlace de recuperación ha expirado. Por favor solicita uno nuevo.')
+      } else if (errorCode === 'access_denied') {
+        setError('Enlace de recuperación inválido o ya utilizado.')
+      } else {
+        setError(errorDescription || 'Error al procesar el enlace de recuperación')
+      }
+      setVerifying(false)
+      return
+    }
 
     if (!token || type !== 'recovery') {
       setError('Enlace de recuperación inválido o expirado')

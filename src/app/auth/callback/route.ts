@@ -3,35 +3,85 @@ import { createClient } from '@/utils/supabase/server'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const token = searchParams.get('token')
+  
+  // Extraer diferentes tipos de tokens y parámetros
+  const token = searchParams.get('token') || searchParams.get('token_hash')
+  const accessToken = searchParams.get('access_token')
+  const refreshToken = searchParams.get('refresh_token')
   const type = searchParams.get('type')
+  const error = searchParams.get('error')
+  const errorCode = searchParams.get('error_code')
+  const errorDescription = searchParams.get('error_description')
   const redirectTo = searchParams.get('redirect_to') || searchParams.get('redirectTo')
   
   // Log completo de todos los parámetros para debugging
   const allParams = Object.fromEntries(searchParams.entries())
   console.log('🔍 Auth callback URL completa:', request.url)
   console.log('🔍 Todos los parámetros:', allParams)
-  console.log('🔍 Parámetros extraídos:', { token, type, redirectTo })
+  console.log('🔍 Parámetros extraídos:', { 
+    token, 
+    accessToken, 
+    refreshToken, 
+    type, 
+    error, 
+    errorCode,
+    errorDescription,
+    redirectTo 
+  })
 
-  // Si es un token de recuperación, redirigir a la página de reset con el token
-  if (type === 'recovery' && token) {
-    const resetUrl = new URL('/auth/reset-password', request.nextUrl.origin)
-    resetUrl.searchParams.set('token', token)
-    resetUrl.searchParams.set('type', 'recovery')
+  // Manejar errores primero
+  if (error) {
+    console.log('❌ Error en callback:', { error, errorCode, errorDescription })
+    const errorUrl = new URL('/auth/error', request.nextUrl.origin)
+    let errorMessage = 'Error en el enlace de recuperación'
     
-    console.log('✅ Token de recovery encontrado, redirigiendo a:', resetUrl.toString())
+    if (errorCode === 'otp_expired') {
+      errorMessage = 'El enlace de recuperación ha expirado. Solicita uno nuevo.'
+    } else if (errorDescription) {
+      errorMessage = errorDescription
+    } else if (error) {
+      errorMessage = error
+    }
     
-    return NextResponse.redirect(resetUrl.toString())
+    errorUrl.searchParams.set('message', errorMessage)
+    return NextResponse.redirect(errorUrl.toString())
   }
 
-  // Verificar si tenemos parámetros pero no del tipo esperado
-  if (token && !type) {
-    console.log('⚠️ Token encontrado pero sin type, asumiendo recovery')
-    const resetUrl = new URL('/auth/reset-password', request.nextUrl.origin)
-    resetUrl.searchParams.set('token', token)
-    resetUrl.searchParams.set('type', 'recovery')
+  // Si es un token de recuperación, redirigir a la página de reset con el token
+  if (type === 'recovery') {
+    let tokenToUse = token || accessToken
     
-    return NextResponse.redirect(resetUrl.toString())
+    if (tokenToUse) {
+      const resetUrl = new URL('/auth/reset-password', request.nextUrl.origin)
+      resetUrl.searchParams.set('token', tokenToUse)
+      resetUrl.searchParams.set('type', 'recovery')
+      
+      // Si también hay refresh token, añadirlo
+      if (refreshToken) {
+        resetUrl.searchParams.set('refresh_token', refreshToken)
+      }
+      
+      console.log('✅ Token de recovery encontrado, redirigiendo a:', resetUrl.toString())
+      
+      return NextResponse.redirect(resetUrl.toString())
+    }
+  }
+
+  // Verificar si tenemos tokens pero sin type específico (asumir recovery)
+  if ((token || accessToken) && !type) {
+    console.log('⚠️ Token encontrado pero sin type, asumiendo recovery')
+    const tokenToUse = token || accessToken
+    if (tokenToUse) {
+      const resetUrl = new URL('/auth/reset-password', request.nextUrl.origin)
+      resetUrl.searchParams.set('token', tokenToUse)
+      resetUrl.searchParams.set('type', 'recovery')
+      
+      if (refreshToken) {
+        resetUrl.searchParams.set('refresh_token', refreshToken)
+      }
+      
+      return NextResponse.redirect(resetUrl.toString())
+    }
   }
 
   // Si es confirmación de email, usar Supabase para confirmar

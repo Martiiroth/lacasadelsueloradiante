@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,8 +19,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Hacer llamada directa a la API de Supabase Auth para actualizar la contraseña
-    // usando el token de recuperación
+    // Crear cliente de Supabase con service role key para operaciones administrativas
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!, // Necesita service role key
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Usar la API REST directamente para actualizar con recovery token
     const supabaseAuthUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const response = await fetch(`${supabaseAuthUrl}/auth/v1/user`, {
       method: 'PUT',

@@ -6,8 +6,12 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get('token')
   const type = searchParams.get('type')
   const redirectTo = searchParams.get('redirect_to') || searchParams.get('redirectTo')
-
-  console.log('🔍 Auth callback params:', { token, type, redirectTo })
+  
+  // Log completo de todos los parámetros para debugging
+  const allParams = Object.fromEntries(searchParams.entries())
+  console.log('🔍 Auth callback URL completa:', request.url)
+  console.log('🔍 Todos los parámetros:', allParams)
+  console.log('🔍 Parámetros extraídos:', { token, type, redirectTo })
 
   // Si es un token de recuperación, redirigir a la página de reset con el token
   if (type === 'recovery' && token) {
@@ -15,7 +19,17 @@ export async function GET(request: NextRequest) {
     resetUrl.searchParams.set('token', token)
     resetUrl.searchParams.set('type', 'recovery')
     
-    console.log('🔄 Redirigiendo a:', resetUrl.toString())
+    console.log('✅ Token de recovery encontrado, redirigiendo a:', resetUrl.toString())
+    
+    return NextResponse.redirect(resetUrl.toString())
+  }
+
+  // Verificar si tenemos parámetros pero no del tipo esperado
+  if (token && !type) {
+    console.log('⚠️ Token encontrado pero sin type, asumiendo recovery')
+    const resetUrl = new URL('/auth/reset-password', request.nextUrl.origin)
+    resetUrl.searchParams.set('token', token)
+    resetUrl.searchParams.set('type', 'recovery')
     
     return NextResponse.redirect(resetUrl.toString())
   }
@@ -42,7 +56,13 @@ export async function GET(request: NextRequest) {
 
   // Para otros tipos de tokens o si falta información
   console.log('❌ Parámetros inválidos o faltantes')
+  console.log('❌ URL recibida:', request.url)
+  console.log('❌ Todos los params:', allParams)
+  
   const errorUrl = new URL('/auth/error', request.nextUrl.origin)
-  errorUrl.searchParams.set('message', 'Enlace inválido o expirado')
+  const errorMessage = process.env.NODE_ENV === 'development' 
+    ? `Enlace inválido. Params: ${JSON.stringify(allParams)}` 
+    : 'Enlace inválido o expirado'
+  errorUrl.searchParams.set('message', errorMessage)
   return NextResponse.redirect(errorUrl.toString())
 }

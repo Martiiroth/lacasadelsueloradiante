@@ -32,7 +32,10 @@ export async function GET(request: NextRequest) {
   // Manejar errores primero
   if (error) {
     console.log('❌ Error en callback:', { error, errorCode, errorDescription })
-    const errorUrl = new URL('/auth/error', request.nextUrl.origin)
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://lacasadelsueloradiante.es' 
+      : request.nextUrl.origin
+    const errorUrl = new URL('/auth/error', baseUrl)
     let errorMessage = 'Error en el enlace de recuperación'
     
     if (errorCode === 'otp_expired') {
@@ -52,7 +55,10 @@ export async function GET(request: NextRequest) {
     let tokenToUse = token || accessToken
     
     if (tokenToUse) {
-      const resetUrl = new URL('/auth/reset-password', request.nextUrl.origin)
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://lacasadelsueloradiante.es' 
+        : request.nextUrl.origin
+      const resetUrl = new URL('/auth/reset-password', baseUrl)
       resetUrl.searchParams.set('token', tokenToUse)
       resetUrl.searchParams.set('type', 'recovery')
       
@@ -72,7 +78,10 @@ export async function GET(request: NextRequest) {
     console.log('⚠️ Token encontrado pero sin type, asumiendo recovery')
     const tokenToUse = token || accessToken
     if (tokenToUse) {
-      const resetUrl = new URL('/auth/reset-password', request.nextUrl.origin)
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://lacasadelsueloradiante.es' 
+        : request.nextUrl.origin
+      const resetUrl = new URL('/auth/reset-password', baseUrl)
       resetUrl.searchParams.set('token', tokenToUse)
       resetUrl.searchParams.set('type', 'recovery')
       
@@ -95,23 +104,34 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error confirmando email:', error)
-      const errorUrl = new URL('/auth/error', request.nextUrl.origin)
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://lacasadelsueloradiante.es' 
+        : request.nextUrl.origin
+      const errorUrl = new URL('/auth/error', baseUrl)
       errorUrl.searchParams.set('message', 'Error al confirmar el email')
       return NextResponse.redirect(errorUrl.toString())
     }
 
     // Redirigir al dashboard después de confirmar
-    return NextResponse.redirect(new URL('/dashboard', request.nextUrl.origin))
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://lacasadelsueloradiante.es' 
+      : request.nextUrl.origin
+    return NextResponse.redirect(new URL('/dashboard', baseUrl))
   }
 
   // Para otros tipos de tokens o si falta información
   console.log('❌ Parámetros inválidos o faltantes')
   console.log('❌ URL recibida:', request.url)
   console.log('❌ Todos los params:', allParams)
+  console.log('❌ User Agent:', request.headers.get('user-agent'))
+  console.log('❌ Referer:', request.headers.get('referer'))
   
-  const errorUrl = new URL('/auth/error', request.nextUrl.origin)
+  const baseUrl = process.env.NODE_ENV === 'production' 
+    ? 'https://lacasadelsueloradiante.es' 
+    : request.nextUrl.origin
+  const errorUrl = new URL('/auth/error', baseUrl)
   const errorMessage = process.env.NODE_ENV === 'development' 
-    ? `Enlace inválido. Params: ${JSON.stringify(allParams)}` 
+    ? `Enlace inválido. URL: ${request.url} - Params: ${JSON.stringify(allParams)}` 
     : 'Enlace inválido o expirado'
   errorUrl.searchParams.set('message', errorMessage)
   return NextResponse.redirect(errorUrl.toString())

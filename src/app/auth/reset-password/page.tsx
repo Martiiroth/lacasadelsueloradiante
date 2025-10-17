@@ -87,23 +87,44 @@ function ResetPasswordForm() {
 
       // Si hay una sesión activa, usar updateUser directamente
       if (session === 'active') {
+        console.log('🔄 Actualizando contraseña con sesión activa...')
+        
         const { error } = await supabase.auth.updateUser({
           password: password
         })
 
         if (error) {
+          console.error('❌ Error al actualizar contraseña:', error)
           setError(error.message || 'Error al actualizar la contraseña')
+          setLoading(false)
+          return
         } else {
+          console.log('✅ Contraseña actualizada correctamente')
           setSuccess(true)
+          setLoading(false)
+          
           // Cerrar sesión después de cambiar contraseña
-          await supabase.auth.signOut()
+          try {
+            await supabase.auth.signOut()
+            console.log('✅ Sesión cerrada')
+          } catch (signOutError) {
+            console.error('⚠️ Error al cerrar sesión:', signOutError)
+          }
+          
           setTimeout(() => {
             router.push('/auth/login?message=Contraseña actualizada correctamente')
           }, 3000)
+          return
         }
       } else {
         // Usar el token method para tokens directos
-        if (!token) throw new Error('Token de recuperación faltante')
+        if (!token) {
+          setError('Token de recuperación faltante')
+          setLoading(false)
+          return
+        }
+
+        console.log('🔄 Actualizando contraseña con token...')
 
         const response = await fetch('/api/reset-password-recovery', {
           method: 'POST',
@@ -119,17 +140,23 @@ function ResetPasswordForm() {
         const result = await response.json()
 
         if (!response.ok) {
+          console.error('❌ Error en API:', result)
           setError(result.error || 'Error al actualizar la contraseña')
+          setLoading(false)
+          return
         } else {
+          console.log('✅ Contraseña actualizada correctamente via API')
           setSuccess(true)
+          setLoading(false)
           setTimeout(() => {
             router.push('/auth/login?message=Contraseña actualizada correctamente')
           }, 3000)
+          return
         }
       }
     } catch (err: any) {
+      console.error('❌ Error inesperado:', err)
       setError(err.message || 'Error de conexión. Inténtalo de nuevo.')
-    } finally {
       setLoading(false)
     }
   }
@@ -198,10 +225,10 @@ function ResetPasswordForm() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || success}
               className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? 'Actualizando...' : 'Actualizar contraseña'}
+              {loading ? 'Actualizando...' : success ? 'Contraseña actualizada' : 'Actualizar contraseña'}
             </button>
           </form>
         ) : (

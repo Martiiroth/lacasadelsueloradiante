@@ -573,12 +573,6 @@ export class AdminService {
             qty,
             price_cents,
             variant:product_variants (
-              id,
-              title,
-              sku,
-              option1,
-              option2,
-              option3,
               product:products (
                 title
               )
@@ -663,10 +657,6 @@ export class AdminService {
             variant:product_variants (
               id,
               title,
-              sku,
-              option1,
-              option2,
-              option3,
               product:products (
                 title
               )

@@ -264,24 +264,26 @@ export default function AdminOrderDetail() {
                       <div key={item.id} className="flex items-center justify-between border-b border-gray-100 pb-4">
                         <div className="flex-1">
                           <h4 className="text-sm font-medium text-gray-900">
+                            {/* Debug: mostrar qué datos tenemos */}
+                            {console.log('Variant data:', item.variant)}
                             {item.variant ? (
                               // Prioritario: título específico de la variante
-                              item.variant.title ||
+                              (item.variant as any).title ||
                               // Fallback: opciones concatenadas
-                              [item.variant.option1, item.variant.option2, item.variant.option3]
+                              [(item.variant as any).option1, (item.variant as any).option2, (item.variant as any).option3]
                                 .filter(Boolean)
                                 .join(' / ') ||
-                              // Último recurso: mostrar el producto con indicación de variante
-                              `${item.variant.product?.title} - Variante` ||
+                              // Último recurso: mostrar que es una variante sin nombre específico
+                              `${(item.variant as any).product?.title} - Variante` ||
                               'Variante sin identificar'
                             ) : (
                               'Producto sin variante'
                             )}
                           </h4>
                           {/* Mostrar producto padre como contexto si hay variante */}
-                          {item.variant && item.variant.title && (
+                          {item.variant && (
                             <p className="text-sm text-gray-500">
-                              {item.variant.product?.title}
+                              {((item.variant as any)?.product?.title || '')}
                             </p>
                           )}
                           <p className="text-sm text-gray-500">

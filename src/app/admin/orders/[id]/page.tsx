@@ -427,93 +427,105 @@ export default function AdminOrderDetail() {
                       </button>
                     </div>
                   </div>
-                ) : order.shipping_address && (order.shipping_address as any).first_name ? (
-                  // Estructura de datos antigua - datos directos en shipping_address
+                ) : !order.client && order.shipping_address ? (
+                  // Cliente invitado - detectar cualquier estructura de datos
                   <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {(order.shipping_address as any).first_name} {(order.shipping_address as any).last_name}
-                      </p>
-                      {(order.shipping_address as any).email && (
-                        <p className="text-sm text-gray-600">{(order.shipping_address as any).email}</p>
-                      )}
-                    </div>
+                    {(() => {
+                      console.log('🔍 Analizando shipping_address para cliente invitado:', order.shipping_address);
+                      return null;
+                    })()}
                     
-                    {(order.shipping_address as any).phone && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</p>
-                        <p className="text-sm text-gray-900">{(order.shipping_address as any).phone}</p>
-                      </div>
-                    )}
-                    
-                    {(order.shipping_address as any).nif_cif && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">NIF/CIF</p>
-                        <p className="text-sm text-gray-900">{(order.shipping_address as any).nif_cif}</p>
-                      </div>
-                    )}
-                    
-                    {(order.shipping_address as any).company_name && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</p>
-                        <p className="text-sm text-gray-900">{(order.shipping_address as any).company_name}</p>
-                        {(order.shipping_address as any).company_position && (
-                          <p className="text-xs text-gray-600">{(order.shipping_address as any).company_position}</p>
+                    {/* Estructura legacy - datos directos */}
+                    {(order.shipping_address as any).first_name ? (
+                      <>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {(order.shipping_address as any).first_name} {(order.shipping_address as any).last_name}
+                          </p>
+                          {(order.shipping_address as any).email && (
+                            <p className="text-sm text-gray-600">{(order.shipping_address as any).email}</p>
+                          )}
+                        </div>
+                        
+                        {(order.shipping_address as any).phone && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</p>
+                            <p className="text-sm text-gray-900">{(order.shipping_address as any).phone}</p>
+                          </div>
                         )}
-                      </div>
-                    )}
-                    
-                    {(order.shipping_address as any).activity && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</p>
-                        <p className="text-sm text-gray-900">{(order.shipping_address as any).activity}</p>
-                      </div>
-                    )}
-                    
-                    <div className="pt-2 border-t border-gray-200">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        Cliente Invitado
-                      </span>
-                    </div>
-                  </div>
-                ) : order.shipping_address?.billing ? (
-                  // Estructura nueva - datos en shipping_address.billing
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {order.shipping_address.billing.first_name} {order.shipping_address.billing.last_name}
-                      </p>
-                      <p className="text-sm text-gray-600">{order.shipping_address.billing.email}</p>
-                    </div>
-                    
-                    {order.shipping_address.billing.phone && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</p>
-                        <p className="text-sm text-gray-900">{order.shipping_address.billing.phone}</p>
-                      </div>
-                    )}
-                    
-                    {order.shipping_address.billing.nif_cif && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">NIF/CIF</p>
-                        <p className="text-sm text-gray-900">{order.shipping_address.billing.nif_cif}</p>
-                      </div>
-                    )}
-                    
-                    {order.shipping_address.billing.company_name && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</p>
-                        <p className="text-sm text-gray-900">{order.shipping_address.billing.company_name}</p>
-                        {order.shipping_address.billing.company_position && (
-                          <p className="text-xs text-gray-600">{order.shipping_address.billing.company_position}</p>
+                        
+                        {(order.shipping_address as any).nif_cif && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">NIF/CIF</p>
+                            <p className="text-sm text-gray-900">{(order.shipping_address as any).nif_cif}</p>
+                          </div>
                         )}
-                      </div>
-                    )}
-                    
-                    {order.shipping_address.billing.activity && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</p>
-                        <p className="text-sm text-gray-900">{order.shipping_address.billing.activity}</p>
+                        
+                        {(order.shipping_address as any).company_name && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</p>
+                            <p className="text-sm text-gray-900">{(order.shipping_address as any).company_name}</p>
+                            {(order.shipping_address as any).company_position && (
+                              <p className="text-xs text-gray-600">{(order.shipping_address as any).company_position}</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {(order.shipping_address as any).activity && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</p>
+                            <p className="text-sm text-gray-900">{(order.shipping_address as any).activity}</p>
+                          </div>
+                        )}
+                      </>
+                    ) : (order.shipping_address as any).billing ? (
+                      // Estructura nueva - datos en billing
+                      <>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {(order.shipping_address as any).billing.first_name} {(order.shipping_address as any).billing.last_name}
+                          </p>
+                          <p className="text-sm text-gray-600">{(order.shipping_address as any).billing.email}</p>
+                        </div>
+                        
+                        {(order.shipping_address as any).billing.phone && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</p>
+                            <p className="text-sm text-gray-900">{(order.shipping_address as any).billing.phone}</p>
+                          </div>
+                        )}
+                        
+                        {(order.shipping_address as any).billing.nif_cif && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">NIF/CIF</p>
+                            <p className="text-sm text-gray-900">{(order.shipping_address as any).billing.nif_cif}</p>
+                          </div>
+                        )}
+                        
+                        {(order.shipping_address as any).billing.company_name && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</p>
+                            <p className="text-sm text-gray-900">{(order.shipping_address as any).billing.company_name}</p>
+                            {(order.shipping_address as any).billing.company_position && (
+                              <p className="text-xs text-gray-600">{(order.shipping_address as any).billing.company_position}</p>
+                            )}
+                          </div>
+                        )}
+                        
+                        {(order.shipping_address as any).billing.activity && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</p>
+                            <p className="text-sm text-gray-900">{(order.shipping_address as any).billing.activity}</p>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      // Fallback - mostrar estructura disponible
+                      <div className="bg-gray-50 p-3 rounded">
+                        <p className="text-xs font-medium text-gray-500 mb-2">Datos disponibles:</p>
+                        <pre className="text-xs text-gray-700 overflow-auto max-h-32">
+                          {JSON.stringify(order.shipping_address, null, 2)}
+                        </pre>
                       </div>
                     )}
                     

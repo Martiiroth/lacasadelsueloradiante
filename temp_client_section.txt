@@ -1,0 +1,24 @@
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {(order.shipping_address as any).first_name && (order.shipping_address as any).last_name ? 
+                          `${(order.shipping_address as any).first_name} ${(order.shipping_address as any).last_name}` :
+                          (order.shipping_address as any).billing?.first_name && (order.shipping_address as any).billing?.last_name ?
+                          `${(order.shipping_address as any).billing.first_name} ${(order.shipping_address as any).billing.last_name}` :
+                          'Cliente Invitado'
+                        }
+                      </p>
+                      {((order.shipping_address as any).email || (order.shipping_address as any).billing?.email) && (
+                        <p className="text-sm text-gray-600">
+                          {(order.shipping_address as any).email || (order.shipping_address as any).billing?.email}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="pt-2 border-t border-gray-200">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Cliente Invitado
+                      </span>
+                      <p className="text-xs text-gray-500 mt-2">
+                        Ver detalles completos en la sección "Direcciones"
+                      </p>
+                    </div>

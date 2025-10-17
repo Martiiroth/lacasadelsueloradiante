@@ -361,6 +361,127 @@ export default function AdminOrderDetail() {
                       </div>
                     </div>
                   )}
+
+                  {/* Guest Client Addresses - Para clientes invitados */}
+                  {!order.client && order.shipping_address && !order.shipping_address.billing && !order.shipping_address.shipping && (
+                    <div className="md:col-span-2">
+                      <h4 className="text-sm font-medium text-gray-900 mb-4">Información de Cliente Invitado</h4>
+                      
+                      {/* Información Personal */}
+                      <div className="mb-6">
+                        <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Información Personal</h5>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="text-sm text-gray-600 space-y-1">
+                              {(order.shipping_address as any).first_name && (order.shipping_address as any).last_name ? (
+                                <p className="font-medium text-gray-900">
+                                  {(order.shipping_address as any).first_name} {(order.shipping_address as any).last_name}
+                                </p>
+                              ) : (
+                                <p className="font-medium text-gray-900">Cliente Invitado</p>
+                              )}
+                              {(order.shipping_address as any).email && (
+                                <p>{(order.shipping_address as any).email}</p>
+                              )}
+                              {(order.shipping_address as any).phone && (
+                                <p>Tel: {(order.shipping_address as any).phone}</p>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600 space-y-1">
+                              {(order.shipping_address as any).nif_cif && (
+                                <p><span className="font-medium">NIF/CIF:</span> {(order.shipping_address as any).nif_cif}</p>
+                              )}
+                              {(order.shipping_address as any).company_name && (
+                                <p><span className="font-medium">Empresa:</span> {(order.shipping_address as any).company_name}</p>
+                              )}
+                              {(order.shipping_address as any).activity && (
+                                <p><span className="font-medium">Actividad:</span> {(order.shipping_address as any).activity}</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Direcciones */}
+                      {((order.shipping_address as any).address_line1 || (order.shipping_address as any).city) && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Dirección de Facturación */}
+                          <div>
+                            <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Dirección de Facturación</h5>
+                            <div className="bg-blue-50 p-4 rounded-lg text-sm text-gray-700 space-y-1">
+                              {(order.shipping_address as any).address_line1 && (
+                                <p className="font-medium">{(order.shipping_address as any).address_line1}</p>
+                              )}
+                              {(order.shipping_address as any).address_line2 && (
+                                <p>{(order.shipping_address as any).address_line2}</p>
+                              )}
+                              <p>
+                                {(order.shipping_address as any).postal_code} {(order.shipping_address as any).city}
+                                {(order.shipping_address as any).region && `, ${(order.shipping_address as any).region}`}
+                              </p>
+                              {(order.shipping_address as any).country && (
+                                <p>{(order.shipping_address as any).country}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Dirección de Envío */}
+                          <div>
+                            <h5 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Dirección de Envío</h5>
+                            <div className="bg-green-50 p-4 rounded-lg text-sm text-gray-700 space-y-1">
+                              {/* Para clientes invitados, normalmente es la misma dirección */}
+                              {(order.shipping_address as any).use_billing_as_shipping === false && (order.shipping_address as any).shipping_address_line1 ? (
+                                // Si tienen dirección de envío específica
+                                <>
+                                  {(order.shipping_address as any).shipping_first_name && (order.shipping_address as any).shipping_last_name && (
+                                    <p className="font-medium">
+                                      {(order.shipping_address as any).shipping_first_name} {(order.shipping_address as any).shipping_last_name}
+                                    </p>
+                                  )}
+                                  <p className="font-medium">{(order.shipping_address as any).shipping_address_line1}</p>
+                                  {(order.shipping_address as any).shipping_address_line2 && (
+                                    <p>{(order.shipping_address as any).shipping_address_line2}</p>
+                                  )}
+                                  <p>
+                                    {(order.shipping_address as any).shipping_postal_code} {(order.shipping_address as any).shipping_city}
+                                    {(order.shipping_address as any).shipping_region && `, ${(order.shipping_address as any).shipping_region}`}
+                                  </p>
+                                  {(order.shipping_address as any).shipping_country && (
+                                    <p>{(order.shipping_address as any).shipping_country}</p>
+                                  )}
+                                </>
+                              ) : (
+                                // Usar la misma dirección de facturación
+                                <>
+                                  {(order.shipping_address as any).first_name && (order.shipping_address as any).last_name && (
+                                    <p className="font-medium">
+                                      {(order.shipping_address as any).first_name} {(order.shipping_address as any).last_name}
+                                    </p>
+                                  )}
+                                  {(order.shipping_address as any).address_line1 && (
+                                    <p className="font-medium">{(order.shipping_address as any).address_line1}</p>
+                                  )}
+                                  {(order.shipping_address as any).address_line2 && (
+                                    <p>{(order.shipping_address as any).address_line2}</p>
+                                  )}
+                                  <p>
+                                    {(order.shipping_address as any).postal_code} {(order.shipping_address as any).city}
+                                    {(order.shipping_address as any).region && `, ${(order.shipping_address as any).region}`}
+                                  </p>
+                                  {(order.shipping_address as any).country && (
+                                    <p>{(order.shipping_address as any).country}</p>
+                                  )}
+                                  <p className="text-xs text-gray-500 italic mt-2">
+                                    Misma dirección que facturación
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

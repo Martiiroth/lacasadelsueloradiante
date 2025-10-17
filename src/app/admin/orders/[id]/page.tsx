@@ -427,7 +427,57 @@ export default function AdminOrderDetail() {
                       </button>
                     </div>
                   </div>
+                ) : order.shipping_address && (order.shipping_address as any).first_name ? (
+                  // Estructura de datos antigua - datos directos en shipping_address
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {(order.shipping_address as any).first_name} {(order.shipping_address as any).last_name}
+                      </p>
+                      {(order.shipping_address as any).email && (
+                        <p className="text-sm text-gray-600">{(order.shipping_address as any).email}</p>
+                      )}
+                    </div>
+                    
+                    {(order.shipping_address as any).phone && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</p>
+                        <p className="text-sm text-gray-900">{(order.shipping_address as any).phone}</p>
+                      </div>
+                    )}
+                    
+                    {(order.shipping_address as any).nif_cif && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">NIF/CIF</p>
+                        <p className="text-sm text-gray-900">{(order.shipping_address as any).nif_cif}</p>
+                      </div>
+                    )}
+                    
+                    {(order.shipping_address as any).company_name && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</p>
+                        <p className="text-sm text-gray-900">{(order.shipping_address as any).company_name}</p>
+                        {(order.shipping_address as any).company_position && (
+                          <p className="text-xs text-gray-600">{(order.shipping_address as any).company_position}</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {(order.shipping_address as any).activity && (
+                      <div>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</p>
+                        <p className="text-sm text-gray-900">{(order.shipping_address as any).activity}</p>
+                      </div>
+                    )}
+                    
+                    <div className="pt-2 border-t border-gray-200">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Cliente Invitado
+                      </span>
+                    </div>
+                  </div>
                 ) : order.shipping_address?.billing ? (
+                  // Estructura nueva - datos en shipping_address.billing
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm font-medium text-gray-900">
@@ -466,48 +516,11 @@ export default function AdminOrderDetail() {
                         <p className="text-sm text-gray-900">{order.shipping_address.billing.activity}</p>
                       </div>
                     )}
-
-                    {order.shipping_address.billing.city && (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Dirección</p>
-                        <div className="text-sm text-gray-900 space-y-1">
-                          <p>{order.shipping_address.billing.address_line1}</p>
-                          {order.shipping_address.billing.address_line2 && <p>{order.shipping_address.billing.address_line2}</p>}
-                          <p>{order.shipping_address.billing.postal_code} {order.shipping_address.billing.city}</p>
-                          <p>{order.shipping_address.billing.region}</p>
-                          {order.shipping_address.billing.country && <p>{order.shipping_address.billing.country}</p>}
-                        </div>
-                      </div>
-                    )}
                     
                     <div className="pt-2 border-t border-gray-200">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         Cliente Invitado
                       </span>
-                    </div>
-                  </div>
-                ) : order.shipping_address && typeof order.shipping_address === 'object' ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center">
-                      <p className="text-sm font-medium text-gray-900">
-                        Cliente Invitado
-                      </p>
-                      <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Datos Legacy
-                      </span>
-                    </div>
-                    
-                    <div className="bg-gray-50 p-3 rounded">
-                      <p className="text-xs font-medium text-gray-500 mb-2">Datos de dirección disponibles:</p>
-                      <pre className="text-xs text-gray-700 overflow-auto">
-                        {JSON.stringify(order.shipping_address, null, 2)}
-                      </pre>
-                    </div>
-                    
-                    <div className="pt-2 border-t border-gray-200">
-                      <p className="text-xs text-gray-500">
-                        Estructura de datos antigua - necesita migración
-                      </p>
                     </div>
                   </div>
                 ) : (

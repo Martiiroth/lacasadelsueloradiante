@@ -44,6 +44,11 @@ export default function AdminOrderDetail() {
       
       if (foundOrder) {
         setOrder(foundOrder)
+        // Debug: verificar estructura de datos
+        console.log('🔍 Order data:', foundOrder)
+        console.log('🔍 shipping_address:', foundOrder.shipping_address)
+        console.log('🔍 client:', foundOrder.client)
+        console.log('🔍 shipping_address?.billing:', foundOrder.shipping_address?.billing)
       } else {
         setError('Pedido no encontrado')
       }
@@ -485,6 +490,30 @@ export default function AdminOrderDetail() {
                     <div className="pt-2 border-t border-gray-200">
                       <p className="text-xs text-gray-500">
                         Este pedido fue realizado por un cliente sin cuenta registrada
+                      </p>
+                    </div>
+                  </div>
+                ) : order.shipping_address && typeof order.shipping_address === 'object' ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center">
+                      <p className="text-sm font-medium text-gray-900">
+                        Cliente Invitado
+                      </p>
+                      <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Datos Legacy
+                      </span>
+                    </div>
+                    
+                    <div className="bg-gray-50 p-3 rounded">
+                      <p className="text-xs font-medium text-gray-500 mb-2">Datos de dirección disponibles:</p>
+                      <pre className="text-xs text-gray-700 overflow-auto">
+                        {JSON.stringify(order.shipping_address, null, 2)}
+                      </pre>
+                    </div>
+                    
+                    <div className="pt-2 border-t border-gray-200">
+                      <p className="text-xs text-gray-500">
+                        Estructura de datos antigua - necesita migración
                       </p>
                     </div>
                   </div>

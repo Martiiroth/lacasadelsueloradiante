@@ -60,6 +60,10 @@ function ResetPasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Prevenir múltiples envíos
+    if (loading || success) return
+    
     setLoading(true)
     setError('')
 
@@ -81,7 +85,8 @@ function ResetPasswordForm() {
       return
     }
 
-    try {
+    // Usar un try-catch más limpio
+    const updatePassword = async () => {
       const token = searchParams.get('token')
       const session = searchParams.get('session')
 
@@ -94,34 +99,21 @@ function ResetPasswordForm() {
         })
 
         if (error) {
-          console.error('❌ Error al actualizar contraseña:', error)
-          setError(error.message || 'Error al actualizar la contraseña')
-          setLoading(false)
-          return
-        } else {
-          console.log('✅ Contraseña actualizada correctamente')
-          setSuccess(true)
-          setLoading(false)
-          
-          // Cerrar sesión después de cambiar contraseña
-          try {
-            await supabase.auth.signOut()
-            console.log('✅ Sesión cerrada')
-          } catch (signOutError) {
-            console.error('⚠️ Error al cerrar sesión:', signOutError)
-          }
-          
-          setTimeout(() => {
-            router.push('/auth/login?message=Contraseña actualizada correctamente')
-          }, 3000)
-          return
+          throw new Error(error.message || 'Error al actualizar la contraseña')
         }
+        
+        console.log('✅ Contraseña actualizada correctamente')
+        
+        // Cerrar sesión de forma asíncrona sin bloquear
+        supabase.auth.signOut().catch(err => 
+          console.error('⚠️ Error al cerrar sesión:', err)
+        )
+        
+        return true
       } else {
         // Usar el token method para tokens directos
         if (!token) {
-          setError('Token de recuperación faltante')
-          setLoading(false)
-          return
+          throw new Error('Token de recuperación faltante')
         }
 
         console.log('🔄 Actualizando contraseña con token...')
@@ -140,22 +132,31 @@ function ResetPasswordForm() {
         const result = await response.json()
 
         if (!response.ok) {
-          console.error('❌ Error en API:', result)
-          setError(result.error || 'Error al actualizar la contraseña')
-          setLoading(false)
-          return
-        } else {
-          console.log('✅ Contraseña actualizada correctamente via API')
-          setSuccess(true)
-          setLoading(false)
-          setTimeout(() => {
-            router.push('/auth/login?message=Contraseña actualizada correctamente')
-          }, 3000)
-          return
+          throw new Error(result.error || 'Error al actualizar la contraseña')
         }
+        
+        console.log('✅ Contraseña actualizada correctamente via API')
+        return true
       }
+    }
+
+    try {
+      await updatePassword()
+      
+      // Éxito - actualizar estado inmediatamente
+      setSuccess(true)
+      setLoading(false)
+      
+      // Redirigir después de un delay corto, sin bloquear la UI
+      const timer = setTimeout(() => {
+        router.push('/auth/login?message=Contraseña actualizada correctamente')
+      }, 2000)
+      
+      // Limpiar timer si el componente se desmonta
+      return () => clearTimeout(timer)
+      
     } catch (err: any) {
-      console.error('❌ Error inesperado:', err)
+      console.error('❌ Error:', err)
       setError(err.message || 'Error de conexión. Inténtalo de nuevo.')
       setLoading(false)
     }
@@ -223,12 +224,24 @@ function ResetPasswordForm() {
 
             {error && <p className="text-red-600 text-sm">{error}</p>}
 
+            {success && (
+              <div className="text-green-600 text-sm text-center bg-green-50 p-3 rounded-md">
+                ✅ Contraseña actualizada correctamente. Redirigiendo al login...
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading || success}
-              className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
+                success 
+                  ? 'bg-green-600 text-white'
+                  : loading
+                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
-              {loading ? 'Actualizando...' : success ? 'Contraseña actualizada' : 'Actualizar contraseña'}
+              {success ? '✅ Contraseña actualizada' : loading ? 'Actualizando...' : 'Actualizar contraseña'}
             </button>
           </form>
         ) : (

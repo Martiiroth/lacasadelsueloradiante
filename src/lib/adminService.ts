@@ -573,6 +573,7 @@ export class AdminService {
             qty,
             price_cents,
             variant:product_variants (
+              title,
               product:products (
                 title
               )

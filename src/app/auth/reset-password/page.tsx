@@ -18,18 +18,9 @@ function ResetPasswordForm() {
   const supabase = createClient()
 
   useEffect(() => {
-    // Verificar si ya hay una sesión activa
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        console.log('🔄 Usuario ya autenticado, redirigiendo al dashboard...')
-        window.location.replace('/dashboard')
-        return
-      }
-    }
+    // NO verificar sesión aquí - permitir que el usuario cambie la contraseña
+    // aunque esté logueado temporalmente por el enlace de recovery
     
-    checkSession()
-
     const token = searchParams.get('token')
     const type = searchParams.get('type')
     const session = searchParams.get('session')
@@ -74,16 +65,21 @@ function ResetPasswordForm() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔄 Auth event en reset password:', event, session?.user?.email)
       
-      if (event === 'USER_UPDATED' && session?.user) {
+      // Solo redirigir si detectamos USER_UPDATED y el usuario está en loading (indica que envió el form)
+      if (event === 'USER_UPDATED' && session?.user && loading) {
         console.log('✅ Contraseña actualizada detectada, redirigiendo...')
         setLoading(false)
         alert('Contraseña actualizada correctamente')
-        window.location.replace('/dashboard')
+        
+        // Pequeño delay para asegurar que la UI se actualice
+        setTimeout(() => {
+          window.location.replace('/dashboard')
+        }, 500)
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase.auth])
+  }, [supabase.auth, loading])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

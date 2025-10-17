@@ -322,28 +322,39 @@ export default function AdminOrderDetail() {
               </div>
               <div className="px-6 py-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Billing Address */}
-                  {order.billing_address && (
+                  {/* Billing Address - Extraer del shipping_address */}
+                  {order.shipping_address?.billing && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-2">Dirección de Facturación</h4>
                       <div className="text-sm text-gray-600 space-y-1">
-                        <p>{order.billing_address.address_line1}</p>
-                        {order.billing_address.address_line2 && <p>{order.billing_address.address_line2}</p>}
-                        <p>{order.billing_address.postal_code} {order.billing_address.city}</p>
-                        <p>{order.billing_address.region}</p>
+                        <p>{order.shipping_address.billing.first_name} {order.shipping_address.billing.last_name}</p>
+                        <p>{order.shipping_address.billing.email}</p>
+                        {order.shipping_address.billing.phone && <p>{order.shipping_address.billing.phone}</p>}
+                        <p>{order.shipping_address.billing.address_line1}</p>
+                        {order.shipping_address.billing.address_line2 && <p>{order.shipping_address.billing.address_line2}</p>}
+                        <p>{order.shipping_address.billing.postal_code} {order.shipping_address.billing.city}</p>
+                        <p>{order.shipping_address.billing.region}</p>
+                        {order.shipping_address.billing.nif_cif && (
+                          <p className="font-medium">NIF/CIF: {order.shipping_address.billing.nif_cif}</p>
+                        )}
+                        {order.shipping_address.billing.company_name && (
+                          <p className="font-medium">{order.shipping_address.billing.company_name}</p>
+                        )}
                       </div>
                     </div>
                   )}
 
-                  {/* Shipping Address */}
-                  {order.shipping_address && (
+                  {/* Shipping Address - Extraer del shipping_address */}
+                  {order.shipping_address?.shipping && (
                     <div>
                       <h4 className="text-sm font-medium text-gray-900 mb-2">Dirección de Envío</h4>
                       <div className="text-sm text-gray-600 space-y-1">
-                        <p>{order.shipping_address.address_line1}</p>
-                        {order.shipping_address.address_line2 && <p>{order.shipping_address.address_line2}</p>}
-                        <p>{order.shipping_address.postal_code} {order.shipping_address.city}</p>
-                        <p>{order.shipping_address.region}</p>
+                        <p>{order.shipping_address.shipping.first_name} {order.shipping_address.shipping.last_name}</p>
+                        {order.shipping_address.shipping.phone && <p>{order.shipping_address.shipping.phone}</p>}
+                        <p>{order.shipping_address.shipping.address_line1}</p>
+                        {order.shipping_address.shipping.address_line2 && <p>{order.shipping_address.shipping.address_line2}</p>}
+                        <p>{order.shipping_address.shipping.postal_code} {order.shipping_address.shipping.city}</p>
+                        <p>{order.shipping_address.shipping.region}</p>
                       </div>
                     </div>
                   )}
@@ -413,60 +424,60 @@ export default function AdminOrderDetail() {
                       </button>
                     </div>
                   </div>
-                ) : order.billing_address ? (
+                ) : order.shipping_address?.billing ? (
                   <div className="space-y-3">
                     <div className="flex items-center">
                       <p className="text-sm font-medium text-gray-900">
-                        {order.billing_address.first_name} {order.billing_address.last_name}
+                        {order.shipping_address.billing.first_name} {order.shipping_address.billing.last_name}
                       </p>
                       <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         Cliente Invitado
                       </span>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600">{order.billing_address.email}</p>
+                      <p className="text-sm text-gray-600">{order.shipping_address.billing.email}</p>
                     </div>
                     
-                    {order.billing_address.phone && (
+                    {order.shipping_address.billing.phone && (
                       <div>
                         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Teléfono</p>
-                        <p className="text-sm text-gray-900">{order.billing_address.phone}</p>
+                        <p className="text-sm text-gray-900">{order.shipping_address.billing.phone}</p>
                       </div>
                     )}
                     
-                    {order.billing_address.nif_cif && (
+                    {order.shipping_address.billing.nif_cif && (
                       <div>
                         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">NIF/CIF</p>
-                        <p className="text-sm text-gray-900">{order.billing_address.nif_cif}</p>
+                        <p className="text-sm text-gray-900">{order.shipping_address.billing.nif_cif}</p>
                       </div>
                     )}
                     
-                    {order.billing_address.company_name && (
+                    {order.shipping_address.billing.company_name && (
                       <div>
                         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</p>
-                        <p className="text-sm text-gray-900">{order.billing_address.company_name}</p>
-                        {order.billing_address.company_position && (
-                          <p className="text-xs text-gray-600">{order.billing_address.company_position}</p>
+                        <p className="text-sm text-gray-900">{order.shipping_address.billing.company_name}</p>
+                        {order.shipping_address.billing.company_position && (
+                          <p className="text-xs text-gray-600">{order.shipping_address.billing.company_position}</p>
                         )}
                       </div>
                     )}
                     
-                    {order.billing_address.activity && (
+                    {order.shipping_address.billing.activity && (
                       <div>
                         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</p>
-                        <p className="text-sm text-gray-900">{order.billing_address.activity}</p>
+                        <p className="text-sm text-gray-900">{order.shipping_address.billing.activity}</p>
                       </div>
                     )}
 
-                    {order.billing_address.city && (
+                    {order.shipping_address.billing.city && (
                       <div>
                         <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Dirección</p>
                         <div className="text-sm text-gray-900 space-y-1">
-                          <p>{order.billing_address.address_line1}</p>
-                          {order.billing_address.address_line2 && <p>{order.billing_address.address_line2}</p>}
-                          <p>{order.billing_address.postal_code} {order.billing_address.city}</p>
-                          <p>{order.billing_address.region}</p>
-                          {order.billing_address.country && <p>{order.billing_address.country}</p>}
+                          <p>{order.shipping_address.billing.address_line1}</p>
+                          {order.shipping_address.billing.address_line2 && <p>{order.shipping_address.billing.address_line2}</p>}
+                          <p>{order.shipping_address.billing.postal_code} {order.shipping_address.billing.city}</p>
+                          <p>{order.shipping_address.billing.region}</p>
+                          {order.shipping_address.billing.country && <p>{order.shipping_address.billing.country}</p>}
                         </div>
                       </div>
                     )}

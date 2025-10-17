@@ -13,6 +13,23 @@ export async function GET(request: NextRequest) {
   const errorCode = searchParams.get('error_code')
   const errorDescription = searchParams.get('error_description')
   const redirectTo = searchParams.get('redirect_to') || searchParams.get('redirectTo')
+  const code = searchParams.get('code')
+
+  // Referer can help decide if this request came from Supabase hosted pages
+  const referer = request.headers.get('referer') || ''
+
+  // Decide si forzar dominio de producción. Forzamos cuando:
+  // - estamos en producción (NODE_ENV=production)
+  // - el referer proviene de supabase hosted domain
+  // - el redirect_to apunta a lacasadelsueloradiante.es
+  const shouldForceProduction =
+    process.env.NODE_ENV === 'production' ||
+    referer.includes('supabase.lacasadelsueloradianteapp.com') ||
+    (redirectTo && redirectTo.includes('lacasadelsueloradiante.es'))
+
+  const baseUrl = shouldForceProduction
+    ? 'https://lacasadelsueloradiante.es'
+    : request.nextUrl.origin
   
   // Log completo de todos los parámetros para debugging
   const allParams = Object.fromEntries(searchParams.entries())
@@ -29,15 +46,24 @@ export async function GET(request: NextRequest) {
     redirectTo 
   })
 
+  // Si recibimos un 'code' (algún intermediario lo transformó), redirigimos
+  // al dominio de producción preservando todos los parámetros.
+  if (code) {
+    console.log('ℹ️ Callback received code param, redirecting to production domain with preserved params', { code })
+    const target = new URL(request.nextUrl.pathname, baseUrl)
+    // conservar todos los parámetros recibidos
+    Object.entries(allParams).forEach(([k, v]) => {
+      if (v != null) target.searchParams.set(k, String(v))
+    })
+    return NextResponse.redirect(target.toString())
+  }
+
   // Manejar errores primero
   if (error) {
     console.log('❌ Error en callback:', { error, errorCode, errorDescription })
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://lacasadelsueloradiante.es' 
-      : request.nextUrl.origin
     const errorUrl = new URL('/auth/error', baseUrl)
     let errorMessage = 'Error en el enlace de recuperación'
-    
+
     if (errorCode === 'otp_expired') {
       errorMessage = 'El enlace de recuperación ha expirado. Solicita uno nuevo.'
     } else if (errorDescription) {
@@ -45,7 +71,7 @@ export async function GET(request: NextRequest) {
     } else if (error) {
       errorMessage = error
     }
-    
+
     errorUrl.searchParams.set('message', errorMessage)
     return NextResponse.redirect(errorUrl.toString())
   }
@@ -55,9 +81,6 @@ export async function GET(request: NextRequest) {
     let tokenToUse = token || accessToken
     
     if (tokenToUse) {
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://lacasadelsueloradiante.es' 
-        : request.nextUrl.origin
       const resetUrl = new URL('/auth/reset-password', baseUrl)
       resetUrl.searchParams.set('token', tokenToUse)
       resetUrl.searchParams.set('type', 'recovery')
@@ -78,9 +101,6 @@ export async function GET(request: NextRequest) {
     console.log('⚠️ Token encontrado pero sin type, asumiendo recovery')
     const tokenToUse = token || accessToken
     if (tokenToUse) {
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://lacasadelsueloradiante.es' 
-        : request.nextUrl.origin
       const resetUrl = new URL('/auth/reset-password', baseUrl)
       resetUrl.searchParams.set('token', tokenToUse)
       resetUrl.searchParams.set('type', 'recovery')
@@ -104,18 +124,12 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error confirmando email:', error)
-      const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://lacasadelsueloradiante.es' 
-        : request.nextUrl.origin
       const errorUrl = new URL('/auth/error', baseUrl)
       errorUrl.searchParams.set('message', 'Error al confirmar el email')
       return NextResponse.redirect(errorUrl.toString())
     }
 
     // Redirigir al dashboard después de confirmar
-    const baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://lacasadelsueloradiante.es' 
-      : request.nextUrl.origin
     return NextResponse.redirect(new URL('/dashboard', baseUrl))
   }
 
@@ -126,9 +140,6 @@ export async function GET(request: NextRequest) {
   console.log('❌ User Agent:', request.headers.get('user-agent'))
   console.log('❌ Referer:', request.headers.get('referer'))
   
-  const baseUrl = process.env.NODE_ENV === 'production' 
-    ? 'https://lacasadelsueloradiante.es' 
-    : request.nextUrl.origin
   const errorUrl = new URL('/auth/error', baseUrl)
   const errorMessage = process.env.NODE_ENV === 'development' 
     ? `Enlace inválido. URL: ${request.url} - Params: ${JSON.stringify(allParams)}` 

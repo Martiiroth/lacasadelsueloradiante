@@ -264,9 +264,20 @@ export default function AdminOrderDetail() {
                       <div key={item.id} className="flex items-center justify-between border-b border-gray-100 pb-4">
                         <div className="flex-1">
                           <h4 className="text-sm font-medium text-gray-900">
-                            {((item.variant as any)
-                              ? ((item.variant as any).title || [(item.variant as any).option1, (item.variant as any).option2, (item.variant as any).option3].filter(Boolean).join(' / '))
-                              : ((item.variant as any)?.product?.title || 'Producto sin nombre')
+                            {/* Debug: mostrar qué datos tenemos */}
+                            {console.log('Variant data:', item.variant)}
+                            {item.variant ? (
+                              // Prioritario: título específico de la variante
+                              (item.variant as any).title ||
+                              // Fallback: opciones concatenadas
+                              [(item.variant as any).option1, (item.variant as any).option2, (item.variant as any).option3]
+                                .filter(Boolean)
+                                .join(' / ') ||
+                              // Último recurso: mostrar que es una variante sin nombre específico
+                              `${(item.variant as any).product?.title} - Variante` ||
+                              'Variante sin identificar'
+                            ) : (
+                              'Producto sin variante'
                             )}
                           </h4>
                           {/* Mostrar producto padre como contexto si hay variante */}

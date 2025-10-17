@@ -15,8 +15,9 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
 
     // Usar la funcionalidad nativa de Supabase para reset de contraseña
-    // NO usar redirectTo para evitar problemas con dominio personalizado
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://lacasadelsueloradiante.es/auth/callback'
+    })
 
     if (error) {
       console.error('Error al enviar reset email:', error)

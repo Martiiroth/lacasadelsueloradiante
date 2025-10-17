@@ -57,55 +57,57 @@ function ResetPasswordForm() {
     setVerifying(false)
   }, [searchParams])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
     // Prevenir múltiples envíos
     if (loading) return
     
-    setLoading(true)
-    setError('')
-
     // Validaciones básicas
     if (!password || !confirmPassword) {
       setError('Por favor completa todos los campos')
-      setLoading(false)
       return
     }
 
     if (password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres')
-      setLoading(false)
       return
     }
 
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden')
-      setLoading(false)
       return
     }
 
-    try {
+    // Activar loading y limpiar errores
+    setLoading(true)
+    setError('')
+
+    // Función para actualizar contraseña
+    const updatePassword = () => {
       const token = searchParams.get('token')
       const session = searchParams.get('session')
 
-      // Si hay una sesión activa, usar updateUser directamente
       if (session === 'active') {
-        const { error } = await supabase.auth.updateUser({ password })
-        
-        if (error) {
-          setError(error.message || 'Error al actualizar la contraseña')
-          setLoading(false)
-          return
-        }
-        
-        // Éxito - redirigir inmediatamente sin esperas
-        window.location.href = '/dashboard'
-        return
-        
+        // Con sesión activa
+        supabase.auth.updateUser({ password })
+          .then(({ error }) => {
+            if (error) {
+              setError(error.message || 'Error al actualizar la contraseña')
+              setLoading(false)
+            } else {
+              // Éxito - redirección forzada
+              alert('Contraseña actualizada correctamente')
+              window.location.replace('/dashboard')
+            }
+          })
+          .catch((err) => {
+            setError('Error de conexión')
+            setLoading(false)
+          })
       } else if (token) {
-        // Usar el token method
-        const response = await fetch('/api/reset-password-recovery', {
+        // Con token
+        fetch('/api/reset-password-recovery', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -113,29 +115,37 @@ function ResetPasswordForm() {
             new_password: password
           }),
         })
-
-        const result = await response.json()
-
-        if (!response.ok) {
-          setError(result.error || 'Error al actualizar la contraseña')
+        .then(response => response.json())
+        .then(result => {
+          if (result.error) {
+            setError(result.error)
+            setLoading(false)
+          } else {
+            // Éxito - redirección forzada
+            alert('Contraseña actualizada correctamente')
+            window.location.replace('/dashboard')
+          }
+        })
+        .catch((err) => {
+          setError('Error de conexión')
           setLoading(false)
-          return
-        }
-        
-        // Éxito - redirigir inmediatamente
-        window.location.href = '/dashboard'
-        return
-        
+        })
       } else {
         setError('Token de recuperación faltante')
         setLoading(false)
-        return
       }
-      
-    } catch (err: any) {
-      setError(err.message || 'Error de conexión. Inténtalo de nuevo.')
-      setLoading(false)
     }
+
+    // Ejecutar la actualización
+    updatePassword()
+
+    // Timeout de seguridad - desbloquear botón después de 10 segundos
+    setTimeout(() => {
+      if (loading) {
+        setLoading(false)
+        setError('La operación está tomando demasiado tiempo. Inténtalo de nuevo.')
+      }
+    }, 10000)
   }
 
   if (verifying) {

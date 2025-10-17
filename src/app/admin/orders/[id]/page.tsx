@@ -432,20 +432,47 @@ export default function AdminOrderDetail() {
                   <div className="space-y-3">
                     {(() => {
                       console.log('🔍 Analizando shipping_address para cliente invitado:', order.shipping_address);
+                      console.log('🔍 ¿Tiene first_name?', !!(order.shipping_address as any).first_name);
+                      console.log('🔍 ¿Tiene billing?', !!(order.shipping_address as any).billing);
+                      console.log('🔍 ¿Tiene email?', !!(order.shipping_address as any).email);
+                      console.log('🔍 ¿Tiene city?', !!(order.shipping_address as any).city);
+                      console.log('🔍 Estructura completa:', JSON.stringify(order.shipping_address, null, 2));
                       return null;
                     })()}
                     
                     {/* Estructura legacy - datos directos */}
-                    {(order.shipping_address as any).first_name ? (
+                    {(order.shipping_address as any).first_name || (order.shipping_address as any).email || (order.shipping_address as any).city ? (
                       <>
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            {(order.shipping_address as any).first_name} {(order.shipping_address as any).last_name}
+                            {(order.shipping_address as any).first_name && (order.shipping_address as any).last_name ? 
+                              `${(order.shipping_address as any).first_name} ${(order.shipping_address as any).last_name}` :
+                              'Cliente Invitado'
+                            }
                           </p>
                           {(order.shipping_address as any).email && (
                             <p className="text-sm text-gray-600">{(order.shipping_address as any).email}</p>
                           )}
                         </div>
+                        
+                        {/* Mostrar dirección si está disponible */}
+                        {((order.shipping_address as any).address_line1 || (order.shipping_address as any).city) && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Dirección de Facturación</p>
+                            <div className="text-sm text-gray-900">
+                              {(order.shipping_address as any).address_line1 && (
+                                <p>{(order.shipping_address as any).address_line1}</p>
+                              )}
+                              {(order.shipping_address as any).address_line2 && (
+                                <p>{(order.shipping_address as any).address_line2}</p>
+                              )}
+                              <p>
+                                {(order.shipping_address as any).postal_code} {(order.shipping_address as any).city}
+                                {(order.shipping_address as any).region && `, ${(order.shipping_address as any).region}`}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         
                         {(order.shipping_address as any).phone && (
                           <div>
@@ -475,6 +502,28 @@ export default function AdminOrderDetail() {
                           <div>
                             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</p>
                             <p className="text-sm text-gray-900">{(order.shipping_address as any).activity}</p>
+                          </div>
+                        )}
+                        
+                        {/* Datos de facturación si están en el mismo nivel */}
+                        {((order.shipping_address as any).address_line1 || (order.shipping_address as any).city) && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Dirección de Facturación</p>
+                            <div className="text-sm text-gray-900">
+                              {(order.shipping_address as any).address_line1 && (
+                                <p>{(order.shipping_address as any).address_line1}</p>
+                              )}
+                              {(order.shipping_address as any).address_line2 && (
+                                <p>{(order.shipping_address as any).address_line2}</p>
+                              )}
+                              <p>
+                                {(order.shipping_address as any).postal_code} {(order.shipping_address as any).city}
+                                {(order.shipping_address as any).region && `, ${(order.shipping_address as any).region}`}
+                              </p>
+                              {(order.shipping_address as any).country && (
+                                <p>{(order.shipping_address as any).country}</p>
+                              )}
+                            </div>
                           </div>
                         )}
                       </>
@@ -516,6 +565,28 @@ export default function AdminOrderDetail() {
                           <div>
                             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Actividad</p>
                             <p className="text-sm text-gray-900">{(order.shipping_address as any).billing.activity}</p>
+                          </div>
+                        )}
+                        
+                        {/* Dirección de facturación */}
+                        {((order.shipping_address as any).billing.address_line1 || (order.shipping_address as any).billing.city) && (
+                          <div>
+                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Dirección de Facturación</p>
+                            <div className="text-sm text-gray-900">
+                              {(order.shipping_address as any).billing.address_line1 && (
+                                <p>{(order.shipping_address as any).billing.address_line1}</p>
+                              )}
+                              {(order.shipping_address as any).billing.address_line2 && (
+                                <p>{(order.shipping_address as any).billing.address_line2}</p>
+                              )}
+                              <p>
+                                {(order.shipping_address as any).billing.postal_code} {(order.shipping_address as any).billing.city}
+                                {(order.shipping_address as any).billing.region && `, ${(order.shipping_address as any).billing.region}`}
+                              </p>
+                              {(order.shipping_address as any).billing.country && (
+                                <p>{(order.shipping_address as any).billing.country}</p>
+                              )}
+                            </div>
                           </div>
                         )}
                       </>

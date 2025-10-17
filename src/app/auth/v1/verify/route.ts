@@ -9,9 +9,12 @@ export async function GET(request: NextRequest) {
   console.log('🔍 AUTH/V1/VERIFY - URL completa:', request.url)
   console.log('🔍 AUTH/V1/VERIFY - Parámetros:', { token, type, redirectTo })
   
+  // Usar siempre el dominio de producción
+  const baseUrl = 'https://lacasadelsueloradiante.es'
+  
   // Si es recovery, redirigir directamente a reset password
   if (type === 'recovery' && token) {
-    const resetUrl = new URL('/auth/reset-password', request.nextUrl.origin)
+    const resetUrl = new URL('/auth/reset-password', baseUrl)
     resetUrl.searchParams.set('token', token)
     resetUrl.searchParams.set('type', 'recovery')
     
@@ -20,5 +23,5 @@ export async function GET(request: NextRequest) {
   }
   
   // Para otros casos, redirigir al callback normal
-  return NextResponse.redirect(new URL('/auth/callback?' + searchParams.toString(), request.nextUrl.origin))
+  return NextResponse.redirect(new URL('/auth/callback?' + searchParams.toString(), baseUrl))
 }

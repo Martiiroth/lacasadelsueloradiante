@@ -46,16 +46,18 @@ export async function GET(request: NextRequest) {
     redirectTo 
   })
 
-  // Si recibimos un 'code' (algún intermediario lo transformó), redirigimos
-  // al dominio de producción preservando todos los parámetros.
+  // Si recibimos un 'code' (probablemente de recuperación de contraseña), 
+  // redirigimos directamente a reset password tratándolo como token
   if (code) {
-    console.log('ℹ️ Callback received code param, redirecting to production domain with preserved params', { code })
-    const target = new URL(request.nextUrl.pathname, baseUrl)
-    // conservar todos los parámetros recibidos
-    Object.entries(allParams).forEach(([k, v]) => {
-      if (v != null) target.searchParams.set(k, String(v))
-    })
-    return NextResponse.redirect(target.toString())
+    console.log('ℹ️ Callback received code param, treating as recovery token', { code })
+    
+    // Asumir que es para recuperación de contraseña y redirigir
+    const resetUrl = new URL('/auth/reset-password', baseUrl)
+    resetUrl.searchParams.set('token', code)
+    resetUrl.searchParams.set('type', 'recovery')
+    
+    console.log('✅ Redirecting code to reset password:', resetUrl.toString())
+    return NextResponse.redirect(resetUrl.toString())
   }
 
   // Manejar errores primero

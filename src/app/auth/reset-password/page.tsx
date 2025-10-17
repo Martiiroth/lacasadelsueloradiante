@@ -21,6 +21,7 @@ function ResetPasswordForm() {
   useEffect(() => {
     const token = searchParams.get('token')
     const type = searchParams.get('type')
+    const session = searchParams.get('session')
     const error = searchParams.get('error')
     const errorCode = searchParams.get('error_code')
     const errorDescription = searchParams.get('error_description')
@@ -38,6 +39,14 @@ function ResetPasswordForm() {
       return
     }
 
+    // Si hay una sesión activa (de intercambio de código), es válido
+    if (session === 'active' && type === 'recovery') {
+      setTokenValid(true)
+      setVerifying(false)
+      return
+    }
+
+    // Si hay un token directo, validarlo
     if (!token || type !== 'recovery') {
       setError('Enlace de recuperación inválido o expirado')
       setVerifying(false)
@@ -74,29 +83,49 @@ function ResetPasswordForm() {
 
     try {
       const token = searchParams.get('token')
-      if (!token) throw new Error('Token de recuperación faltante')
+      const session = searchParams.get('session')
 
-      // Llamar a la nueva API route específica para tokens de recuperación
-      const response = await fetch('/api/reset-password-recovery', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recovery_token: token,
-          new_password: password
-        }),
-      })
+      // Si hay una sesión activa, usar updateUser directamente
+      if (session === 'active') {
+        const { error } = await supabase.auth.updateUser({
+          password: password
+        })
 
-      const result = await response.json()
-
-      if (!response.ok) {
-        setError(result.error || 'Error al actualizar la contraseña')
+        if (error) {
+          setError(error.message || 'Error al actualizar la contraseña')
+        } else {
+          setSuccess(true)
+          // Cerrar sesión después de cambiar contraseña
+          await supabase.auth.signOut()
+          setTimeout(() => {
+            router.push('/auth/login?message=Contraseña actualizada correctamente')
+          }, 3000)
+        }
       } else {
-        setSuccess(true)
-        setTimeout(() => {
-          router.push('/auth/login?message=Contraseña actualizada correctamente')
-        }, 3000)
+        // Usar el token method para tokens directos
+        if (!token) throw new Error('Token de recuperación faltante')
+
+        const response = await fetch('/api/reset-password-recovery', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            recovery_token: token,
+            new_password: password
+          }),
+        })
+
+        const result = await response.json()
+
+        if (!response.ok) {
+          setError(result.error || 'Error al actualizar la contraseña')
+        } else {
+          setSuccess(true)
+          setTimeout(() => {
+            router.push('/auth/login?message=Contraseña actualizada correctamente')
+          }, 3000)
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Error de conexión. Inténtalo de nuevo.')

@@ -46,18 +46,38 @@ export async function GET(request: NextRequest) {
     redirectTo 
   })
 
-  // Si recibimos un 'code' (probablemente de recuperación de contraseña), 
-  // redirigimos directamente a reset password tratándolo como token
+  // Si recibimos un 'code', intercambiarlo por una sesión válida con Supabase
   if (code) {
-    console.log('ℹ️ Callback received code param, treating as recovery token', { code })
+    console.log('ℹ️ Callback received code param, exchanging for session', { code })
     
-    // Asumir que es para recuperación de contraseña y redirigir
-    const resetUrl = new URL('/auth/reset-password', baseUrl)
-    resetUrl.searchParams.set('token', code)
-    resetUrl.searchParams.set('type', 'recovery')
-    
-    console.log('✅ Redirecting code to reset password:', resetUrl.toString())
-    return NextResponse.redirect(resetUrl.toString())
+    try {
+      const supabase = await createClient()
+      
+      // Intercambiar el código por una sesión
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+      
+      if (error) {
+        console.error('❌ Error intercambiando código:', error)
+        const errorUrl = new URL('/auth/error', baseUrl)
+        errorUrl.searchParams.set('message', 'Error al procesar el enlace de recuperación')
+        return NextResponse.redirect(errorUrl.toString())
+      }
+      
+      console.log('✅ Código intercambiado correctamente, sesión establecida')
+      
+      // Redirigir a reset password - la sesión ya está establecida
+      const resetUrl = new URL('/auth/reset-password', baseUrl)
+      resetUrl.searchParams.set('type', 'recovery')
+      resetUrl.searchParams.set('session', 'active')
+      
+      return NextResponse.redirect(resetUrl.toString())
+      
+    } catch (err) {
+      console.error('❌ Error en intercambio de código:', err)
+      const errorUrl = new URL('/auth/error', baseUrl)
+      errorUrl.searchParams.set('message', 'Error interno al procesar el enlace')
+      return NextResponse.redirect(errorUrl.toString())
+    }
   }
 
   // Manejar errores primero

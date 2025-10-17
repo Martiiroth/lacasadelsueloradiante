@@ -264,11 +264,25 @@ export default function AdminOrderDetail() {
                       <div key={item.id} className="flex items-center justify-between border-b border-gray-100 pb-4">
                         <div className="flex-1">
                           <h4 className="text-sm font-medium text-gray-900">
-                            {item.variant?.product?.title || 'Producto sin nombre'}
+                            {((item.variant as any)
+                              ? ((item.variant as any).title || [(item.variant as any).option1, (item.variant as any).option2, (item.variant as any).option3].filter(Boolean).join(' / '))
+                              : ((item.variant as any)?.product?.title || 'Producto sin nombre')
+                            )}
                           </h4>
+                          {/* Mostrar producto padre como contexto si hay variante */}
+                          {item.variant && (
+                            <p className="text-sm text-gray-500">
+                              {((item.variant as any)?.product?.title || '')}
+                            </p>
+                          )}
                           <p className="text-sm text-gray-500">
                             Cantidad: {item.qty}
                           </p>
+                          {item.variant?.sku && (
+                            <p className="text-xs text-gray-400">
+                              SKU: {item.variant.sku}
+                            </p>
+                          )}
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium text-gray-900">

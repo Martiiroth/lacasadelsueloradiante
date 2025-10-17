@@ -59,6 +59,12 @@ export interface AdminOrder {
     qty: number
     price_cents: number
     variant?: {
+      id?: string
+      title?: string
+      sku?: string
+      option1?: string
+      option2?: string
+      option3?: string
       product?: {
         title: string
       }

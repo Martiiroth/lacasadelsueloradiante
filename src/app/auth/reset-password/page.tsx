@@ -18,6 +18,18 @@ function ResetPasswordForm() {
   const supabase = createClient()
 
   useEffect(() => {
+    // Verificar si ya hay una sesión activa
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        console.log('🔄 Usuario ya autenticado, redirigiendo al dashboard...')
+        window.location.replace('/dashboard')
+        return
+      }
+    }
+    
+    checkSession()
+
     const token = searchParams.get('token')
     const type = searchParams.get('type')
     const session = searchParams.get('session')
@@ -57,6 +69,22 @@ function ResetPasswordForm() {
     setVerifying(false)
   }, [searchParams])
 
+  // Listener para eventos de auth (detectar cuando se actualiza la contraseña)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔄 Auth event en reset password:', event, session?.user?.email)
+      
+      if (event === 'USER_UPDATED' && session?.user) {
+        console.log('✅ Contraseña actualizada detectada, redirigiendo...')
+        setLoading(false)
+        alert('Contraseña actualizada correctamente')
+        window.location.replace('/dashboard')
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase.auth])
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -89,17 +117,14 @@ function ResetPasswordForm() {
       const session = searchParams.get('session')
 
       if (session === 'active') {
-        // Con sesión activa
+        // Con sesión activa - el listener onAuthStateChange manejará la redirección
         supabase.auth.updateUser({ password })
           .then(({ error }) => {
             if (error) {
               setError(error.message || 'Error al actualizar la contraseña')
               setLoading(false)
-            } else {
-              // Éxito - redirección forzada
-              alert('Contraseña actualizada correctamente')
-              window.location.replace('/dashboard')
             }
+            // No hacer nada en caso de éxito - el listener se encarga
           })
           .catch((err) => {
             setError('Error de conexión')

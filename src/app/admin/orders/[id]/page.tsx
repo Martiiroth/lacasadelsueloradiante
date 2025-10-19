@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { AdminOrder } from '@/types/admin'
 import { AdminService } from '@/lib/adminService'
+import { generateDeliveryNote } from '@/lib/pdfGenerator'
 import AdminLayout from '@/components/admin/AdminLayout'
 import {
   ShoppingBagIcon,
@@ -16,7 +17,8 @@ import {
   ArrowLeftIcon,
   TruckIcon,
   CalendarIcon,
-  TagIcon
+  TagIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline'
 import DeliverOrderButton from '@/components/admin/DeliverOrderButton'
 
@@ -101,6 +103,17 @@ export default function AdminOrderDetail() {
     } catch (err) {
       console.error('Error deleting order:', err)
       alert('Error al eliminar el pedido')
+    }
+  }
+
+  const handleGenerateDeliveryNote = () => {
+    if (!order) return
+    
+    try {
+      generateDeliveryNote(order)
+    } catch (error) {
+      console.error('Error generating delivery note:', error)
+      alert('Error al generar el albarán')
     }
   }
 
@@ -192,6 +205,13 @@ export default function AdminOrderDetail() {
               </div>
             </div>
             <div className="flex space-x-3">
+              <button
+                onClick={handleGenerateDeliveryNote}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
+                Generar Albarán
+              </button>
               <DeliverOrderButton
                 orderId={order.id}
                 currentStatus={order.status}

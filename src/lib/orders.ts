@@ -353,20 +353,69 @@ export class OrderService {
       try {
         console.log('Enviando notificación de nuevo pedido desde cliente por email...')
         
-        // Obtener información del cliente
+        // Obtener información completa del cliente
         let clientName = 'Cliente'
         let clientEmail = orderData.guest_email || ''
+        let clientInfo = null
         
         if (orderData.client_id) {
           const { data: client } = await supabase
             .from('clients')
-            .select('first_name, last_name, email')
+            .select('*')
             .eq('id', orderData.client_id)
             .single()
           
           if (client) {
             clientName = `${client.first_name} ${client.last_name}`.trim()
             clientEmail = client.email
+            clientInfo = {
+              first_name: client.first_name,
+              last_name: client.last_name,
+              email: client.email,
+              phone: client.phone,
+              company_name: client.company_name,
+              nif_cif: client.nif_cif,
+              company_position: client.company_position,
+              activity: client.activity,
+              address_line1: client.address_line1,
+              address_line2: client.address_line2,
+              city: client.city,
+              region: client.region,
+              postal_code: client.postal_code
+            }
+          }
+        } else if (orderData.guest_email) {
+          // Para clientes invitados, extraer información de shipping_address si existe
+          if (orderData.shipping_address) {
+            const shippingAddr = typeof orderData.shipping_address === 'string' 
+              ? JSON.parse(orderData.shipping_address) 
+              : orderData.shipping_address
+            
+            if (shippingAddr) {
+              // Intentar extraer el nombre del cliente invitado
+              if (shippingAddr.first_name && shippingAddr.last_name) {
+                clientName = `${shippingAddr.first_name} ${shippingAddr.last_name}`.trim()
+              } else if (shippingAddr.billing?.first_name && shippingAddr.billing?.last_name) {
+                clientName = `${shippingAddr.billing.first_name} ${shippingAddr.billing.last_name}`.trim()
+              }
+              
+              // Crear clientInfo para invitados
+              clientInfo = {
+                first_name: shippingAddr.first_name || shippingAddr.billing?.first_name || '',
+                last_name: shippingAddr.last_name || shippingAddr.billing?.last_name || '',
+                email: orderData.guest_email,
+                phone: shippingAddr.phone || shippingAddr.billing?.phone || '',
+                company_name: shippingAddr.company_name || shippingAddr.billing?.company_name || '',
+                nif_cif: shippingAddr.nif_cif || shippingAddr.billing?.nif_cif || '',
+                company_position: shippingAddr.company_position || shippingAddr.billing?.company_position || '',
+                activity: shippingAddr.activity || shippingAddr.billing?.activity || '',
+                address_line1: shippingAddr.address_line1 || shippingAddr.billing?.address_line1 || '',
+                address_line2: shippingAddr.address_line2 || shippingAddr.billing?.address_line2 || '',
+                city: shippingAddr.city || shippingAddr.billing?.city || '',
+                region: shippingAddr.region || shippingAddr.billing?.region || '',
+                postal_code: shippingAddr.postal_code || shippingAddr.billing?.postal_code || ''
+              }
+            }
           }
         }
         
@@ -387,7 +436,8 @@ export class OrderService {
             (typeof orderData.shipping_address === 'string' 
               ? orderData.shipping_address 
               : JSON.stringify(orderData.shipping_address, null, 2)
-            ) : undefined
+            ) : undefined,
+          clientInfo: clientInfo // Agregar información completa del cliente
         }
 
         // Enviar notificación de nuevo pedido

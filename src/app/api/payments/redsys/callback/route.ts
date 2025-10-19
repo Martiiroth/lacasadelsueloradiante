@@ -197,7 +197,7 @@ async function processRedsysCallback(redsysResponse: RedsysResponse) {
           .single()
 
         if (orderData) {
-          // Preparar datos para el email
+          // Preparar datos para el email con información completa del cliente
           const emailData = {
             orderId: orderData.id,
             orderNumber: orderData.confirmation_number,
@@ -215,7 +215,48 @@ async function processRedsysCallback(redsysResponse: RedsysResponse) {
             shipping: orderData.shipping_cents / 100,
             tax: orderData.tax_cents / 100,
             total: orderData.total_cents / 100,
-            createdAt: orderData.created_at
+            createdAt: orderData.created_at,
+            shippingAddress: orderData.shipping_address ? 
+              (typeof orderData.shipping_address === 'string' 
+                ? orderData.shipping_address 
+                : JSON.stringify(orderData.shipping_address, null, 2)
+              ) : undefined,
+            clientInfo: orderData.clients ? {
+              first_name: orderData.clients.first_name,
+              last_name: orderData.clients.last_name,
+              email: orderData.clients.email,
+              phone: orderData.clients.phone,
+              company_name: orderData.clients.company_name,
+              nif_cif: orderData.clients.nif_cif,
+              company_position: orderData.clients.company_position,
+              activity: orderData.clients.activity,
+              address_line1: orderData.clients.address_line1,
+              address_line2: orderData.clients.address_line2,
+              city: orderData.clients.city,
+              region: orderData.clients.region,
+              postal_code: orderData.clients.postal_code
+            } : (orderData.guest_email && orderData.shipping_address ? (() => {
+              // Para clientes invitados, extraer información de shipping_address
+              const shippingAddr = typeof orderData.shipping_address === 'string' 
+                ? JSON.parse(orderData.shipping_address) 
+                : orderData.shipping_address
+              
+              return {
+                first_name: shippingAddr?.first_name || shippingAddr?.billing?.first_name || '',
+                last_name: shippingAddr?.last_name || shippingAddr?.billing?.last_name || '',
+                email: orderData.guest_email,
+                phone: shippingAddr?.phone || shippingAddr?.billing?.phone || '',
+                company_name: shippingAddr?.company_name || shippingAddr?.billing?.company_name || '',
+                nif_cif: shippingAddr?.nif_cif || shippingAddr?.billing?.nif_cif || '',
+                company_position: shippingAddr?.company_position || shippingAddr?.billing?.company_position || '',
+                activity: shippingAddr?.activity || shippingAddr?.billing?.activity || '',
+                address_line1: shippingAddr?.address_line1 || shippingAddr?.billing?.address_line1 || '',
+                address_line2: shippingAddr?.address_line2 || shippingAddr?.billing?.address_line2 || '',
+                city: shippingAddr?.city || shippingAddr?.billing?.city || '',
+                region: shippingAddr?.region || shippingAddr?.billing?.region || '',
+                postal_code: shippingAddr?.postal_code || shippingAddr?.billing?.postal_code || ''
+              }
+            })() : null)
           }
 
           await EmailService.sendNewOrderNotification(emailData)

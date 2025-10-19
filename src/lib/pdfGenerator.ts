@@ -1,13 +1,5 @@
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
 import { AdminOrder } from '@/types/admin'
-
-// Extend jsPDF type to include autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF
-  }
-}
 
 export const generateDeliveryNote = (order: AdminOrder) => {
   const doc = new jsPDF()
@@ -86,19 +78,33 @@ export const generateDeliveryNote = (order: AdminOrder) => {
     }
   }
   
-  // Items table
+  // Items table header
   const tableStartY = yPos + 15
   
-  // Prepare table data
-  const tableColumns = [
-    'Producto/Variante',
-    'SKU',
-    'Cantidad',
-    'Precio Unit.',
-    'Total'
-  ]
+  // Draw table header
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.setFillColor(66, 139, 202)
+  doc.setTextColor(255, 255, 255)
+  doc.rect(20, tableStartY, 170, 10, 'F')
   
-  const tableRows = order.order_items?.map(item => {
+  // Table headers
+  doc.text('Producto/Variante', 22, tableStartY + 6)
+  doc.text('SKU', 90, tableStartY + 6)
+  doc.text('Cant.', 115, tableStartY + 6)
+  doc.text('P. Unit.', 135, tableStartY + 6)
+  doc.text('Total', 165, tableStartY + 6)
+  
+  // Reset text color for content
+  doc.setTextColor(0, 0, 0)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  
+  // Draw table content
+  let currentY = tableStartY + 15
+  const rowHeight = 15
+  
+  order.order_items?.forEach((item, index) => {
     const productName = item.variant ? (
       item.variant.title ||
       [item.variant.option1, item.variant.option2, item.variant.option3]
@@ -112,35 +118,33 @@ export const generateDeliveryNote = (order: AdminOrder) => {
     const unitPrice = `€${(item.price_cents / 100).toFixed(2)}`
     const total = `€${((item.price_cents * item.qty) / 100).toFixed(2)}`
     
-    return [productName, sku, quantity, unitPrice, total]
-  }) || []
-  
-  // Add table
-  doc.autoTable({
-    startY: tableStartY,
-    head: [tableColumns],
-    body: tableRows,
-    theme: 'grid',
-    styles: {
-      fontSize: 9,
-      cellPadding: 3
-    },
-    headStyles: {
-      fillColor: [66, 139, 202],
-      textColor: 255,
-      fontStyle: 'bold'
-    },
-    columnStyles: {
-      0: { cellWidth: 70 }, // Producto/Variante
-      1: { cellWidth: 30 }, // SKU
-      2: { cellWidth: 25, halign: 'center' }, // Cantidad
-      3: { cellWidth: 30, halign: 'right' }, // Precio Unit.
-      4: { cellWidth: 30, halign: 'right' }  // Total
+    // Draw row background (alternating colors)
+    if (index % 2 === 0) {
+      doc.setFillColor(245, 245, 245)
+      doc.rect(20, currentY - 5, 170, rowHeight, 'F')
     }
+    
+    // Draw borders
+    doc.setDrawColor(200, 200, 200)
+    doc.rect(20, currentY - 5, 170, rowHeight, 'S')
+    
+    // Add text content - truncate long product names
+    const maxProductNameLength = 30
+    const truncatedProductName = productName.length > maxProductNameLength 
+      ? productName.substring(0, maxProductNameLength) + '...'
+      : productName
+    
+    doc.text(truncatedProductName, 22, currentY + 2)
+    doc.text(sku, 90, currentY + 2)
+    doc.text(quantity, 115, currentY + 2)
+    doc.text(unitPrice, 135, currentY + 2)
+    doc.text(total, 165, currentY + 2)
+    
+    currentY += rowHeight
   })
   
   // Total summary
-  const finalY = (doc as any).lastAutoTable.finalY + 15
+  const finalY = currentY + 15
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
   doc.text(`Total del Pedido: €${(order.total_cents / 100).toFixed(2)}`, 120, finalY)

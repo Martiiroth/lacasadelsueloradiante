@@ -4,6 +4,11 @@ import { AdminOrder } from '@/types/admin'
 export const generateDeliveryNote = (order: AdminOrder) => {
   const doc = new jsPDF()
   
+  // Debug: Log shipping_address structure
+  console.log('🔍 PDF Generator - Order shipping_address:', JSON.stringify(order.shipping_address, null, 2))
+  console.log('🔍 PDF Generator - Order billing_address:', JSON.stringify((order as any).billing_address, null, 2))
+  console.log('🔍 PDF Generator - Order client:', JSON.stringify(order.client, null, 2))
+  
   // Company header
   doc.setFontSize(20)
   doc.setFont('helvetica', 'bold')
@@ -174,147 +179,63 @@ const getStatusLabel = (status: string): string => {
 }
 
 const getShippingAddress = (order: AdminOrder) => {
-  // Try different address structures
-  
-  // 1. Registered client with billing_address and shipping_address objects
-  if (order.client && (order as any).billing_address && (order as any).shipping_address) {
-    const billing = (order as any).billing_address
-    const shipping = (order as any).shipping_address
-    
-    // Check if use_billing_as_shipping is true OR if shipping address has incomplete data
-    if (shipping.use_billing_as_shipping || !shipping.address_line1) {
-      return {
-        name: `${billing.first_name || ''} ${billing.last_name || ''}`.trim() || undefined,
-        address_line1: billing.address_line1,
-        address_line2: billing.address_line2,
-        postal_code: billing.postal_code,
-        city: billing.city,
-        region: billing.region,
-        country: billing.country,
-        phone: billing.phone
-      }
-    } else {
-      // Use shipping address when it has complete data
-      return {
-        name: `${shipping.first_name || billing.first_name || ''} ${shipping.last_name || billing.last_name || ''}`.trim() || undefined,
-        address_line1: shipping.address_line1,
-        address_line2: shipping.address_line2,
-        postal_code: shipping.postal_code,
-        city: shipping.city,
-        region: shipping.region,
-        country: shipping.country,
-        phone: shipping.phone || billing.phone
-      }
-    }
-  }
-  
-  // 2. Guest client with billing_address and shipping_address objects
-  if (!order.client && (order as any).billing_address && (order as any).shipping_address) {
-    const billing = (order as any).billing_address
-    const shipping = (order as any).shipping_address
-    
-    // Compare if they're the same OR if shipping has incomplete data
-    if (JSON.stringify(shipping) === JSON.stringify(billing) || !shipping.address_line1) {
-      return {
-        name: `${billing.first_name || ''} ${billing.last_name || ''}`.trim() || undefined,
-        address_line1: billing.address_line1,
-        address_line2: billing.address_line2,
-        postal_code: billing.postal_code,
-        city: billing.city,
-        region: billing.region,
-        country: billing.country,
-        phone: billing.phone
-      }
-    } else {
-      return {
-        name: `${shipping.first_name || ''} ${shipping.last_name || ''}`.trim() || undefined,
-        address_line1: shipping.address_line1,
-        address_line2: shipping.address_line2,
-        postal_code: shipping.postal_code,
-        city: shipping.city,
-        region: shipping.region,
-        country: shipping.country,
-        phone: shipping.phone
-      }
-    }
-  }
-  
-  // 3. Legacy structure in shipping_address (guest clients)
-  if (!order.client && order.shipping_address) {
-    const shippingAddr = order.shipping_address as any
-    
-    // Direct fields in shipping_address
-    if (shippingAddr.first_name || shippingAddr.email || shippingAddr.city) {
-      return {
-        name: `${shippingAddr.first_name || ''} ${shippingAddr.last_name || ''}`.trim() || undefined,
-        address_line1: shippingAddr.address_line1,
-        address_line2: shippingAddr.address_line2,
-        postal_code: shippingAddr.postal_code,
-        city: shippingAddr.city,
-        region: shippingAddr.region,
-        country: shippingAddr.country,
-        phone: shippingAddr.phone
-      }
-    }
-    
-    // Nested structure with shipping object
-    if (shippingAddr.shipping) {
-      return {
-        name: `${shippingAddr.shipping.first_name || ''} ${shippingAddr.shipping.last_name || ''}`.trim() || undefined,
-        address_line1: shippingAddr.shipping.address_line1,
-        address_line2: shippingAddr.shipping.address_line2,
-        postal_code: shippingAddr.shipping.postal_code,
-        city: shippingAddr.shipping.city,
-        region: shippingAddr.shipping.region,
-        country: shippingAddr.shipping.country,
-        phone: shippingAddr.shipping.phone
-      }
-    }
-    
-    // Use billing address if no specific shipping
-    if (shippingAddr.billing) {
-      return {
-        name: `${shippingAddr.billing.first_name || ''} ${shippingAddr.billing.last_name || ''}`.trim() || undefined,
-        address_line1: shippingAddr.billing.address_line1,
-        address_line2: shippingAddr.billing.address_line2,
-        postal_code: shippingAddr.billing.postal_code,
-        city: shippingAddr.billing.city,
-        region: shippingAddr.billing.region,
-        country: shippingAddr.billing.country,
-        phone: shippingAddr.billing.phone
-      }
-    }
-  }
-  
-  // 4. Fallback for registered clients - try to get address from client profile
-  if (order.client) {
-    // If client has address data, use it
-    const client = order.client as any
-    if (client.address_line1 || client.city) {
+  // Extract shipping address data directly from order.shipping_address
+  if (!order.shipping_address) {
+    // If no shipping_address, use client info as fallback
+    if (order.client) {
       return {
         name: `${order.client.first_name} ${order.client.last_name}`,
-        address_line1: client.address_line1,
-        address_line2: client.address_line2,
-        postal_code: client.postal_code,
-        city: client.city,
-        region: client.region,
-        country: client.country,
-        phone: client.phone
+        address_line1: undefined,
+        address_line2: undefined,
+        postal_code: undefined,
+        city: undefined,
+        region: undefined,
+        country: undefined,
+        phone: undefined
       }
     }
+    return null
+  }
+
+  const shippingAddr = order.shipping_address as any
+  
+  // Extract fields directly from shipping_address, trying different possible locations
+  const extractField = (fieldName: string) => {
+    // Try direct field
+    if (shippingAddr[fieldName]) return shippingAddr[fieldName]
     
-    // Otherwise just return name
-    return {
-      name: `${order.client.first_name} ${order.client.last_name}`,
-      address_line1: undefined,
-      address_line2: undefined,
-      postal_code: undefined,
-      city: undefined,
-      region: undefined,
-      country: undefined,
-      phone: undefined
-    }
+    // Try in billing sub-object
+    if (shippingAddr.billing && shippingAddr.billing[fieldName]) return shippingAddr.billing[fieldName]
+    
+    // Try in shipping sub-object
+    if (shippingAddr.shipping && shippingAddr.shipping[fieldName]) return shippingAddr.shipping[fieldName]
+    
+    return undefined
   }
   
-  return null
+  // Extract name
+  const firstName = extractField('first_name')
+  const lastName = extractField('last_name')
+  const name = firstName && lastName ? `${firstName} ${lastName}` : 
+               (order.client ? `${order.client.first_name} ${order.client.last_name}` : undefined)
+  
+  // Extract address fields
+  const address_line1 = extractField('address_line1')
+  const address_line2 = extractField('address_line2')
+  const postal_code = extractField('postal_code')
+  const city = extractField('city')
+  const region = extractField('region')
+  const country = extractField('country')
+  const phone = extractField('phone')
+  
+  return {
+    name,
+    address_line1,
+    address_line2,
+    postal_code,
+    city,
+    region,
+    country,
+    phone
+  }
 }

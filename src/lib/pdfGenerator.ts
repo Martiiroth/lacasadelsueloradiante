@@ -181,7 +181,8 @@ const getShippingAddress = (order: AdminOrder) => {
     const billing = (order as any).billing_address
     const shipping = (order as any).shipping_address
     
-    if (shipping.use_billing_as_shipping) {
+    // Check if use_billing_as_shipping is true OR if shipping address has incomplete data
+    if (shipping.use_billing_as_shipping || !shipping.address_line1) {
       return {
         name: `${billing.first_name || ''} ${billing.last_name || ''}`.trim() || undefined,
         address_line1: billing.address_line1,
@@ -193,15 +194,16 @@ const getShippingAddress = (order: AdminOrder) => {
         phone: billing.phone
       }
     } else {
+      // Use shipping address when it has complete data
       return {
-        name: `${shipping.first_name || ''} ${shipping.last_name || ''}`.trim() || undefined,
+        name: `${shipping.first_name || billing.first_name || ''} ${shipping.last_name || billing.last_name || ''}`.trim() || undefined,
         address_line1: shipping.address_line1,
         address_line2: shipping.address_line2,
         postal_code: shipping.postal_code,
         city: shipping.city,
         region: shipping.region,
         country: shipping.country,
-        phone: shipping.phone
+        phone: shipping.phone || billing.phone
       }
     }
   }
@@ -211,8 +213,8 @@ const getShippingAddress = (order: AdminOrder) => {
     const billing = (order as any).billing_address
     const shipping = (order as any).shipping_address
     
-    // Compare if they're the same
-    if (JSON.stringify(shipping) === JSON.stringify(billing)) {
+    // Compare if they're the same OR if shipping has incomplete data
+    if (JSON.stringify(shipping) === JSON.stringify(billing) || !shipping.address_line1) {
       return {
         name: `${billing.first_name || ''} ${billing.last_name || ''}`.trim() || undefined,
         address_line1: billing.address_line1,
@@ -284,8 +286,24 @@ const getShippingAddress = (order: AdminOrder) => {
     }
   }
   
-  // 4. Fallback for registered clients
+  // 4. Fallback for registered clients - try to get address from client profile
   if (order.client) {
+    // If client has address data, use it
+    const client = order.client as any
+    if (client.address_line1 || client.city) {
+      return {
+        name: `${order.client.first_name} ${order.client.last_name}`,
+        address_line1: client.address_line1,
+        address_line2: client.address_line2,
+        postal_code: client.postal_code,
+        city: client.city,
+        region: client.region,
+        country: client.country,
+        phone: client.phone
+      }
+    }
+    
+    // Otherwise just return name
     return {
       name: `${order.client.first_name} ${order.client.last_name}`,
       address_line1: undefined,

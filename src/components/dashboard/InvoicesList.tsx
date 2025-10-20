@@ -84,18 +84,8 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
     setCurrentPage(1)
   }
 
-  const handleStatusToggle = (status: InvoiceStatus) => {
-    const currentStatuses = filters.status || []
-    const newStatuses = currentStatuses.includes(status)
-      ? currentStatuses.filter(s => s !== status)
-      : [...currentStatuses, status]
-    
-    handleFilterChange({ status: newStatuses })
-  }
-
   const clearFilters = () => {
     setFilters({
-      status: [],
       date_from: '',
       date_to: ''
     })
@@ -342,7 +332,7 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
           <p className="mt-1 text-sm text-gray-500">
             No tienes facturas que coincidan with los filtros seleccionados.
           </p>
-          {(filters.status?.length || filters.date_from || filters.date_to) && (
+          {(filters.date_from || filters.date_to) && (
             <button
               onClick={clearFilters}
               className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200"
@@ -362,9 +352,9 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
                 <DocumentTextIcon className="h-6 w-6 text-white" />
               </div>
               <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Pendientes</h3>
+                <h3 className="text-sm font-medium text-gray-500">Total Facturas</h3>
                 <p className="text-lg font-semibold text-gray-900">
-                  {invoices.filter(inv => inv.status === 'pending').length}
+                  {invoices.length}
                 </p>
               </div>
             </div>
@@ -376,9 +366,14 @@ export default function InvoicesList({ showFilters = true, limit }: InvoicesList
                 <DocumentTextIcon className="h-6 w-6 text-white" />
               </div>
               <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Pagadas</h3>
+                <h3 className="text-sm font-medium text-gray-500">Este Mes</h3>
                 <p className="text-lg font-semibold text-gray-900">
-                  {invoices.filter(inv => inv.status === 'paid').length}
+                  {invoices.filter(inv => {
+                    const invoiceDate = new Date(inv.created_at)
+                    const now = new Date()
+                    return invoiceDate.getMonth() === now.getMonth() && 
+                           invoiceDate.getFullYear() === now.getFullYear()
+                  }).length}
                 </p>
               </div>
             </div>

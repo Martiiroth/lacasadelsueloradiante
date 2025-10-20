@@ -714,11 +714,16 @@ export class AdminService {
         
         try {
           // Verificar si ya existe una factura para este pedido
-          const { data: existingInvoice } = await supabase
+          const { data: existingInvoice, error: checkError } = await supabase
             .from('invoices')
             .select('id, invoice_number, prefix, suffix')
             .eq('order_id', orderId)
-            .single()
+            .maybeSingle()
+
+          if (checkError) {
+            console.error(`❌ Error verificando factura existente para pedido ${orderId}:`, checkError)
+            return false
+          }
 
           if (existingInvoice) {
             console.log(`⚠️ Ya existe una factura para el pedido ${orderId}:`, `${existingInvoice.prefix}${existingInvoice.invoice_number}${existingInvoice.suffix}`)

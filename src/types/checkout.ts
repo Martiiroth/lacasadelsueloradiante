@@ -117,11 +117,11 @@ export interface Invoice {
   total_cents: number
   currency: string
   created_at: string
-  due_date: string
-  status: InvoiceStatus
+  due_date?: string
 }
 
-export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'cancelled'
+// Nota: El campo status fue eliminado según update_invoices_schema.sql
+export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'cancelled' // Mantenido para compatibilidad legacy
 
 export interface InvoiceCounter {
   id: string

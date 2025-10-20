@@ -584,7 +584,10 @@ export class AdminService {
             invoice_number,
             prefix,
             suffix,
-            status
+            total_cents,
+            currency,
+            created_at,
+            due_date
           )
         `)
         .order('created_at', { ascending: false })
@@ -668,7 +671,10 @@ export class AdminService {
             invoice_number,
             prefix,
             suffix,
-            status
+            total_cents,
+            currency,
+            created_at,
+            due_date
           )
         `)
         .eq('id', orderId)
@@ -1099,20 +1105,69 @@ export class AdminService {
       try {
         console.log('Enviando notificación de nuevo pedido por email...')
         
-        // Obtener detalles del cliente para el email
+        // Obtener detalles completos del cliente para el email
         let clientData = null
         let clientName = 'Cliente'
+        let clientInfo = null
         
         if (orderData.client_id) {
           const { data: client } = await supabase
             .from('clients')
-            .select('first_name, last_name, email')
+            .select('*')
             .eq('id', orderData.client_id)
             .single()
           
           if (client) {
             clientData = client
             clientName = `${client.first_name} ${client.last_name}`.trim()
+            clientInfo = {
+              first_name: client.first_name,
+              last_name: client.last_name,
+              email: client.email,
+              phone: client.phone,
+              company_name: client.company_name,
+              nif_cif: client.nif_cif,
+              company_position: client.company_position,
+              activity: client.activity,
+              address_line1: client.address_line1,
+              address_line2: client.address_line2,
+              city: client.city,
+              region: client.region,
+              postal_code: client.postal_code
+            }
+          }
+        } else {
+          // Para pedidos creados desde admin sin client_id, intentar extraer información de shipping_address
+          if (orderData.shipping_address) {
+            const shippingAddr = typeof orderData.shipping_address === 'string' 
+              ? JSON.parse(orderData.shipping_address) 
+              : orderData.shipping_address
+            
+            if (shippingAddr) {
+              // Intentar extraer el nombre del cliente
+              if (shippingAddr.first_name && shippingAddr.last_name) {
+                clientName = `${shippingAddr.first_name} ${shippingAddr.last_name}`.trim()
+              } else if (shippingAddr.billing?.first_name && shippingAddr.billing?.last_name) {
+                clientName = `${shippingAddr.billing.first_name} ${shippingAddr.billing.last_name}`.trim()
+              }
+              
+              // Crear clientInfo
+              clientInfo = {
+                first_name: shippingAddr.first_name || shippingAddr.billing?.first_name || '',
+                last_name: shippingAddr.last_name || shippingAddr.billing?.last_name || '',
+                email: shippingAddr.email || shippingAddr.billing?.email || '',
+                phone: shippingAddr.phone || shippingAddr.billing?.phone || '',
+                company_name: shippingAddr.company_name || shippingAddr.billing?.company_name || '',
+                nif_cif: shippingAddr.nif_cif || shippingAddr.billing?.nif_cif || '',
+                company_position: shippingAddr.company_position || shippingAddr.billing?.company_position || '',
+                activity: shippingAddr.activity || shippingAddr.billing?.activity || '',
+                address_line1: shippingAddr.address_line1 || shippingAddr.billing?.address_line1 || '',
+                address_line2: shippingAddr.address_line2 || shippingAddr.billing?.address_line2 || '',
+                city: shippingAddr.city || shippingAddr.billing?.city || '',
+                region: shippingAddr.region || shippingAddr.billing?.region || '',
+                postal_code: shippingAddr.postal_code || shippingAddr.billing?.postal_code || ''
+              }
+            }
           }
         }
         
@@ -1121,7 +1176,7 @@ export class AdminService {
           orderNumber: order.id, // Usar ID como número de pedido
           status: 'pending', // Nuevo pedido siempre es pending
           clientName,
-          clientEmail: clientData?.email || '',
+          clientEmail: clientData?.email || (clientInfo?.email) || '',
           items: orderData.items.map(item => ({
             title: 'Producto', // Necesitaríamos hacer una consulta adicional para obtener el título
             quantity: item.qty,
@@ -1129,9 +1184,12 @@ export class AdminService {
           })),
           total: orderData.items.reduce((sum, item) => sum + (item.price_cents * item.qty), 0) / 100,
           createdAt: order.created_at,
-          shippingAddress: typeof orderData.shipping_address === 'string' 
-            ? orderData.shipping_address 
-            : JSON.stringify(orderData.shipping_address, null, 2)
+          shippingAddress: orderData.shipping_address ? 
+            (typeof orderData.shipping_address === 'string' 
+              ? orderData.shipping_address 
+              : JSON.stringify(orderData.shipping_address, null, 2)
+            ) : undefined,
+          clientInfo: clientInfo // Agregar información completa del cliente
         }
 
         // Enviar notificación de nuevo pedido
@@ -1202,7 +1260,6 @@ export class AdminService {
           suffix: counter.suffix,
           total_cents: orderDetails.total_cents,
           currency: 'EUR',
-          status: 'pending',
           due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 días
         })
         .select(`
@@ -1214,7 +1271,6 @@ export class AdminService {
           suffix,
           total_cents,
           currency,
-          status,
           created_at,
           due_date
         `)

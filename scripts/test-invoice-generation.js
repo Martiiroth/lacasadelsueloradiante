@@ -64,7 +64,7 @@ async function testInvoiceGeneration() {
     // Verificar si ya tiene factura
     const { data: existingInvoice } = await supabase
       .from('invoices')
-      .select('id, invoice_number, prefix, suffix, status')
+      .select('id, invoice_number, prefix, suffix, created_at')
       .eq('order_id', testOrder.id)
       .single()
 
@@ -97,7 +97,7 @@ async function testInvoiceGeneration() {
       
       const { data: newInvoice } = await supabase
         .from('invoices')
-        .select('id, invoice_number, prefix, suffix, status, total_cents')
+        .select('id, invoice_number, prefix, suffix, total_cents, created_at')
         .eq('order_id', testOrder.id)
         .single()
 

@@ -60,7 +60,7 @@ async function testInvoiceGeneration() {
     // Verificar facturas existentes
     const { data: invoices, error: invoicesError } = await supabase
       .from('invoices')
-      .select('id, invoice_number, prefix, suffix, total_cents, status')
+      .select('id, invoice_number, prefix, suffix, total_cents, created_at')
       .limit(5)
     
     if (invoicesError) {

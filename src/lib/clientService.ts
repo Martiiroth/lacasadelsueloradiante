@@ -78,10 +78,10 @@ export class ClientService {
         .select('id, status, total_cents')
         .eq('client_id', clientId)
 
-      // Obtener facturas
+      // Obtener facturas (sin campo status, que fue eliminado)
       const { data: invoices } = await supabase
         .from('invoices')
-        .select('id, status, total_cents')
+        .select('id, total_cents, created_at')
         .eq('client_id', clientId)
 
       const stats: ClientStats = {
@@ -89,8 +89,8 @@ export class ClientService {
         total_spent_cents: orders?.reduce((sum, order) => sum + (order.total_cents || 0), 0) || 0,
         pending_orders: orders?.filter(o => ['pending', 'confirmed', 'processing'].includes(o.status)).length || 0,
         completed_orders: orders?.filter(o => ['delivered'].includes(o.status)).length || 0,
-        pending_invoices: invoices?.filter(i => i.status === 'pending').length || 0,
-        paid_invoices: invoices?.filter(i => i.status === 'paid').length || 0
+        pending_invoices: invoices?.length || 0, // Todas las facturas generadas
+        paid_invoices: 0 // Sin campo status, no podemos diferenciar
       }
 
       return stats
@@ -232,9 +232,7 @@ export class ClientService {
         .order('created_at', { ascending: false })
 
       // Aplicar filtros
-      if (filters?.status && filters.status.length > 0) {
-        query = query.in('status', filters.status)
-      }
+      // Nota: El filtro por status fue eliminado ya que las facturas no tienen estado
 
       if (filters?.date_from) {
         query = query.gte('created_at', filters.date_from)

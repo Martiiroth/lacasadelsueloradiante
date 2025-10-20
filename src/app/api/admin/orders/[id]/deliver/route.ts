@@ -52,7 +52,7 @@ export async function POST(
       invoice: updatedOrder?.invoice ? {
         id: updatedOrder.invoice.id,
         number: `${updatedOrder.invoice.prefix}${updatedOrder.invoice.invoice_number}${updatedOrder.invoice.suffix}`,
-        status: updatedOrder.invoice.status
+        generated: true
       } : null
     })
   } catch (error) {

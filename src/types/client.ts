@@ -128,10 +128,11 @@ export interface Invoice {
   currency: string
   created_at: string
   due_date?: string
-  status: InvoiceStatus
 }
 
-export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'cancelled'
+// Nota: El campo status fue eliminado de las facturas según update_invoices_schema.sql
+// Las facturas se generan automáticamente cuando el pedido está "delivered"
+export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'cancelled' // Mantenido para compatibilidad legacy
 
 // Tipos para formularios de actualización
 export interface UpdateClientData {

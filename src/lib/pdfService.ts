@@ -20,12 +20,14 @@ export class PDFService {
   static async generateInvoicePDF(invoiceId: string): Promise<Buffer> {
     try {
       // Obtener los datos de la factura directamente desde Supabase
-      console.log('📄 Obteniendo datos de la factura:', invoiceId)
+      console.log('📄 [PDF-SERVICE] Iniciando generación de PDF para factura:', invoiceId)
       
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       )
+
+      console.log('📄 [PDF-SERVICE] Consultando base de datos...')
 
       // Obtener factura específica con información del cliente y pedido
       const { data: invoice, error } = await supabase
@@ -69,14 +71,30 @@ export class PDFService {
         .single()
 
       if (error || !invoice) {
-        console.error('❌ Error obteniendo factura:', error)
+        console.error('❌ [PDF-SERVICE] Error obteniendo factura:', {
+          error: error?.message,
+          invoiceId,
+          hasInvoice: !!invoice
+        })
         throw new Error(`Factura no encontrada: ${invoiceId}`)
       }
       
-      console.log('📄 Datos de factura obtenidos:', `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`)
+      console.log('✅ [PDF-SERVICE] Datos de factura obtenidos:', {
+        invoiceNumber: `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`,
+        clientEmail: invoice.client?.email,
+        total: invoice.total_cents / 100
+      })
       
       // Generar PDF con PDFKit
-      return await this.generateInvoicePDFWithPDFKit(invoice)
+      console.log('📄 [PDF-SERVICE] Generando PDF con PDFKit...')
+      const pdfBuffer = await this.generateInvoicePDFWithPDFKit(invoice)
+      
+      console.log('✅ [PDF-SERVICE] PDF generado exitosamente:', {
+        bufferSize: pdfBuffer.length,
+        invoiceNumber: `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`
+      })
+      
+      return pdfBuffer
       
     } catch (error) {
       console.error('❌ Error generando PDF:', error)
@@ -87,8 +105,11 @@ export class PDFService {
 
   // Método para generar el PDF con PDFKit
   private static async generateInvoicePDFWithPDFKit(invoice: any): Promise<Buffer> {
+    console.log('🎨 [PDF-SERVICE] Iniciando generación PDFKit para factura:', `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`)
+    
     return new Promise((resolve, reject) => {
       try {
+        console.log('📝 [PDF-SERVICE] Creando documento PDFKit...')
         const doc = new PDFDocument({ 
           size: 'A4',
           margins: { top: 50, bottom: 50, left: 50, right: 50 }
@@ -96,9 +117,26 @@ export class PDFService {
         
         const chunks: Buffer[] = []
         
-        doc.on('data', (chunk: Buffer) => chunks.push(chunk))
-        doc.on('end', () => resolve(Buffer.concat(chunks)))
-        doc.on('error', reject)
+        doc.on('data', (chunk: Buffer) => {
+          chunks.push(chunk)
+          console.log('📊 [PDF-SERVICE] Recibido chunk de datos:', chunk.length, 'bytes')
+        })
+        
+        doc.on('end', () => {
+          const finalBuffer = Buffer.concat(chunks)
+          console.log('✅ [PDF-SERVICE] PDFKit terminó generación:', {
+            totalChunks: chunks.length,
+            bufferLength: finalBuffer.length,
+            isValidBuffer: Buffer.isBuffer(finalBuffer),
+            firstBytes: finalBuffer.slice(0, 10).toString('hex')
+          })
+          resolve(finalBuffer)
+        })
+        
+        doc.on('error', (error) => {
+          console.error('❌ [PDF-SERVICE] Error en PDFKit:', error)
+          reject(error)
+        })
 
         // Formatear datos
         const formatPrice = (cents: number) => {
@@ -241,11 +279,11 @@ export class PDFService {
           lineGap: 2 
         })
 
-        console.log('✅ PDF generado exitosamente con PDFKit')
+        console.log('✅ [PDF-SERVICE] Contenido escrito completamente, finalizando documento...')
         doc.end()
         
       } catch (error) {
-        console.error('❌ Error generando PDF con PDFKit:', error)
+        console.error('❌ [PDF-SERVICE] Error generando contenido PDF:', error)
         reject(error)
       }
     })

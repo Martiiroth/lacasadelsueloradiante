@@ -442,23 +442,39 @@ class ServerEmailService {
       let invoiceAttachment = null
       if (orderData.status === 'delivered' && orderData.invoiceId) {
         try {
-          console.log('📄 Generando PDF de factura para email:', {
+          console.log('📄 [PDF] Iniciando generación de PDF para factura:', {
             invoiceNumber: orderData.invoiceNumber,
             invoiceId: orderData.invoiceId
           })
+          
           const pdfBuffer = await PDFService.generateInvoicePDF(orderData.invoiceId)
+          
+          console.log('📄 [PDF] Buffer generado:', {
+            bufferExists: !!pdfBuffer,
+            bufferLength: pdfBuffer ? pdfBuffer.length : 0,
+            bufferType: typeof pdfBuffer
+          })
+          
+          if (!pdfBuffer || pdfBuffer.length === 0) {
+            throw new Error('PDF buffer está vacío o no se generó')
+          }
+          
           invoiceAttachment = {
             filename: `factura-${orderData.invoiceNumber}.pdf`,
             content: Buffer.from(pdfBuffer),
             contentType: 'application/pdf'
           }
-          console.log('✅ PDF de factura generado para adjuntar al email')
+          console.log('✅ [PDF] PDF de factura generado exitosamente para adjuntar al email')
         } catch (pdfError) {
-          console.error('❌ Error generando PDF para email:', pdfError)
+          console.error('❌ [PDF] Error generando PDF para email:', {
+            error: pdfError instanceof Error ? pdfError.message : String(pdfError),
+            stack: pdfError instanceof Error ? pdfError.stack : undefined,
+            invoiceId: orderData.invoiceId
+          })
           // Continuar sin attachment si hay error
         }
       } else {
-        console.log('ℹ️ No se adjuntará factura:', {
+        console.log('ℹ️ [PDF] No se adjuntará factura:', {
           status: orderData.status,
           hasInvoiceId: !!orderData.invoiceId,
           shouldAttach: orderData.status === 'delivered' && !!orderData.invoiceId
@@ -498,22 +514,42 @@ class ServerEmailService {
       }
 
       // Enviar ambos emails
+      console.log('📧 [EMAIL] Enviando emails con configuración:', {
+        clientEmail: orderData.clientEmail,
+        hasAttachment: !!invoiceAttachment,
+        attachmentSize: invoiceAttachment ? invoiceAttachment.content.length : 0,
+        attachmentFilename: invoiceAttachment ? invoiceAttachment.filename : 'none'
+      })
+
       const [clientResult, adminResult] = await Promise.allSettled([
         transporter.sendMail(clientEmailOptions),
         transporter.sendMail(adminEmailOptions)
       ])
 
-      // Log de resultados
+      // Log de resultados detallados
+      console.log('📧 [EMAIL] Resultados del envío:')
+      
       if (clientResult.status === 'fulfilled') {
-        console.log(`✅ Email enviado al cliente ${orderData.clientEmail} para pedido #${orderData.orderNumber}`)
+        console.log(`✅ [EMAIL] Email enviado al cliente ${orderData.clientEmail}:`, {
+          messageId: clientResult.value.messageId,
+          response: clientResult.value.response
+        })
       } else {
-        console.error(`❌ Error enviando email al cliente:`, clientResult.reason)
+        console.error(`❌ [EMAIL] Error enviando email al cliente:`, {
+          error: clientResult.reason instanceof Error ? clientResult.reason.message : String(clientResult.reason),
+          clientEmail: orderData.clientEmail
+        })
       }
 
       if (adminResult.status === 'fulfilled') {
-        console.log(`✅ Email enviado al administrador para pedido #${orderData.orderNumber}`)
+        console.log(`✅ [EMAIL] Email enviado al administrador:`, {
+          messageId: adminResult.value.messageId,
+          response: adminResult.value.response
+        })
       } else {
-        console.error(`❌ Error enviando email al administrador:`, adminResult.reason)
+        console.error(`❌ [EMAIL] Error enviando email al administrador:`, {
+          error: adminResult.reason instanceof Error ? adminResult.reason.message : String(adminResult.reason)
+        })
       }
 
       // Retornar true si al menos uno se envió correctamente

@@ -41,7 +41,15 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'send_order_notification':
         console.log('📧 Sending order status notification...')
+        console.log('📧 Order data for email:', {
+          orderId: orderData.orderId,
+          status: orderData.status,
+          clientEmail: orderData.clientEmail,
+          invoiceId: orderData.invoiceId,
+          invoiceNumber: orderData.invoiceNumber
+        })
         result = await ServerEmailService.sendOrderStatusNotification(orderData)
+        console.log('📧 Email service result:', result)
         break
       case 'send_new_order_notification':
         console.log('📧 Sending new order notification...')

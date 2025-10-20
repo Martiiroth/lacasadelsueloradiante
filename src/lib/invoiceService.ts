@@ -93,6 +93,13 @@ export class InvoiceService {
         due_date: dueDate.toISOString()
       }
 
+      console.log('💾 InvoiceService - Creando factura:', {
+        ...invoiceData,
+        invoice_number: invoiceNumber.next_number,
+        prefix: invoiceNumber.prefix,
+        suffix: invoiceNumber.suffix
+      })
+
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({
@@ -157,8 +164,8 @@ export class InvoiceService {
       const { data: newCounter, error } = await supabase
         .from('invoice_counters')
         .insert({
-          prefix: 'FAC-',
-          suffix: '',
+          prefix: 'W-',
+          suffix: '-25',
           next_number: 1
         })
         .select('*')

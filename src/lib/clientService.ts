@@ -225,9 +225,25 @@ export class ClientService {
     offset: number = 0
   ): Promise<Invoice[]> {
     try {
+      console.log('🔍 ClientService.getClientInvoices - Client ID:', clientId)
+      console.log('🔍 Filters:', filters)
+      console.log('🔍 Limit:', limit, 'Offset:', offset)
+
       let query = supabase
         .from('invoices')
-        .select('*')
+        .select(`
+          id,
+          client_id,
+          order_id,
+          invoice_number,
+          prefix,
+          suffix,
+          total_cents,
+          currency,
+          created_at,
+          due_date,
+          status
+        `)
         .eq('client_id', clientId)
         .order('created_at', { ascending: false })
 
@@ -248,9 +264,13 @@ export class ClientService {
       const { data, error } = await query
 
       if (error) {
-        console.error('Error fetching client invoices:', error)
+        console.error('❌ Error fetching client invoices:', error)
+        console.error('Query details:', { clientId, filters, limit, offset })
         return []
       }
+
+      console.log('✅ Invoices found for client:', data?.length || 0)
+      console.log('Invoice data sample:', data?.slice(0, 2))
 
       return data || []
     } catch (error) {

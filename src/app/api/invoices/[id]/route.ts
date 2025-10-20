@@ -26,6 +26,26 @@ export async function GET(
 
     console.log('📄 API: Obteniendo detalles de la factura:', invoiceId)
 
+    // Primero verificar si la factura existe en la tabla
+    const { data: basicInvoice, error: basicError } = await supabase
+      .from('invoices')
+      .select('id, client_id, order_id, prefix, invoice_number, suffix')
+      .eq('id', invoiceId)
+      .single()
+
+    if (basicError || !basicInvoice) {
+      console.error('❌ Factura no encontrada en verificación básica:', {
+        invoiceId,
+        error: basicError?.message
+      })
+      return NextResponse.json(
+        { error: 'Invoice not found', debug: { invoiceId, step: 'basic_lookup' } },
+        { status: 404 }
+      )
+    }
+
+    console.log('✅ Factura encontrada:', `${basicInvoice.prefix}${basicInvoice.invoice_number}${basicInvoice.suffix}`)
+
     // Obtener factura específica con información del cliente y pedido
     const { data: invoice, error } = await supabase
       .from('invoices')
@@ -69,16 +89,23 @@ export async function GET(
 
     if (error) {
       console.error('❌ Error fetching invoice:', error)
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        invoiceId
+      })
       return NextResponse.json(
-        { error: 'Invoice not found' },
+        { error: 'Invoice not found', debug: { invoiceId, error: error.message } },
         { status: 404 }
       )
     }
 
     if (!invoice) {
       console.error('❌ Invoice not found with ID:', invoiceId)
+      console.error('No data returned from database query')
       return NextResponse.json(
-        { error: 'Invoice not found' },
+        { error: 'Invoice not found', debug: { invoiceId, reason: 'no_data' } },
         { status: 404 }
       )
     }

@@ -1228,6 +1228,13 @@ export class AdminService {
         return null
       }
 
+      console.log('📋 Datos del pedido para facturación:', {
+        orderId: orderDetails.id,
+        clientId: orderDetails.client_id,
+        total: orderDetails.total_cents / 100,
+        status: orderDetails.status
+      })
+
       // Obtener contador de facturas
       let { data: counter, error: counterError } = await supabase
         .from('invoice_counters')
@@ -1240,8 +1247,8 @@ export class AdminService {
         const { data: newCounter, error: createCounterError } = await supabase
           .from('invoice_counters')
           .insert({
-            prefix: 'FAC-',
-            suffix: '',
+            prefix: 'W-',
+            suffix: '-25',
             next_number: 1
           })
           .select()
@@ -1255,6 +1262,15 @@ export class AdminService {
       }
 
       // Crear factura
+      console.log('💾 Creando factura con datos:', {
+        client_id: orderDetails.client_id,
+        order_id: orderId,
+        invoice_number: counter.next_number,
+        prefix: counter.prefix,
+        suffix: counter.suffix,
+        total_cents: orderDetails.total_cents
+      })
+
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({

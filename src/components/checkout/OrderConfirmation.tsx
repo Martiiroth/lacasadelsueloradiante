@@ -125,11 +125,11 @@ export default function OrderConfirmationComponent({
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-gray-600">Fecha de vencimiento:</dt>
-                  <dd className="text-gray-900">{formatDate(invoice.due_date)}</dd>
+                  <dd className="text-gray-900">{invoice.due_date ? formatDate(invoice.due_date) : 'Sin fecha límite'}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-gray-600">Estado de pago:</dt>
-                  <dd className="text-gray-900 capitalize">{invoice.status}</dd>
+                  <dt className="text-gray-600">Estado:</dt>
+                  <dd className="text-gray-900">Generada</dd>
                 </div>
               </dl>
             </div>

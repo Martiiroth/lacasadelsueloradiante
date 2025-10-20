@@ -48,6 +48,43 @@ pids
 .tmp
 .temp
 
+# Scripts temporales y archivos de debugging
+debug-*.js
+test-*.js
+fix-*.js
+setup-*.js
+check-*.js
+diagnose-*.js
+*-debug.sh
+*-test.sh
+*-fix.sh
+
+# Archivos de configuración temporales
+*-corrected.env
+*-minimal.env
+*-with-*.env
+server-env-*.env
+env-corrected-*.env
+
+# Documentación temporal y reportes
+*-report.json
+temp_*.txt
+*_temp.*
+
+# Scripts de deployment temporales
+deploy_*.sh
+deploy-*.sh (excepto deploy.sh principal)
+
+# Scripts de configuración obsoletos
+*-config.sh
+configure-*.sh
+implement-*.sh
+verify-*.sh
+restart-*.sh
+setup-*.sh (excepto principales)
+redirectTo-*.sh
+workaround-*.js
+
 # Vercel
 .vercel
 

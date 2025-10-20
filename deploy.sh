@@ -36,13 +36,15 @@ if ! command -v docker-compose &> /dev/null; then
 fi
 
 # Verificar archivo de entorno
-if [ ! -f .env.production ]; then
-    print_error "Archivo .env.production no encontrado."
-    print_warning "Creando archivo .env.production desde example..."
-    cp .env.production.example .env.production
-    print_status "Archivo .env.production creado con valores por defecto."
+if [ ! -f .env ]; then
+    print_error "Archivo .env no encontrado."
+    print_warning "Creando archivo .env desde .env.example..."
+    cp .env.example .env
+    print_status "Archivo .env creado. IMPORTANTE: Configure las variables antes de continuar."
+    print_warning "Debe configurar EMAIL_USER, EMAIL_PASSWORD y otras variables críticas."
+    exit 1
 else
-    print_status "Archivo .env.production encontrado ✅"
+    print_status "Archivo .env encontrado ✅"
 fi
 
 # Verificar certificados SSL
@@ -61,7 +63,7 @@ fi
 
 # Verificar variables críticas
 print_status "Verificando variables de entorno críticas..."
-if ! grep -q "EMAIL_USER=" .env.production || ! grep -q "EMAIL_PASSWORD=" .env.production; then
+if ! grep -q "EMAIL_USER=" .env || ! grep -q "EMAIL_PASSWORD=" .env; then
     print_warning "Variables de email no configuradas. El sistema de notificaciones no funcionará."
 fi
 

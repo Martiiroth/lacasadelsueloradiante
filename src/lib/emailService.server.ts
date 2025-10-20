@@ -442,7 +442,10 @@ class ServerEmailService {
       let invoiceAttachment = null
       if (orderData.status === 'delivered' && orderData.invoiceId) {
         try {
-          console.log('📄 Generando PDF de factura para email:', orderData.invoiceNumber)
+          console.log('📄 Generando PDF de factura para email:', {
+            invoiceNumber: orderData.invoiceNumber,
+            invoiceId: orderData.invoiceId
+          })
           const pdfBuffer = await PDFService.generateInvoicePDF(orderData.invoiceId)
           invoiceAttachment = {
             filename: `factura-${orderData.invoiceNumber}.pdf`,
@@ -454,6 +457,12 @@ class ServerEmailService {
           console.error('❌ Error generando PDF para email:', pdfError)
           // Continuar sin attachment si hay error
         }
+      } else {
+        console.log('ℹ️ No se adjuntará factura:', {
+          status: orderData.status,
+          hasInvoiceId: !!orderData.invoiceId,
+          shouldAttach: orderData.status === 'delivered' && !!orderData.invoiceId
+        })
       }
 
       // Email para el cliente

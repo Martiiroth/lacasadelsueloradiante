@@ -794,10 +794,23 @@ export class AdminService {
           // Obtener información de la factura si el pedido está entregado
           let invoiceId = undefined
           let invoiceNumber = undefined
-          if (data.status === 'delivered' && orderDetails.invoice && Array.isArray(orderDetails.invoice) && orderDetails.invoice.length > 0) {
-            const invoice = orderDetails.invoice[0]
-            invoiceId = invoice.id
-            invoiceNumber = `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`
+          if (data.status === 'delivered') {
+            // Buscar factura directamente por order_id para asegurar que se encuentra la más reciente
+            const { data: invoiceData, error: invoiceError } = await supabase
+              .from('invoices')
+              .select('id, invoice_number, prefix, suffix')
+              .eq('order_id', orderId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .single()
+
+            if (invoiceData && !invoiceError) {
+              invoiceId = invoiceData.id
+              invoiceNumber = `${invoiceData.prefix}${invoiceData.invoice_number}${invoiceData.suffix}`
+              console.log('📄 Factura encontrada para email:', invoiceNumber, 'ID:', invoiceId)
+            } else {
+              console.log('⚠️ No se encontró factura para el pedido entregado:', orderId)
+            }
           }
 
           const emailData = {
@@ -819,6 +832,14 @@ export class AdminService {
             invoiceId,
             invoiceNumber
           }
+
+          console.log('📧 Datos para email:', {
+            status: emailData.status,
+            clientEmail: emailData.clientEmail,
+            invoiceId: emailData.invoiceId,
+            invoiceNumber: emailData.invoiceNumber,
+            hasInvoiceAttachment: data.status === 'delivered' && !!invoiceId
+          })
 
           // Enviar notificación usando API interna
           // Usar un enfoque diferente para evitar problemas con ad blockers

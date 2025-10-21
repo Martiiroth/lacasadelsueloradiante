@@ -68,7 +68,7 @@ export class InvoiceService {
           suffix: counter.suffix,
           total_cents: order.total_cents,
           currency: 'EUR',
-          status: 'sent',
+          status: 'pending', // Factura pendiente de pago al crearla
           due_date: dueDate
         })
         .select()

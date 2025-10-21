@@ -20,7 +20,8 @@ export class PDFService {
    */
   static async generateInvoicePDF(
     invoiceId: string, 
-    config: Partial<PDFConfig> = {}
+    config: Partial<PDFConfig> = {},
+    isProforma: boolean = false
   ): Promise<Buffer> {
     try {
       // Obtener datos completos de la factura
@@ -39,7 +40,7 @@ export class PDFService {
       })
 
       // Generar el contenido del PDF
-      await this.buildInvoicePDF(doc, invoiceData, finalConfig)
+      await this.buildInvoicePDF(doc, invoiceData, finalConfig, isProforma)
 
       // Convertir a Buffer
       const pdfArrayBuffer = doc.output('arraybuffer')
@@ -47,6 +48,128 @@ export class PDFService {
 
     } catch (error) {
       console.error('Error generando PDF de factura:', error)
+      throw new Error(`Error al generar PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+    }
+  }
+
+  /**
+   * Genera un PDF de proforma desde un pedido
+   */
+  static async generateProformaFromOrder(orderId: string): Promise<Buffer> {
+    try {
+      // Obtener datos del pedido
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          client:clients (
+            id,
+            first_name,
+            last_name,
+            email,
+            nif_cif,
+            company_name,
+            phone,
+            address_line1,
+            address_line2,
+            city,
+            postal_code,
+            region
+          )
+        `)
+        .eq('id', orderId)
+        .single()
+
+      if (orderError || !order) {
+        throw new Error(`No se encontró el pedido con ID: ${orderId}`)
+      }
+
+      // Obtener items del pedido
+      const { data: orderItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select(`
+          *,
+          variant:product_variants (
+            title,
+            sku,
+            product:products (
+              title
+            )
+          )
+        `)
+        .eq('order_id', orderId)
+
+      if (itemsError) {
+        throw new Error('Error obteniendo items del pedido')
+      }
+
+      // Transformar a formato de factura
+      const invoiceItems: InvoiceItem[] = orderItems?.map(item => ({
+        id: item.id,
+        invoice_id: orderId,
+        variant_id: item.variant_id,
+        qty: item.qty,
+        price_cents: item.price_cents,
+        product_title: item.variant?.product?.title,
+        variant_title: item.variant?.title,
+        sku: item.variant?.sku
+      })) || []
+
+      // Calcular IVA
+      const TAX_RATE = 21
+      const totalWithTax = order.total_cents
+      const subtotal = Math.round(totalWithTax / (1 + TAX_RATE / 100))
+      const taxAmount = totalWithTax - subtotal
+
+      // Crear datos de proforma
+      const proformaData: InvoicePDFData = {
+        invoice: {
+          id: orderId,
+          client_id: order.client_id,
+          order_id: orderId,
+          invoice_number: 0, // Las proformas no tienen número
+          prefix: 'PRO-',
+          suffix: '',
+          subtotal_cents: subtotal,
+          tax_rate: TAX_RATE,
+          tax_cents: taxAmount,
+          total_cents: totalWithTax,
+          currency: 'EUR',
+          status: 'draft' as any, // Proforma es borrador
+          created_at: order.created_at,
+          due_date: null,
+          client: order.client,
+          order: order
+        } as Invoice,
+        company: {
+          name: 'T&V SERVICIOS Y COMPLEMENTOS',
+          address: 'C. del Apóstol Santiago, 59\nCdad. Lineal, 28017 Madrid',
+          phone: '+34 689 571 381',
+          email: 'consultas@lacasadelsueloradiante.es',
+          website: 'www.lacasadelsueloradiante.es',
+          nif: 'B-86715893'
+        },
+        items: invoiceItems
+      }
+
+      const finalConfig = { ...this.defaultConfig }
+      
+      // Crear documento PDF
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      })
+
+      // Generar el contenido del PDF como proforma
+      await this.buildInvoicePDF(doc, proformaData, finalConfig, true)
+
+      // Convertir a Buffer
+      const pdfArrayBuffer = doc.output('arraybuffer')
+      return Buffer.from(pdfArrayBuffer)
+
+    } catch (error) {
+      console.error('Error generando PDF de proforma:', error)
       throw new Error(`Error al generar PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`)
     }
   }
@@ -151,7 +274,8 @@ export class PDFService {
   private static async buildInvoicePDF(
     doc: jsPDF, 
     data: InvoicePDFData, 
-    config: PDFConfig
+    config: PDFConfig,
+    isProforma: boolean = false
   ): Promise<void> {
     const { invoice, company, items } = data
     
@@ -173,19 +297,36 @@ export class PDFService {
       doc.text('La Casa del Suelo Radiante', margin, currentY + 8)
     }
 
-    // Título FACTURA (parte superior derecha)
+    // Título FACTURA o PROFORMA (parte superior derecha)
     doc.setFontSize(28)
     doc.setFont('helvetica', 'bold')
-    const invoiceTitle = 'FACTURA'
-    const titleWidth = doc.getTextWidth(invoiceTitle)
-    doc.text(invoiceTitle, pageWidth - margin - titleWidth, currentY + 10)
+    
+    if (isProforma) {
+      doc.setTextColor(200, 0, 0) // Rojo para proforma
+      const proformaTitle = 'PROFORMA'
+      const titleWidth = doc.getTextWidth(proformaTitle)
+      doc.text(proformaTitle, pageWidth - margin - titleWidth, currentY + 10)
+    } else {
+      doc.setTextColor(0, 0, 0) // Negro para factura
+      const invoiceTitle = 'FACTURA'
+      const titleWidth = doc.getTextWidth(invoiceTitle)
+      doc.text(invoiceTitle, pageWidth - margin - titleWidth, currentY + 10)
+    }
 
-    // Número de factura
-    const invoiceNumber = `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`
+    // Número de factura o texto de proforma
     doc.setFontSize(11)
     doc.setFont('helvetica', 'normal')
-    const numberWidth = doc.getTextWidth(`Nº: ${invoiceNumber}`)
-    doc.text(`Nº: ${invoiceNumber}`, pageWidth - margin - numberWidth, currentY + 20)
+    doc.setTextColor(0, 0, 0)
+    
+    if (isProforma) {
+      const proformaText = 'Proforma sin valor fiscal'
+      const textWidth = doc.getTextWidth(proformaText)
+      doc.text(proformaText, pageWidth - margin - textWidth, currentY + 20)
+    } else {
+      const invoiceNumber = `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`
+      const numberWidth = doc.getTextWidth(`Nº: ${invoiceNumber}`)
+      doc.text(`Nº: ${invoiceNumber}`, pageWidth - margin - numberWidth, currentY + 20)
+    }
 
     // Fecha
     const invoiceDate = new Date(invoice.created_at).toLocaleDateString('es-ES')

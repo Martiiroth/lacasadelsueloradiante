@@ -6,6 +6,7 @@
 import jsPDF from 'jspdf'
 import type { Invoice, InvoicePDFData, PDFConfig, InvoiceItem } from '@/types/invoices'
 import { supabase } from './supabase'
+import { LOGO_BASE64 } from './logoBase64'
 
 export class PDFService {
   private static defaultConfig: PDFConfig = {
@@ -160,14 +161,16 @@ export class PDFService {
     const margin = 20
     let currentY = margin
 
-    // Logo base64 (simplificado - puedes reemplazar con tu logo real en base64)
-    const logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
-    
+    // Logo de la empresa
     try {
-      // Agregar logo (30mm de ancho)
-      doc.addImage(logoBase64, 'PNG', margin, currentY, 30, 30)
+      // Agregar logo (35mm de ancho, altura proporcional)
+      doc.addImage(LOGO_BASE64, 'PNG', margin, currentY, 35, 35)
     } catch (error) {
-      console.log('No se pudo cargar el logo')
+      console.error('Error al cargar logo:', error)
+      // Fallback: mostrar nombre de empresa
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.text('La Casa del Suelo Radiante', margin, currentY + 8)
     }
 
     // Título FACTURA (parte superior derecha)
@@ -189,14 +192,7 @@ export class PDFService {
     const dateWidth = doc.getTextWidth(`Fecha: ${invoiceDate}`)
     doc.text(`Fecha: ${invoiceDate}`, pageWidth - margin - dateWidth, currentY + 27)
 
-    // Fecha de vencimiento
-    if (invoice.due_date) {
-      const dueDate = new Date(invoice.due_date).toLocaleDateString('es-ES')
-      const dueDateWidth = doc.getTextWidth(`Vencimiento: ${dueDate}`)
-      doc.text(`Vencimiento: ${dueDate}`, pageWidth - margin - dueDateWidth, currentY + 34)
-    }
-
-    currentY = 60
+    currentY = 50
 
     // Línea separadora
     doc.setDrawColor(200, 200, 200)

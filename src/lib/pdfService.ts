@@ -259,13 +259,15 @@ export class PDFService {
     doc.text(`Tel: ${company.phone}`, rightColumnX, companyY)
     companyY += 5
     doc.text(`Email: ${company.email}`, rightColumnX, companyY)
+    companyY += 5
+    doc.text(`Registro RI-AEE: 17208`, rightColumnX, companyY)
 
     // Avanzar currentY basándonos en cuál columna es más larga
     currentY = Math.max(clientY, companyY) + 15
 
     // Tabla de items
     const tableStartY = currentY
-    const colWidths = [80, 20, 25, 30, 35] // Descripción, Cant., Precio, Subtotal
+    const colWidths = [65, 15, 25, 20, 25] // Descripción, Cant., Precio s/IVA, IVA 21%, Total
     const colPositions = [
       margin,
       margin + colWidths[0],
@@ -278,12 +280,13 @@ export class PDFService {
     doc.setFillColor(240, 240, 240)
     doc.rect(margin, currentY, pageWidth - (margin * 2), 8, 'F')
 
-    doc.setFontSize(10)
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'bold')
     doc.text('Descripción', colPositions[0] + 2, currentY + 5)
     doc.text('Cant.', colPositions[1] + 2, currentY + 5)
-    doc.text('Precio', colPositions[2] + 2, currentY + 5)
-    doc.text('Subtotal', colPositions[4] + 2, currentY + 5)
+    doc.text('Precio s/IVA', colPositions[2] + 2, currentY + 5)
+    doc.text('IVA 21%', colPositions[3] + 2, currentY + 5)
+    doc.text('Total', colPositions[4] + 2, currentY + 5)
 
     currentY += 10
 
@@ -294,9 +297,16 @@ export class PDFService {
     items.forEach((item) => {
       const description = `${item.product_title || 'Producto'}${item.variant_title ? ` - ${item.variant_title}` : ''}`
       const quantity = item.qty.toString()
-      const price = this.formatCurrency(item.price_cents, config.currency)
-      const itemSubtotal = item.qty * item.price_cents
-      const subtotalFormatted = this.formatCurrency(itemSubtotal, config.currency)
+      
+      // Calcular precio sin IVA (el precio en BD incluye IVA)
+      const priceWithTax = item.price_cents
+      const priceWithoutTax = Math.round(priceWithTax / 1.21)
+      const taxAmount = priceWithTax - priceWithoutTax
+      
+      const price = this.formatCurrency(priceWithoutTax, config.currency)
+      const tax = this.formatCurrency(taxAmount, config.currency)
+      const itemTotal = item.qty * priceWithTax
+      const totalFormatted = this.formatCurrency(itemTotal, config.currency)
 
       // Verificar si necesitamos nueva página
       if (currentY > pageHeight - 50) {
@@ -307,9 +317,10 @@ export class PDFService {
       doc.text(description, colPositions[0] + 2, currentY + 5)
       doc.text(quantity, colPositions[1] + 2, currentY + 5)
       doc.text(price, colPositions[2] + 2, currentY + 5)
-      doc.text(subtotalFormatted, colPositions[4] + 2, currentY + 5)
+      doc.text(tax, colPositions[3] + 2, currentY + 5)
+      doc.text(totalFormatted, colPositions[4] + 2, currentY + 5)
 
-      subtotal += itemSubtotal
+      subtotal += itemTotal
       currentY += 8
 
       // Línea separadora

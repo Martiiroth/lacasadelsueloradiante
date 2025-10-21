@@ -451,11 +451,32 @@ class ServerEmailService {
       const statusText = this.getStatusText(orderData.status)
       const transporter = getTransporter()
 
-      // Si hay invoiceId, obtener el PDF de la factura
-      let invoiceAttachment = null
-      if (orderData.invoiceId) {
+      // Adjuntar PDF según el estado del pedido
+      let pdfAttachment = null
+      
+      // Si el pedido es PENDING, adjuntar PROFORMA
+      if (orderData.status === 'pending') {
         try {
-          console.log('📄 Obteniendo PDF de factura para adjuntar al email:', orderData.invoiceId)
+          console.log('📄 Generando PROFORMA para pedido pending:', orderData.orderId)
+          const { PDFService } = await import('./pdfService')
+          const pdfBuffer = await PDFService.generateProformaFromOrder(orderData.orderId)
+          
+          if (pdfBuffer) {
+            pdfAttachment = {
+              filename: `proforma-${orderData.orderNumber}.pdf`,
+              content: pdfBuffer,
+              contentType: 'application/pdf'
+            }
+            console.log('✅ PDF de PROFORMA preparado para adjuntar:', pdfAttachment.filename)
+          }
+        } catch (pdfError) {
+          console.error('Error generando PDF de proforma para email:', pdfError)
+        }
+      }
+      // Si hay invoiceId (pedido DELIVERED), adjuntar FACTURA
+      else if (orderData.invoiceId) {
+        try {
+          console.log('📄 Obteniendo PDF de FACTURA para adjuntar al email:', orderData.invoiceId)
           const { PDFService } = await import('./pdfService')
           const pdfBuffer = await PDFService.generateInvoicePDF(orderData.invoiceId)
           
@@ -465,16 +486,15 @@ class ServerEmailService {
             const invoice = await InvoiceService.getInvoiceById(orderData.invoiceId)
             const invoiceNumber = invoice ? `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}` : 'factura'
             
-            invoiceAttachment = {
+            pdfAttachment = {
               filename: `factura-${invoiceNumber}.pdf`,
               content: pdfBuffer,
               contentType: 'application/pdf'
             }
-            console.log('✅ PDF de factura preparado para adjuntar:', invoiceAttachment.filename)
+            console.log('✅ PDF de FACTURA preparado para adjuntar:', pdfAttachment.filename)
           }
         } catch (pdfError) {
           console.error('Error obteniendo PDF de factura para email:', pdfError)
-          // Continuar sin adjuntar el PDF si hay error
         }
       }
 
@@ -487,7 +507,7 @@ class ServerEmailService {
         to: orderData.clientEmail,
         subject: `Actualización de tu pedido #${orderData.orderNumber} - ${statusText}`,
         html: this.createOrderEmailTemplate(orderData, false),
-        attachments: invoiceAttachment ? [invoiceAttachment] : []
+        attachments: pdfAttachment ? [pdfAttachment] : []
       }
 
       // Email para el administrador
@@ -499,12 +519,14 @@ class ServerEmailService {
         to: adminEmail,
         subject: `[ADMIN] Pedido #${orderData.orderNumber} actualizado - ${statusText}`,
         html: this.createOrderEmailTemplate(orderData, true),
-        attachments: invoiceAttachment ? [invoiceAttachment] : []
+        attachments: pdfAttachment ? [pdfAttachment] : []
       }
 
       // Enviar ambos emails
       console.log('📧 [EMAIL] Enviando emails con configuración:', {
-        clientEmail: orderData.clientEmail
+        clientEmail: orderData.clientEmail,
+        pdfAttached: !!pdfAttachment,
+        pdfType: orderData.status === 'pending' ? 'PROFORMA' : (orderData.invoiceId ? 'FACTURA' : 'NINGUNO')
       })
 
       const [clientResult, adminResult] = await Promise.allSettled([

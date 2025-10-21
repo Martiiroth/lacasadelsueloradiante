@@ -192,13 +192,7 @@ export class PDFService {
     const dateWidth = doc.getTextWidth(`Fecha: ${invoiceDate}`)
     doc.text(`Fecha: ${invoiceDate}`, pageWidth - margin - dateWidth, currentY + 27)
 
-    currentY = 50
-
-    // Línea separadora
-    doc.setDrawColor(200, 200, 200)
-    doc.line(margin, currentY, pageWidth - margin, currentY)
-    
-    currentY += 10
+    currentY = 55
 
     // Layout de dos columnas: Cliente (izquierda) y Empresa (derecha)
     const columnWidth = (pageWidth - margin * 2) / 2

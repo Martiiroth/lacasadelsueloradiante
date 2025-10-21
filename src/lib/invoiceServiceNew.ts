@@ -15,11 +15,20 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
+console.log('🔧 [INVOICE] Inicializando Supabase client:', {
+  hasUrl: !!supabaseUrl,
+  hasKey: !!supabaseKey,
+  urlLength: supabaseUrl?.length,
+  keyLength: supabaseKey?.length
+})
+
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Faltan variables de entorno de Supabase')
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey)
+
+console.log('✅ [INVOICE] Supabase client creado exitosamente')
 
 // ============================================================================
 // TIPOS Y INTERFACES
@@ -333,19 +342,37 @@ export class InvoiceService {
 
       // 1. Obtener datos del pedido
       console.log('🔍 [INVOICE] Buscando pedido en base de datos:', orderId)
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          client_id,
-          total_cents,
-          status,
-          client:clients(id, first_name, last_name, email)
-        `)
-        .eq('id', orderId)
-        .single()
-
-      console.log('📊 [INVOICE] Resultado query pedido:', { order: !!order, error: orderError?.message })
+      
+      let order, orderError
+      try {
+        const result = await supabase
+          .from('orders')
+          .select(`
+            id,
+            client_id,
+            total_cents,
+            status,
+            client:clients(id, first_name, last_name, email)
+          `)
+          .eq('id', orderId)
+          .single()
+        
+        order = result.data
+        orderError = result.error
+        
+        console.log('📊 [INVOICE] Query ejecutada - resultado:', { 
+          hasOrder: !!order, 
+          errorCode: orderError?.code,
+          errorMessage: orderError?.message,
+          errorDetails: orderError?.details 
+        })
+      } catch (queryError) {
+        console.error('❌ [INVOICE] Error ejecutando query:', {
+          error: queryError instanceof Error ? queryError.message : queryError,
+          stack: queryError instanceof Error ? queryError.stack : undefined
+        })
+        orderError = queryError
+      }
       
       if (orderError || !order) {
         console.error('❌ [INVOICE] Pedido no encontrado:', orderError)

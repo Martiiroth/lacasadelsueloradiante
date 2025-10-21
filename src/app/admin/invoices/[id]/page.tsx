@@ -23,9 +23,9 @@ import {
 } from "@/components/ui/alert-dialog"
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function AdminInvoiceDetailPage({ params }: PageProps) {
@@ -35,15 +35,26 @@ export default function AdminInvoiceDetailPage({ params }: PageProps) {
   const [updating, setUpdating] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [invoiceId, setInvoiceId] = useState<string | null>(null)
 
   useEffect(() => {
-    loadInvoice()
-  }, [params.id])
+    params.then(p => {
+      setInvoiceId(p.id)
+    })
+  }, [params])
+
+  useEffect(() => {
+    if (invoiceId) {
+      loadInvoice()
+    }
+  }, [invoiceId])
 
   const loadInvoice = async () => {
+    if (!invoiceId) return
+    
     try {
       setLoading(true)
-      const response = await fetch(`/api/invoices/${params.id}`)
+      const response = await fetch(`/api/invoices/${invoiceId}`)
       const data = await response.json()
 
       if (data.success) {

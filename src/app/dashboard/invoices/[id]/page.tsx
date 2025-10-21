@@ -13,9 +13,9 @@ import { InvoiceDetails } from '@/components/invoices/InvoiceComponents'
 import type { Invoice } from '@/types/invoices'
 
 interface PageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function InvoiceDetailPage({ params }: PageProps) {
@@ -23,15 +23,26 @@ export default function InvoiceDetailPage({ params }: PageProps) {
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
+  const [invoiceId, setInvoiceId] = useState<string | null>(null)
 
   useEffect(() => {
-    loadInvoice()
-  }, [params.id])
+    params.then(p => {
+      setInvoiceId(p.id)
+    })
+  }, [params])
+
+  useEffect(() => {
+    if (invoiceId) {
+      loadInvoice()
+    }
+  }, [invoiceId])
 
   const loadInvoice = async () => {
+    if (!invoiceId) return
+    
     try {
       setLoading(true)
-      const response = await fetch(`/api/invoices/${params.id}`)
+      const response = await fetch(`/api/invoices/${invoiceId}`)
       const data = await response.json()
 
       if (data.success) {

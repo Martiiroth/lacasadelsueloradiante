@@ -57,6 +57,12 @@ export class InvoiceService {
       // Calcular fecha de vencimiento (30 días por defecto)
       const dueDate = data.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
+      // Calcular IVA (21%)
+      const TAX_RATE = 21
+      const totalWithTax = order.total_cents
+      const subtotal = Math.round(totalWithTax / (1 + TAX_RATE / 100))
+      const taxAmount = totalWithTax - subtotal
+
       // Crear factura
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
@@ -66,7 +72,10 @@ export class InvoiceService {
           invoice_number: counter.next_number,
           prefix: counter.prefix,
           suffix: counter.suffix,
-          total_cents: order.total_cents,
+          subtotal_cents: subtotal,
+          tax_rate: TAX_RATE,
+          tax_cents: taxAmount,
+          total_cents: totalWithTax,
           currency: 'EUR',
           status: 'pending', // Factura pendiente de pago al crearla
           due_date: dueDate

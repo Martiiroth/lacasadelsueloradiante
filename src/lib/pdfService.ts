@@ -126,12 +126,12 @@ export class PDFService {
       const pdfData: InvoicePDFData = {
         invoice: invoice as Invoice,
         company: {
-          name: 'La Casa del Suelo Radiante',
-          address: 'Calle Principal, 123\n28001 Madrid, España',
-          phone: '+34 900 123 456',
-          email: 'info@lacasadelsueloradiante.es',
+          name: 'T&V SERVICIOS Y COMPLEMENTOS',
+          address: 'C. del Apóstol Santiago, 59\nCdad. Lineal, 28017 Madrid',
+          phone: '+34 689 571 381',
+          email: 'consultas@lacasadelsueloradiante.es',
           website: 'www.lacasadelsueloradiante.es',
-          nif: 'B12345678'
+          nif: 'B-86715893'
         },
         items: invoiceItems
       }
@@ -160,16 +160,30 @@ export class PDFService {
     const margin = 20
     let currentY = margin
 
-    // Header con logo y datos de empresa
-    doc.setFontSize(20)
-    doc.setFont('helvetica', 'bold')
-    doc.text(company.name, margin, currentY)
-    currentY += 10
+    // Logo de la empresa (esquina superior izquierda)
+    const logoUrl = 'https://lacasadelsueloradiante.es/images/logo.png'
+    try {
+      // Agregar logo (40mm de ancho, altura proporcional)
+      doc.addImage(logoUrl, 'PNG', margin, currentY, 40, 40)
+    } catch (error) {
+      console.log('No se pudo cargar el logo, continuando sin él')
+    }
 
-    doc.setFontSize(10)
+    // Header con datos de empresa (al lado del logo)
+    const textStartX = margin + 45
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text(company.name, textStartX, currentY + 5)
+    
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
-    doc.text(company.address, margin, currentY)
-    currentY += 15
+    doc.text(company.address.split('\n')[0], textStartX, currentY + 12)
+    doc.text(company.address.split('\n')[1], textStartX, currentY + 17)
+    doc.text(`NIF: ${company.nif}`, textStartX, currentY + 22)
+    doc.text(`Tel: ${company.phone}`, textStartX, currentY + 27)
+    doc.text(`Email: ${company.email}`, textStartX, currentY + 32)
+
+    currentY += 45
 
     // Título FACTURA
     doc.setFontSize(24)
@@ -190,12 +204,23 @@ export class PDFService {
     const dateWidth = doc.getTextWidth(`Fecha: ${invoiceDate}`)
     doc.text(`Fecha: ${invoiceDate}`, pageWidth - margin - dateWidth, 55)
 
-    currentY = 70
+    // Fecha de vencimiento
+    if (invoice.due_date) {
+      const dueDate = new Date(invoice.due_date).toLocaleDateString('es-ES')
+      const dueDateWidth = doc.getTextWidth(`Vencimiento: ${dueDate}`)
+      doc.text(`Vencimiento: ${dueDate}`, pageWidth - margin - dueDateWidth, 65)
+    }
+
+    // Línea separadora después del header
+    doc.setDrawColor(200, 200, 200)
+    doc.line(margin, 75, pageWidth - margin, 75)
+
+    currentY = 85
 
     // Datos del cliente
-    doc.setFontSize(14)
+    doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
-    doc.text('Facturar a:', margin, currentY)
+    doc.text('FACTURAR A:', margin, currentY)
     currentY += 8
 
     doc.setFontSize(10)
@@ -288,13 +313,23 @@ export class PDFService {
     currentY += 10
     const totalsX = pageWidth - margin - 60
 
-    doc.setFont('helvetica', 'bold')
-    doc.text('Subtotal:', totalsX - 30, currentY)
-    doc.text(this.formatCurrency(subtotal, config.currency), totalsX, currentY)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Subtotal (Base imponible):', totalsX - 50, currentY)
+    doc.text(this.formatCurrency(invoice.subtotal_cents, config.currency), totalsX, currentY)
+    currentY += 6
+
+    doc.text(`IVA (${invoice.tax_rate}%):`, totalsX - 50, currentY)
+    doc.text(this.formatCurrency(invoice.tax_cents, config.currency), totalsX, currentY)
     currentY += 8
 
-    doc.text('Total:', totalsX - 30, currentY)
-    doc.text(this.formatCurrency(invoice.total_cents, config.currency), totalsX, currentY)
+    // Línea separadora antes del total
+    doc.setDrawColor(0, 0, 0)
+    doc.line(totalsX - 55, currentY - 2, pageWidth - margin, currentY - 2)
+
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(12)
+    doc.text('TOTAL:', totalsX - 50, currentY + 2)
+    doc.text(this.formatCurrency(invoice.total_cents, config.currency), totalsX, currentY + 2)
 
     // Footer
     const footerY = pageHeight - 30

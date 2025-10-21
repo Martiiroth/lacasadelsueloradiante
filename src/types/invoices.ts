@@ -10,7 +10,10 @@ export interface Invoice {
   invoice_number: number
   prefix: string
   suffix: string
-  total_cents: number
+  subtotal_cents: number  // Subtotal sin IVA
+  tax_rate: number        // Tasa de IVA (ej: 21 para 21%)
+  tax_cents: number       // Importe del IVA
+  total_cents: number     // Total con IVA
   currency: string
   status: InvoiceStatus
   created_at: string

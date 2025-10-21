@@ -18,13 +18,9 @@ const apiFiles = [
   'src/app/api/test-email/route.ts', 
   'src/app/api/email/route.ts',
   'src/app/api/notifications/route.ts',
-  'src/app/api/invoices/route.ts',
-  'src/app/api/invoices/[id]/route.ts',
-  'src/app/api/invoices/[id]/pdf/route.ts',
   'src/app/api/admin/orders/route.ts',
   'src/app/api/admin/orders/[id]/route.ts',
   'src/app/api/admin/orders/[id]/deliver/route.ts',
-  'src/app/api/client/invoices/route.ts'
 ];
 
 const apiAnalysis = [];
@@ -222,5 +218,4 @@ console.log('\n💾 Reporte detallado guardado en: api-analysis-report.json');
 console.log('\n🔗 PRUEBAS MANUALES RECOMENDADAS:');
 console.log('   📋 http://localhost:3000/api/test-env');
 console.log('   📧 http://localhost:3000/api/test-email');
-console.log('   📄 http://localhost:3000/api/invoices?client_id=test');
 console.log('   🔐 http://localhost:3000/api/admin/orders (requiere auth)');

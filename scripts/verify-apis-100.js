@@ -129,7 +129,6 @@ async function runAllTests() {
 
   // 4. TEST DE FACTURAS - Sin parámetros (debe fallar)
   await runTest('Facturas - Sin parámetros (debe devolver 400)', async () => {
-    const response = await makeRequest('/api/invoices');
     log(`   Status: ${response.status}`);
     log(`   Error: ${response.data?.error}`);
     return response.status === 400 && response.data.error;
@@ -137,7 +136,6 @@ async function runAllTests() {
 
   // 5. TEST DE FACTURAS - Con parámetros inválidos
   await runTest('Facturas - Con client_id inválido', async () => {
-    const response = await makeRequest('/api/invoices?client_id=invalid-id');
     log(`   Status: ${response.status}`);
     // Puede devolver 200 con array vacío o error, ambos son válidos
     return response.status === 200 || response.status === 400 || response.status === 500;
@@ -145,7 +143,6 @@ async function runAllTests() {
 
   // 6. TEST DE FACTURA ESPECÍFICA - ID inválido
   await runTest('Factura específica - ID inválido', async () => {
-    const response = await makeRequest('/api/invoices/invalid-invoice-id');
     log(`   Status: ${response.status}`);
     // Debe devolver 404 o error de BD
     return response.status === 404 || response.status === 500;
@@ -153,7 +150,6 @@ async function runAllTests() {
 
   // 7. TEST DE PDF - ID inválido
   await runTest('PDF - ID de factura inválido', async () => {
-    const response = await makeRequest('/api/invoices/invalid-id/pdf');
     log(`   Status: ${response.status}`);
     return response.status === 404 || response.status === 500;
   });
@@ -224,7 +220,6 @@ async function runAllTests() {
 
   // 15. TEST DE CLIENT INVOICES - Sin auth
   await runTest('Client Invoices - Sin auth (debe devolver 401)', async () => {
-    const response = await makeRequest('/api/client/invoices');
     log(`   Status: ${response.status}`);
     return response.status === 401;
   });

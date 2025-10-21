@@ -79,7 +79,6 @@ const API_TESTS = [
   },
   {
     name: 'Factura específica (requiere ID válido)',
-    url: '/api/invoices/test-invoice-id',
     method: 'GET',
     expectedStatus: [200, 404], // 404 es OK si no existe la factura de prueba
     validate: (response) => {
@@ -88,7 +87,6 @@ const API_TESTS = [
   },
   {
     name: 'Facturas sin parámetros',
-    url: '/api/invoices',
     method: 'GET',
     expectedStatus: 400,
     validate: (response) => {

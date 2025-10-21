@@ -12,7 +12,7 @@ import { useAuth } from '../../contexts/AuthContext'
 
 interface DashboardLayoutProps {
   children: ReactNode
-  activeSection?: 'overview' | 'personal-info' | 'orders' | 'invoices'
+  activeSection?: 'overview' | 'personal-info' | 'orders'
 }
 
 interface NavItem {
@@ -41,12 +41,7 @@ const navItems: NavItem[] = [
     href: '/dashboard/orders',
     icon: ShoppingBagIcon
   },
-  {
-    id: 'invoices',
-    label: 'Facturas',
-    href: '/dashboard/invoices',
-    icon: DocumentTextIcon
-  }
+
 ]
 
 export default function DashboardLayout({ children, activeSection = 'overview' }: DashboardLayoutProps) {

@@ -12,7 +12,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { ClientService } from '../../lib/clientService'
 import { useHydration } from '../../hooks/useHydration'
 import { LoadingState } from '../ui/LoadingState'
-import type { ClientStats, ClientOrder, Invoice } from '../../types/client'
+import type { ClientStats, ClientOrder } from '../../types/client'
 
 interface StatCardProps {
   title: string
@@ -75,43 +75,14 @@ function OrderRow({ order }: OrderRowProps) {
   )
 }
 
-interface InvoiceRowProps {
-  invoice: Invoice
-}
 
-function InvoiceRow({ invoice }: InvoiceRowProps) {
-  return (
-    <Link 
-      href={`/dashboard/invoices/${invoice.id}`}
-      className="block hover:bg-gray-50 transition-colors"
-    >
-      <div className="px-6 py-4 border-b border-gray-200 last:border-b-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-900">
-              Factura #{invoice.prefix}{invoice.invoice_number}{invoice.suffix}
-            </p>
-            <p className="text-sm text-gray-500">
-              {ClientService.formatDateShort(invoice.created_at)}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-medium text-gray-900">
-              {ClientService.formatPrice(invoice.total_cents)}
-            </p>
-          </div>
-        </div>
-      </div>
-    </Link>
-  )
-}
 
 export default function DashboardOverview() {
   const { user } = useAuth()
   const isHydrated = useHydration()
   const [stats, setStats] = useState<ClientStats | null>(null)
   const [recentOrders, setRecentOrders] = useState<ClientOrder[]>([])
-  const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -125,15 +96,13 @@ export default function DashboardOverview() {
         setLoading(true)
         setError(null)
         
-        const [statsData, ordersData, invoicesData] = await Promise.all([
+        const [statsData, ordersData] = await Promise.all([
           ClientService.getClientStats(user.client!.id),
-          ClientService.getRecentOrders(user.client!.id, 5),
-          ClientService.getRecentInvoices(user.client!.id, 5)
+          ClientService.getRecentOrders(user.client!.id, 5)
         ])
 
         setStats(statsData)
         setRecentOrders(ordersData)
-        setRecentInvoices(invoicesData)
         setLoading(false)
       } catch (error) {
         console.error(`Error loading dashboard data (intento ${retryCount + 1}):`, error)
@@ -264,33 +233,7 @@ export default function DashboardOverview() {
           </div>
         </div>
 
-        {/* Facturas Recientes */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-medium text-gray-900">Facturas Recientes</h2>
-              <Link 
-                href="/dashboard/invoices"
-                className="text-sm text-blue-600 hover:text-blue-500"
-              >
-                Ver todas
-              </Link>
-            </div>
-          </div>
-          
-          <div className="divide-y divide-gray-200">
-            {recentInvoices.length > 0 ? (
-              recentInvoices.map((invoice) => (
-                <InvoiceRow key={invoice.id} invoice={invoice} />
-              ))
-            ) : (
-              <div className="px-6 py-8 text-center">
-                <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <p className="mt-2 text-sm text-gray-500">No tienes facturas aún</p>
-              </div>
-            )}
-          </div>
-        </div>
+
       </div>
     </div>
   )

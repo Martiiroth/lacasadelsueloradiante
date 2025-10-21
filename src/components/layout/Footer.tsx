@@ -77,12 +77,7 @@ export default function Footer() {
               >
                 Mis Pedidos
               </Link>
-              <Link 
-                href="/dashboard/invoices" 
-                className="block text-gray-300 hover:text-blue-400 transition-colors text-sm"
-              >
-                Mis Facturas
-              </Link>
+
               <Link 
                 href="/cart" 
                 className="block text-gray-300 hover:text-blue-400 transition-colors text-sm"

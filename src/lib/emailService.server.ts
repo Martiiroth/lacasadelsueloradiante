@@ -1,6 +1,5 @@
 // Email service que solo se ejecuta en el servidor
 import nodemailer from 'nodemailer'
-import { PDFServiceJsPDF } from './pdfServiceJsPDF'
 
 // Configuración del transporter usando la configuración de Zoho
 let transporter: nodemailer.Transporter | null = null
@@ -55,8 +54,6 @@ interface OrderEmailData {
   total: number
   createdAt: string
   shippingAddress?: string
-  invoiceId?: string
-  invoiceNumber?: string
 }
 
 // Tipos para datos de nuevo registro
@@ -438,48 +435,7 @@ class ServerEmailService {
       const statusText = this.getStatusText(orderData.status)
       const transporter = getTransporter()
 
-      // Generar PDF de la factura si el pedido está entregado y hay invoiceId
-      let invoiceAttachment = null
-      if (orderData.status === 'delivered' && orderData.invoiceId) {
-        try {
-          console.log('📄 [PDF] Iniciando generación de PDF para factura:', {
-            invoiceNumber: orderData.invoiceNumber,
-            invoiceId: orderData.invoiceId
-          })
-          
-          const pdfBuffer = await PDFServiceJsPDF.generateInvoicePDF(orderData.invoiceId)
-          
-          console.log('📄 [PDF] Buffer generado:', {
-            bufferExists: !!pdfBuffer,
-            bufferLength: pdfBuffer ? pdfBuffer.length : 0,
-            bufferType: typeof pdfBuffer
-          })
-          
-          if (!pdfBuffer || pdfBuffer.length === 0) {
-            throw new Error('PDF buffer está vacío o no se generó')
-          }
-          
-          invoiceAttachment = {
-            filename: `factura-${orderData.invoiceNumber}.pdf`,
-            content: Buffer.from(pdfBuffer),
-            contentType: 'application/pdf'
-          }
-          console.log('✅ [PDF] PDF de factura generado exitosamente para adjuntar al email')
-        } catch (pdfError) {
-          console.error('❌ [PDF] Error generando PDF para email:', {
-            error: pdfError instanceof Error ? pdfError.message : String(pdfError),
-            stack: pdfError instanceof Error ? pdfError.stack : undefined,
-            invoiceId: orderData.invoiceId
-          })
-          // Continuar sin attachment si hay error
-        }
-      } else {
-        console.log('ℹ️ [PDF] No se adjuntará factura:', {
-          status: orderData.status,
-          hasInvoiceId: !!orderData.invoiceId,
-          shouldAttach: orderData.status === 'delivered' && !!orderData.invoiceId
-        })
-      }
+
 
       // Email para el cliente
       const clientEmailOptions: any = {
@@ -490,11 +446,6 @@ class ServerEmailService {
         to: orderData.clientEmail,
         subject: `Actualización de tu pedido #${orderData.orderNumber} - ${statusText}`,
         html: this.createOrderEmailTemplate(orderData, false)
-      }
-
-      // Adjuntar PDF si existe
-      if (invoiceAttachment) {
-        clientEmailOptions.attachments = [invoiceAttachment]
       }
 
       // Email para el administrador
@@ -508,17 +459,9 @@ class ServerEmailService {
         html: this.createOrderEmailTemplate(orderData, true)
       }
 
-      // También adjuntar PDF al admin si existe
-      if (invoiceAttachment) {
-        adminEmailOptions.attachments = [invoiceAttachment]
-      }
-
       // Enviar ambos emails
       console.log('📧 [EMAIL] Enviando emails con configuración:', {
-        clientEmail: orderData.clientEmail,
-        hasAttachment: !!invoiceAttachment,
-        attachmentSize: invoiceAttachment ? invoiceAttachment.content.length : 0,
-        attachmentFilename: invoiceAttachment ? invoiceAttachment.filename : 'none'
+        clientEmail: orderData.clientEmail
       })
 
       const [clientResult, adminResult] = await Promise.allSettled([

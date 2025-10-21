@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
-import { InvoiceService } from '@/lib/invoiceService'
 
 export async function POST(
   request: NextRequest,
@@ -48,12 +47,7 @@ export async function POST(
     return NextResponse.json({ 
       success: true, 
       order: updatedOrder,
-      message: 'Pedido marcado como entregado y factura generada automáticamente.',
-      invoice: updatedOrder?.invoice ? {
-        id: updatedOrder.invoice.id,
-        number: `${updatedOrder.invoice.prefix}${updatedOrder.invoice.invoice_number}${updatedOrder.invoice.suffix}`,
-        generated: true
-      } : null
+      message: 'Pedido marcado como entregado.'
     })
   } catch (error) {
     console.error('Error en POST /api/admin/orders/[id]/deliver:', error)

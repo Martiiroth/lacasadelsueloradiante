@@ -43,9 +43,7 @@ export default function DeliverOrderButton({
       const result = await response.json()
 
       if (response.ok && result.success) {
-        const message = result.invoice 
-          ? `Pedido marcado como entregado. Factura ${result.invoice.number} generada automáticamente.`
-          : 'Pedido marcado como entregado.'
+        const message = 'Pedido marcado como entregado.'
         
         onStatusUpdate('delivered', message)
         setShowConfirmation(false)

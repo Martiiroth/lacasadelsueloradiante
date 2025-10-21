@@ -21,7 +21,7 @@ export default function OrderConfirmationComponent({
   confirmation, 
   onNewOrder 
 }: OrderConfirmationProps) {
-  const { order, order_items, invoice, confirmation_number } = confirmation
+  const { order, order_items, confirmation_number } = confirmation
   const { clearCart } = useCart()
 
   useEffect(() => {
@@ -108,31 +108,7 @@ export default function OrderConfirmationComponent({
               </dl>
             </div>
 
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">
-                Información de Facturación
-              </h2>
-              <dl className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Número de factura:</dt>
-                  <dd className="font-medium text-gray-900">
-                    {invoice.prefix}{invoice.invoice_number}{invoice.suffix}
-                  </dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Fecha de emisión:</dt>
-                  <dd className="text-gray-900">{formatDate(invoice.created_at)}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Fecha de vencimiento:</dt>
-                  <dd className="text-gray-900">{invoice.due_date ? formatDate(invoice.due_date) : 'Sin fecha límite'}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Estado:</dt>
-                  <dd className="text-gray-900">Generada</dd>
-                </div>
-              </dl>
-            </div>
+
           </div>
 
           {/* Instrucciones de Transferencia Bancaria */}

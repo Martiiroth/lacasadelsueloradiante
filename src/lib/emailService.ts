@@ -15,8 +15,6 @@ interface OrderEmailData {
   total: number
   createdAt: string
   shippingAddress?: string
-  invoiceId?: string
-  invoiceNumber?: string
 }
 
 interface NewRegistrationEmailData {

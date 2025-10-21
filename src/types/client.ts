@@ -45,7 +45,6 @@ export interface ClientOrder {
   updated_at: string
   // Relaciones
   order_items?: OrderItem[]
-  invoice?: Invoice
 }
 
 export type OrderStatus = 
@@ -117,23 +116,6 @@ export interface VariantImage {
   created_at: string
 }
 
-export interface Invoice {
-  id: string
-  client_id: string
-  order_id: string
-  invoice_number: number
-  prefix: string
-  suffix: string
-  total_cents: number
-  currency: string
-  created_at: string
-  due_date?: string
-}
-
-// Nota: El campo status fue eliminado de las facturas según update_invoices_schema.sql
-// Las facturas se generan automáticamente cuando el pedido está "delivered"
-export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'cancelled' // Mantenido para compatibilidad legacy
-
 // Tipos para formularios de actualización
 export interface UpdateClientData {
   first_name: string
@@ -157,8 +139,6 @@ export interface ClientStats {
   total_spent_cents: number
   pending_orders: number
   completed_orders: number
-  pending_invoices: number
-  paid_invoices: number
 }
 
 // Tipos para filtros y búsqueda
@@ -169,17 +149,9 @@ export interface OrderFilters {
   search?: string
 }
 
-export interface InvoiceFilters {
-  status?: InvoiceStatus[]
-  date_from?: string
-  date_to?: string
-  search?: string
-}
-
 // Tipo para el dashboard del cliente
 export interface ClientDashboardData {
   client: Client
   stats: ClientStats
   recent_orders: ClientOrder[]
-  recent_invoices: Invoice[]
 }

@@ -9,11 +9,9 @@ import { supabase } from './supabase'
 import type { 
   Client, 
   ClientOrder, 
-  Invoice, 
   ClientStats, 
   UpdateClientData,
   OrderFilters,
-  InvoiceFilters,
   ClientDashboardData
 } from '../types/client'
 
@@ -78,19 +76,11 @@ export class ClientService {
         .select('id, status, total_cents')
         .eq('client_id', clientId)
 
-      // Obtener facturas (sin campo status, que fue eliminado)
-      const { data: invoices } = await supabase
-        .from('invoices')
-        .select('id, total_cents, created_at')
-        .eq('client_id', clientId)
-
       const stats: ClientStats = {
         total_orders: orders?.length || 0,
         total_spent_cents: orders?.reduce((sum, order) => sum + (order.total_cents || 0), 0) || 0,
         pending_orders: orders?.filter(o => ['pending', 'confirmed', 'processing'].includes(o.status)).length || 0,
-        completed_orders: orders?.filter(o => ['delivered'].includes(o.status)).length || 0,
-        pending_invoices: invoices?.length || 0, // Todas las facturas generadas
-        paid_invoices: 0 // Sin campo status, no podemos diferenciar
+        completed_orders: orders?.filter(o => ['delivered'].includes(o.status)).length || 0
       }
 
       return stats
@@ -100,9 +90,7 @@ export class ClientService {
         total_orders: 0,
         total_spent_cents: 0,
         pending_orders: 0,
-        completed_orders: 0,
-        pending_invoices: 0,
-        paid_invoices: 0
+        completed_orders: 0
       }
     }
   }
@@ -137,8 +125,7 @@ export class ClientService {
                 position
               )
             )
-          ),
-          invoice:invoices (*)
+          )
         `)
         .eq('client_id', clientId)
         .order('created_at', { ascending: false })
@@ -198,8 +185,7 @@ export class ClientService {
                 position
               )
             )
-          ),
-          invoice:invoices (*)
+          )
         `)
         .eq('client_id', clientId)
         .eq('id', orderId)
@@ -217,76 +203,15 @@ export class ClientService {
     }
   }
 
-  // Obtener facturas del cliente con filtros
-  static async getClientInvoices(
-    clientId: string,
-    filters?: InvoiceFilters,
-    limit: number = 10,
-    offset: number = 0
-  ): Promise<Invoice[]> {
-    try {
-      console.log('🔍 ClientService.getClientInvoices - Client ID:', clientId)
-      console.log('🔍 Filters:', filters)
-      console.log('🔍 Limit:', limit, 'Offset:', offset)
 
-      let query = supabase
-        .from('invoices')
-        .select(`
-          id,
-          client_id,
-          order_id,
-          invoice_number,
-          prefix,
-          suffix,
-          total_cents,
-          currency,
-          created_at,
-          due_date,
-          status
-        `)
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false })
-
-      // Aplicar filtros
-      // Nota: El filtro por status fue eliminado ya que las facturas no tienen estado
-
-      if (filters?.date_from) {
-        query = query.gte('created_at', filters.date_from)
-      }
-
-      if (filters?.date_to) {
-        query = query.lte('created_at', filters.date_to)
-      }
-
-      // Aplicar paginación
-      query = query.range(offset, offset + limit - 1)
-
-      const { data, error } = await query
-
-      if (error) {
-        console.error('❌ Error fetching client invoices:', error)
-        console.error('Query details:', { clientId, filters, limit, offset })
-        return []
-      }
-
-      console.log('✅ Invoices found for client:', data?.length || 0)
-      console.log('Invoice data sample:', data?.slice(0, 2))
-
-      return data || []
-    } catch (error) {
-      console.error('Error in getClientInvoices:', error)
-      return []
-    }
-  }
 
   // Obtener datos completos del dashboard
   static async getClientDashboard(clientId: string): Promise<ClientDashboardData | null> {
     try {
-      const [client, stats, recentOrders, recentInvoices] = await Promise.all([
+      const [client, stats, recentOrders] = await Promise.all([
         this.getClientData(clientId),
         this.getClientStats(clientId),
-        this.getClientOrders(clientId, undefined, 5),
-        this.getClientInvoices(clientId, undefined, 5)
+        this.getClientOrders(clientId, undefined, 5)
       ])
 
       if (!client) {
@@ -296,8 +221,7 @@ export class ClientService {
       return {
         client,
         stats,
-        recent_orders: recentOrders,
-        recent_invoices: recentInvoices
+        recent_orders: recentOrders
       }
     } catch (error) {
       console.error('Error in getClientDashboard:', error)
@@ -310,10 +234,7 @@ export class ClientService {
     return this.getClientOrders(clientId, undefined, limit, 0)
   }
 
-  // Obtener facturas recientes (para dashboard)
-  static async getRecentInvoices(clientId: string, limit: number = 5): Promise<Invoice[]> {
-    return this.getClientInvoices(clientId, undefined, limit, 0)
-  }
+
 
   // Actualizar fecha de último login
   static async updateLastLogin(clientId: string): Promise<void> {
@@ -384,27 +305,5 @@ export class ClientService {
     return statusColors[status] || 'text-gray-600 bg-gray-50'
   }
 
-  // Obtener estado legible de la factura
-  static getInvoiceStatusLabel(status: string): string {
-    const statusLabels: Record<string, string> = {
-      'pending': 'Pendiente',
-      'paid': 'Pagada',
-      'overdue': 'Vencida',
-      'cancelled': 'Cancelada'
-    }
-    
-    return statusLabels[status] || status
-  }
 
-  // Obtener color del estado de la factura
-  static getInvoiceStatusColor(status: string): string {
-    const statusColors: Record<string, string> = {
-      'pending': 'text-yellow-600 bg-yellow-50',
-      'paid': 'text-green-600 bg-green-50',
-      'overdue': 'text-red-600 bg-red-50',
-      'cancelled': 'text-gray-600 bg-gray-50'
-    }
-    
-    return statusColors[status] || 'text-gray-600 bg-gray-50'
-  }
 }

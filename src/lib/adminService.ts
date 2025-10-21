@@ -12,7 +12,6 @@ import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'
 import EmailService from './emailService'
-import { InvoiceService } from './invoiceServiceNew'
 import { config } from 'dotenv'
 import path from 'path'
 
@@ -579,16 +578,6 @@ export class AdminService {
                 title
               )
             )
-          ),
-          invoice:invoices (
-            id,
-            invoice_number,
-            prefix,
-            suffix,
-            total_cents,
-            currency,
-            created_at,
-            due_date
           )
         `)
         .order('created_at', { ascending: false })
@@ -666,16 +655,6 @@ export class AdminService {
                 title
               )
             )
-          ),
-          invoice:invoices (
-            id,
-            invoice_number,
-            prefix,
-            suffix,
-            total_cents,
-            currency,
-            created_at,
-            due_date
           )
         `)
         .eq('id', orderId)
@@ -709,39 +688,7 @@ export class AdminService {
         return false
       }
 
-      // Si el estado cambia a "delivered", generar factura automáticamente
-      if (data.status === 'delivered') {
-        console.log(`📄 Pedido ${orderId} marcado como entregado. Generando factura automáticamente...`)
-        
-        try {
-          // Verificar si ya existe una factura para este pedido
-          const { data: existingInvoice, error: checkError } = await supabase
-            .from('invoices')
-            .select('id, invoice_number, prefix, suffix')
-            .eq('order_id', orderId)
-            .maybeSingle()
 
-          if (checkError) {
-            console.error(`❌ Error verificando factura existente para pedido ${orderId}:`, checkError)
-            return false
-          }
-
-          if (existingInvoice) {
-            console.log(`⚠️ Ya existe una factura para el pedido ${orderId}:`, `${existingInvoice.prefix}${existingInvoice.invoice_number}${existingInvoice.suffix}`)
-          } else {
-            // Usar la misma lógica que OrderService para crear facturas
-            const invoice = await this.generateInvoiceForDeliveredOrder(orderId)
-            
-            if (invoice) {
-              console.log(`✅ Factura ${invoice.prefix}${invoice.invoice_number}${invoice.suffix} generada exitosamente para pedido ${orderId}`)
-            } else {
-              console.error(`❌ Error generando factura para pedido ${orderId}`)
-            }
-          }
-        } catch (invoiceError) {
-          console.error(`❌ Error en la generación de factura para pedido ${orderId}:`, invoiceError)
-        }
-      }
 
       // Enviar notificación por email después de actualizar exitosamente
       try {
@@ -792,27 +739,7 @@ export class AdminService {
             }
           }
 
-          // Obtener información de la factura si el pedido está entregado
-          let invoiceId = undefined
-          let invoiceNumber = undefined
-          if (data.status === 'delivered') {
-            // Buscar factura directamente por order_id para asegurar que se encuentra la más reciente
-            const { data: invoiceData, error: invoiceError } = await supabase
-              .from('invoices')
-              .select('id, invoice_number, prefix, suffix')
-              .eq('order_id', orderId)
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .single()
 
-            if (invoiceData && !invoiceError) {
-              invoiceId = invoiceData.id
-              invoiceNumber = `${invoiceData.prefix}${invoiceData.invoice_number}${invoiceData.suffix}`
-              console.log('📄 Factura encontrada para email:', invoiceNumber, 'ID:', invoiceId)
-            } else {
-              console.log('⚠️ No se encontró factura para el pedido entregado:', orderId)
-            }
-          }
 
           const emailData = {
             orderId: orderDetails.id,
@@ -829,17 +756,12 @@ export class AdminService {
             createdAt: orderDetails.created_at,
             shippingAddress,
             billingAddress,
-            clientInfo,
-            invoiceId,
-            invoiceNumber
+            clientInfo
           }
 
           console.log('📧 Datos para email:', {
             status: emailData.status,
-            clientEmail: emailData.clientEmail,
-            invoiceId: emailData.invoiceId,
-            invoiceNumber: emailData.invoiceNumber,
-            hasInvoiceAttachment: data.status === 'delivered' && !!invoiceId
+            clientEmail: emailData.clientEmail
           })
 
           // Enviar notificación usando API interna
@@ -979,16 +901,7 @@ export class AdminService {
         return false
       }
 
-      // Delete invoice if exists
-      const { error: invoiceError } = await supabase
-        .from('invoices')
-        .delete()
-        .eq('order_id', orderId)
 
-      if (invoiceError) {
-        console.error('Error deleting invoice:', invoiceError)
-        // Continue anyway, invoice might not exist
-      }
 
       // Finally delete the order
       const { error } = await supabase
@@ -1239,44 +1152,7 @@ export class AdminService {
     }
   }
 
-  // === GENERACIÓN DE FACTURAS ===
-  
-  static async generateInvoiceForDeliveredOrder(orderId: string): Promise<any | null> {
-    try {
-      console.log(`📄 Iniciando generación de factura para pedido ${orderId}`)
-      
-      // Usar la API de facturas en lugar del servicio directo (para evitar problemas de autenticación)
-      const response = await fetch('/api/invoices-new', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'generate_for_order',
-          order_id: orderId
-        })
-      })
-      
-      if (!response.ok) {
-        console.error(`❌ Error en API de facturas: ${response.status} ${response.statusText}`)
-        return null
-      }
-      
-      const result = await response.json()
-      
-      if (result.success && result.invoice) {
-        const invoice = result.invoice
-        console.log(`✅ Factura ${invoice.prefix}${invoice.invoice_number}${invoice.suffix} generada exitosamente para pedido ${orderId}`)
-        return invoice
-      } else {
-        console.error(`❌ Error en respuesta de API:`, result.error || 'Error desconocido')
-        return null
-      }
-    } catch (error) {
-      console.error(`❌ Error en generateInvoiceForDeliveredOrder para pedido ${orderId}:`, error)
-      return null
-    }
-  }
+
 
   // === GESTIÓN DE STOCK ===
   

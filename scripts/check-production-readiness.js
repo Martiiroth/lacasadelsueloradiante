@@ -86,7 +86,6 @@ console.log('-'.repeat(40));
 
 const apiFiles = [
   'src/app/api/test-env/route.ts',
-  'src/app/api/invoices/route.ts',
   'src/app/api/admin/orders/route.ts',
   'src/app/api/email/route.ts'
 ];

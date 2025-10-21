@@ -324,11 +324,7 @@ export default function AdminOrders() {
                           <div className="text-sm font-medium text-gray-900">
                             #{order.id.slice(-8)}
                           </div>
-                          {order.invoice && (
-                            <div className="text-sm text-gray-500">
-                              Factura: {order.invoice.prefix}{order.invoice.invoice_number}{order.invoice.suffix}
-                            </div>
-                          )}
+
                         </div>
                       </div>
                     </td>
@@ -445,11 +441,7 @@ export default function AdminOrders() {
                         <div className="text-sm font-medium text-gray-900">
                           Pedido #{order.id.slice(-8)}
                         </div>
-                        {order.invoice && (
-                          <div className="text-sm text-gray-500">
-                            Factura: {order.invoice.prefix}{order.invoice.invoice_number}{order.invoice.suffix}
-                          </div>
-                        )}
+
                         {order.client ? (
                           <div className="mt-1">
                             <div className="text-sm text-gray-900">

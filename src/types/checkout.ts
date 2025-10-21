@@ -107,29 +107,6 @@ export interface PaymentMethod {
   created_at: string
 }
 
-export interface Invoice {
-  id: string
-  client_id: string
-  order_id: string
-  invoice_number: number
-  prefix: string
-  suffix: string
-  total_cents: number
-  currency: string
-  created_at: string
-  due_date?: string
-}
-
-// Nota: El campo status fue eliminado según update_invoices_schema.sql
-export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'cancelled' // Mantenido para compatibilidad legacy
-
-export interface InvoiceCounter {
-  id: string
-  prefix: string
-  suffix: string
-  next_number: number
-}
-
 export interface Coupon {
   id: string
   code: string
@@ -193,7 +170,6 @@ export interface CreateOrderData {
 export interface OrderConfirmation {
   order: Order
   order_items: OrderItem[]
-  invoice: Invoice
   confirmation_number: string
 }
 

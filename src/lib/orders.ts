@@ -14,8 +14,6 @@ import type {
   PaymentMethod, 
   CreateOrderData,
   OrderConfirmation,
-  Invoice,
-  InvoiceCounter,
   Coupon,
   CheckoutSummary,
   CouponRedemption
@@ -328,12 +326,7 @@ export class OrderService {
         console.error('Error updating order total:', updateError)
       }
 
-      // Crear factura
-      const invoice = await this.createInvoice(order.id, orderData.client_id || null, total_cents)
-      if (!invoice) {
-        console.error('Error creating invoice')
-        // Podríamos decidir si continuar o cancelar la orden
-      }
+
 
       // Aplicar cupón si existe
       if (orderData.coupon_code) {
@@ -456,7 +449,6 @@ export class OrderService {
       const confirmation: OrderConfirmation = {
         order: { ...order, total_cents },
         order_items: orderItems,
-        invoice: invoice!,
         confirmation_number: `ORD-${order.id.split('-')[0].toUpperCase()}`
       }
 
@@ -467,73 +459,7 @@ export class OrderService {
     }
   }
 
-  // Crear factura
-  private static async createInvoice(
-    orderId: string, 
-    clientId: string | null, 
-    totalCents: number
-  ): Promise<Invoice | null> {
-    try {
-      // Obtener contador de facturas
-      let { data: counter, error: counterError } = await supabase
-        .from('invoice_counters')
-        .select('*')
-        .limit(1)
-        .single()
 
-      if (counterError || !counter) {
-        // Crear contador si no existe
-        const { data: newCounter, error: createCounterError } = await supabase
-          .from('invoice_counters')
-          .insert({
-            prefix: 'FAC-',
-            suffix: '',
-            next_number: 1
-          })
-          .select()
-          .single()
-
-        if (createCounterError || !newCounter) {
-          console.error('Error creating invoice counter:', createCounterError)
-          return null
-        }
-        counter = newCounter
-      }
-
-      // Crear factura
-      const { data: invoice, error: invoiceError } = await supabase
-        .from('invoices')
-        .insert({
-          client_id: clientId,
-          order_id: orderId,
-          invoice_number: counter.next_number,
-          prefix: counter.prefix,
-          suffix: counter.suffix,
-          total_cents: totalCents,
-          currency: 'EUR',
-          status: 'pending',
-          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 días
-        })
-        .select()
-        .single()
-
-      if (invoiceError || !invoice) {
-        console.error('Error creating invoice:', invoiceError)
-        return null
-      }
-
-      // Actualizar contador
-      await supabase
-        .from('invoice_counters')
-        .update({ next_number: counter.next_number + 1 })
-        .eq('id', counter.id)
-
-      return invoice
-    } catch (error) {
-      console.error('Error in createInvoice:', error)
-      return null
-    }
-  }
 
   // Aplicar cupón
   private static async applyCoupon(

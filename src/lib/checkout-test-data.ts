@@ -158,44 +158,7 @@ export class CheckoutTestDataService {
     }
   }
 
-  // Inicializar contador de facturas
-  static async initializeInvoiceCounter() {
-    try {
-      // Verificar si ya existe un contador
-      const { data: existingCounter } = await supabase
-        .from('invoice_counters')
-        .select('*')
-        .limit(1)
-        .single()
 
-      if (existingCounter) {
-        console.log('✅ Contador de facturas ya existe:', existingCounter)
-        return true
-      }
-
-      // Crear nuevo contador
-      const { data, error } = await supabase
-        .from('invoice_counters')
-        .insert({
-          prefix: 'FAC-',
-          suffix: '',
-          next_number: 1
-        })
-        .select()
-        .single()
-
-      if (error) {
-        console.error('Error creating invoice counter:', error)
-        return false
-      }
-
-      console.log('✅ Contador de facturas inicializado:', data)
-      return true
-    } catch (error) {
-      console.error('Error in initializeInvoiceCounter:', error)
-      return false
-    }
-  }
 
   // Configurar todo el sistema de checkout
   static async setupCheckoutSystem() {
@@ -205,8 +168,7 @@ export class CheckoutTestDataService {
       const results = await Promise.all([
         this.createShippingMethods(),
         this.createPaymentMethods(),
-        this.createCoupons(),
-        this.initializeInvoiceCounter()
+        this.createCoupons()
       ])
 
       const allSuccessful = results.every(result => result === true)
@@ -232,13 +194,11 @@ export class CheckoutTestDataService {
       const tables = [
         'coupon_redemptions',
         'coupons', 
-        'invoices',
         'order_logs',
         'order_items',
         'orders',
         'payment_methods',
-        'shipping_methods',
-        'invoice_counters'
+        'shipping_methods'
       ]
 
       for (const table of tables) {

@@ -44,9 +44,7 @@ export async function POST(request: NextRequest) {
         console.log('📧 Order data for email:', {
           orderId: orderData.orderId,
           status: orderData.status,
-          clientEmail: orderData.clientEmail,
-          invoiceId: orderData.invoiceId,
-          invoiceNumber: orderData.invoiceNumber
+          clientEmail: orderData.clientEmail
         })
         result = await ServerEmailService.sendOrderStatusNotification(orderData)
         console.log('📧 Email service result:', result)

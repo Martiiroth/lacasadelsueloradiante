@@ -19,7 +19,7 @@ import { useAuth } from '../../contexts/AuthContext'
 
 interface AdminLayoutProps {
   children: ReactNode
-  activeSection?: 'overview' | 'clients' | 'orders' | 'products' | 'categories' | 'brands' | 'coupons' | 'invoices' | 'settings'
+  activeSection?: 'overview' | 'clients' | 'orders' | 'products' | 'categories' | 'brands' | 'coupons' | 'settings'
 }
 
 interface NavItem {
@@ -78,12 +78,7 @@ const navItems: NavItem[] = [
     href: '/admin/coupons',
     icon: TicketIcon
   },
-  {
-    id: 'invoices',
-    label: 'Facturas',
-    href: '/admin/invoices',
-    icon: DocumentTextIcon
-  },
+
   {
     id: 'settings',
     label: 'Configuración',
@@ -247,12 +242,7 @@ export default function AdminLayout({ children, activeSection = 'overview' }: Ad
                 >
                   Pedidos Pendientes
                 </Link>
-                <Link 
-                  href="/admin/invoices?status=overdue"
-                  className="block text-sm text-red-600 hover:text-red-500"
-                >
-                  Facturas Vencidas
-                </Link>
+
                 <Link 
                   href="/admin/products?stock=low"
                   className="block text-sm text-red-600 hover:text-red-500"

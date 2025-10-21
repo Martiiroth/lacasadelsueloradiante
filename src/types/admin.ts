@@ -70,13 +70,6 @@ export interface AdminOrder {
       }
     }
   }[]
-  invoice?: {
-    id: string
-    invoice_number: number
-    prefix: string
-    suffix: string
-    status: 'pending' | 'paid' | 'overdue' | 'cancelled'
-  }
 }
 
 export interface AdminStats {

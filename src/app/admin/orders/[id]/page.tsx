@@ -1022,31 +1022,7 @@ export default function AdminOrderDetail() {
               </div>
             </div>
 
-            {/* Invoice */}
-            {order.invoice && (
-              <div className="bg-white shadow rounded-lg">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                    <DocumentTextIcon className="h-5 w-5 mr-2 text-gray-400" />
-                    Factura
-                  </h3>
-                </div>
-                <div className="px-6 py-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Número</span>
-                    <span className="font-medium text-gray-900">
-                      {order.invoice.prefix}{order.invoice.invoice_number}{order.invoice.suffix}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Estado</span>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      Generada
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
+
           </div>
         </div>
       </div>

@@ -332,6 +332,7 @@ export class InvoiceService {
       console.log('🚀 [INVOICE] Generando factura automática para pedido:', orderId)
 
       // 1. Obtener datos del pedido
+      console.log('🔍 [INVOICE] Buscando pedido en base de datos:', orderId)
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .select(`
@@ -344,6 +345,8 @@ export class InvoiceService {
         .eq('id', orderId)
         .single()
 
+      console.log('📊 [INVOICE] Resultado query pedido:', { order: !!order, error: orderError?.message })
+      
       if (orderError || !order) {
         console.error('❌ [INVOICE] Pedido no encontrado:', orderError)
         return null
@@ -392,7 +395,11 @@ export class InvoiceService {
       return invoice
 
     } catch (error) {
-      console.error('❌ [INVOICE] Error generando factura automática:', error)
+      console.error('❌ [INVOICE] Error generando factura automática:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        orderId
+      })
       return null
     }
   }

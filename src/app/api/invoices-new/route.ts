@@ -184,12 +184,16 @@ async function handleGenerateForOrder(data: any) {
       )
     }
 
+    console.log('🔄 [API] Llamando a InvoiceService.generateInvoiceForDeliveredOrder con order_id:', order_id)
+    
     // Generar factura automáticamente
     const invoice = await InvoiceService.generateInvoiceForDeliveredOrder(order_id)
 
+    console.log('📊 [API] Resultado de generateInvoiceForDeliveredOrder:', invoice ? 'SUCCESS' : 'NULL')
+    
     if (!invoice) {
       return NextResponse.json(
-        { success: false, error: 'Error generando factura automática' },
+        { success: false, error: 'Error generando factura automática - revisar logs del servidor' },
         { status: 400 }
       )
     }

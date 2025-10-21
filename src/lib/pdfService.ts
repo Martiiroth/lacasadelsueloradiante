@@ -313,16 +313,12 @@ export class PDFService {
       doc.text(invoiceTitle, pageWidth - margin - titleWidth, currentY + 10)
     }
 
-    // Número de factura o texto de proforma
+    // Número de factura (solo para facturas, no para proformas)
     doc.setFontSize(11)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(0, 0, 0)
     
-    if (isProforma) {
-      const proformaText = 'Proforma sin valor fiscal'
-      const textWidth = doc.getTextWidth(proformaText)
-      doc.text(proformaText, pageWidth - margin - textWidth, currentY + 20)
-    } else {
+    if (!isProforma) {
       const invoiceNumber = `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`
       const numberWidth = doc.getTextWidth(`Nº: ${invoiceNumber}`)
       doc.text(`Nº: ${invoiceNumber}`, pageWidth - margin - numberWidth, currentY + 20)

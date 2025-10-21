@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { InvoiceService } from '@/lib/invoiceServiceNew'
+import { AlternativeInvoiceService } from '@/lib/invoiceServiceAlternative'
 
 // ============================================================================
 // POST - Crear nueva factura
@@ -186,14 +187,32 @@ async function handleGenerateForOrder(data: any) {
 
     console.log('🔄 [API] Llamando a InvoiceService.generateInvoiceForDeliveredOrder con order_id:', order_id)
     
-    // Generar factura automáticamente
-    const invoice = await InvoiceService.generateInvoiceForDeliveredOrder(order_id)
+    // Intentar generar factura con el servicio principal
+    let invoice = await InvoiceService.generateInvoiceForDeliveredOrder(order_id)
 
-    console.log('📊 [API] Resultado de generateInvoiceForDeliveredOrder:', invoice ? 'SUCCESS' : 'NULL')
+    console.log('📊 [API] Resultado de InvoiceService principal:', invoice ? 'SUCCESS' : 'NULL')
+    
+    // Si falla el servicio principal, intentar con el alternativo
+    if (!invoice) {
+      console.log('🔄 [API] Servicio principal falló, intentando con AlternativeInvoiceService...')
+      
+      try {
+        const altResult = await AlternativeInvoiceService.generateInvoiceForDeliveredOrder(order_id)
+        
+        if (altResult && altResult.success && altResult.invoice) {
+          invoice = altResult.invoice
+          console.log('✅ [API] Servicio alternativo exitoso:', !!invoice)
+        } else {
+          console.log('❌ [API] Servicio alternativo también falló:', altResult)
+        }
+      } catch (altError) {
+        console.error('❌ [API] Error en servicio alternativo:', altError)
+      }
+    }
     
     if (!invoice) {
       return NextResponse.json(
-        { success: false, error: 'Error generando factura automática - revisar logs del servidor' },
+        { success: false, error: 'Error generando factura - ambos servicios fallaron' },
         { status: 400 }
       )
     }
@@ -303,9 +322,15 @@ async function handleGetAllInvoices(page: number, limit: number) {
   try {
     console.log('📄 [API] Obteniendo todas las facturas, página:', page)
 
-    const result = await InvoiceService.getAllInvoices(page, limit)
+    let result = await InvoiceService.getAllInvoices(page, limit)
 
-    console.log('✅ [API] Facturas obtenidas:', result.invoices.length, 'de', result.total)
+    // Si el servicio principal falla, intentar con el alternativo
+    if (!result || !result.invoices) {
+      console.log('🔄 [API] Servicio principal falló para getAllInvoices, intentando alternativo...')
+      result = await AlternativeInvoiceService.getAllInvoices(page, limit)
+    }
+
+    console.log('✅ [API] Facturas obtenidas:', result?.invoices?.length || 0, 'de', result?.total || 0)
 
     return NextResponse.json({
       success: true,

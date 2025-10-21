@@ -8,13 +8,14 @@ import { InvoiceService } from '@/lib/invoiceService'
 import { PDFService } from '@/lib/pdfService'
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export async function GET(request: NextRequest, { params }: Props) {
+export async function GET(request: NextRequest, props: Props) {
   try {
+    const params = await props.params
     const { id } = params
     const { searchParams } = new URL(request.url)
     const download = searchParams.get('download') === 'true'

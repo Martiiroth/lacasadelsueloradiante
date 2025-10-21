@@ -10,13 +10,14 @@ import { InvoiceService } from '@/lib/invoiceService'
 import type { InvoiceStatus } from '@/types/invoices'
 
 interface Props {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
-export async function GET(request: NextRequest, { params }: Props) {
+export async function GET(request: NextRequest, props: Props) {
   try {
+    const params = await props.params
     const { id } = params
     
     console.log('📄 GET /api/invoices/[id] - ID:', id)
@@ -51,8 +52,9 @@ export async function GET(request: NextRequest, { params }: Props) {
   }
 }
 
-export async function PUT(request: NextRequest, { params }: Props) {
+export async function PUT(request: NextRequest, props: Props) {
   try {
+    const params = await props.params
     const { id } = params
     const body = await request.json()
     
@@ -103,8 +105,9 @@ export async function PUT(request: NextRequest, { params }: Props) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: Props) {
+export async function DELETE(request: NextRequest, props: Props) {
   try {
+    const params = await props.params
     const { id } = params
     
     console.log('📄 DELETE /api/invoices/[id] - ID:', id)

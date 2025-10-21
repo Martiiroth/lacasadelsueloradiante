@@ -351,15 +351,35 @@ export class PDFService {
     doc.text('TOTAL:', totalsX - 50, currentY + 2)
     doc.text(this.formatCurrency(invoice.total_cents, config.currency), totalsX, currentY + 2)
 
-    // Footer
-    const footerY = pageHeight - 30
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(100)
+    // Información bancaria
+    currentY += 15
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text('Datos bancarios para transferencia:', margin, currentY)
+    currentY += 5
     
-    const footerText = `${company.name} | ${company.email} | ${company.phone}`
-    const footerWidth = doc.getTextWidth(footerText)
-    doc.text(footerText, (pageWidth - footerWidth) / 2, footerY)
+    doc.setFont('helvetica', 'normal')
+    doc.text('CaixaBank - IBAN: ES18 2100 8453 5102 0007 7305', margin, currentY)
+
+    // Footer con RGPD
+    let footerY = pageHeight - 45
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(80, 80, 80)
+    
+    // Texto de RGPD (dividido en múltiples líneas)
+    const rgpdText = [
+      'Según el Reglamento General de Protección de Datos (RGPD), publicado en mayo de 2016, Vd. da su consentimiento para el tratamiento de los datos',
+      'personales aportados en su petición. Estos se incorporarán al fichero de T&V Servicios y Complementos SL, inscrito en el Registro de la Agencia',
+      'Española de Protección de Datos. Sus datos se usarán en la gestión administrativa y comercial de su petición y no se cederán a terceros salvo',
+      'obligación legal. Podrá ejercer sus derechos: acceso, rectificación, supresión, limitación, oposición y portabilidad.'
+    ]
+    
+    rgpdText.forEach((line) => {
+      doc.text(line, margin, footerY)
+      footerY += 3.5
+    })
   }
 
   /**

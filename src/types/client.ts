@@ -1,4 +1,5 @@
 // Tipos para el dashboard del cliente
+import type { Invoice } from './invoices'
 
 export interface Client {
   id: string
@@ -139,6 +140,12 @@ export interface ClientStats {
   total_spent_cents: number
   pending_orders: number
   completed_orders: number
+  
+  // Estadísticas de facturas
+  total_invoices: number
+  pending_invoices: number
+  paid_invoices: number
+  overdue_invoices: number
 }
 
 // Tipos para filtros y búsqueda
@@ -154,4 +161,8 @@ export interface ClientDashboardData {
   client: Client
   stats: ClientStats
   recent_orders: ClientOrder[]
+  recent_invoices: Invoice[]
 }
+
+// Re-exportamos los tipos de facturas para conveniencia
+export type { Invoice, InvoiceStatus, InvoiceFilters } from './invoices'

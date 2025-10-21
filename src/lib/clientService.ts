@@ -6,6 +6,7 @@
  */
 
 import { supabase } from './supabase'
+import { InvoiceService } from './invoiceService'
 import type { 
   Client, 
   ClientOrder, 
@@ -76,11 +77,23 @@ export class ClientService {
         .select('id, status, total_cents')
         .eq('client_id', clientId)
 
+      // Obtener facturas
+      const { data: invoices } = await supabase
+        .from('invoices')
+        .select('id, status')
+        .eq('client_id', clientId)
+
       const stats: ClientStats = {
         total_orders: orders?.length || 0,
         total_spent_cents: orders?.reduce((sum, order) => sum + (order.total_cents || 0), 0) || 0,
         pending_orders: orders?.filter(o => ['pending', 'confirmed', 'processing'].includes(o.status)).length || 0,
-        completed_orders: orders?.filter(o => ['delivered'].includes(o.status)).length || 0
+        completed_orders: orders?.filter(o => ['delivered'].includes(o.status)).length || 0,
+        
+        // Estadísticas de facturas
+        total_invoices: invoices?.length || 0,
+        pending_invoices: invoices?.filter(i => ['draft', 'sent'].includes(i.status)).length || 0,
+        paid_invoices: invoices?.filter(i => i.status === 'paid').length || 0,
+        overdue_invoices: invoices?.filter(i => i.status === 'overdue').length || 0
       }
 
       return stats
@@ -90,7 +103,11 @@ export class ClientService {
         total_orders: 0,
         total_spent_cents: 0,
         pending_orders: 0,
-        completed_orders: 0
+        completed_orders: 0,
+        total_invoices: 0,
+        pending_invoices: 0,
+        paid_invoices: 0,
+        overdue_invoices: 0
       }
     }
   }
@@ -208,10 +225,11 @@ export class ClientService {
   // Obtener datos completos del dashboard
   static async getClientDashboard(clientId: string): Promise<ClientDashboardData | null> {
     try {
-      const [client, stats, recentOrders] = await Promise.all([
+      const [client, stats, recentOrders, recentInvoices] = await Promise.all([
         this.getClientData(clientId),
         this.getClientStats(clientId),
-        this.getClientOrders(clientId, undefined, 5)
+        this.getClientOrders(clientId, undefined, 5),
+        InvoiceService.getClientInvoices(clientId, {}, 5)
       ])
 
       if (!client) {
@@ -221,7 +239,8 @@ export class ClientService {
       return {
         client,
         stats,
-        recent_orders: recentOrders
+        recent_orders: recentOrders,
+        recent_invoices: recentInvoices
       }
     } catch (error) {
       console.error('Error in getClientDashboard:', error)

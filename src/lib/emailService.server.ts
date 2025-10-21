@@ -54,6 +54,7 @@ interface OrderEmailData {
   total: number
   createdAt: string
   shippingAddress?: string
+  invoiceId?: string  // ID de la factura si existe
 }
 
 // Tipos para datos de nuevo registro
@@ -274,6 +275,21 @@ class ServerEmailService {
           <p style="margin: 5px 0; white-space: pre-line;">${shippingAddressText}</p>
         </div>
         ` : ''}
+
+        ${(data as any).invoiceId ? `
+        <div style="background: #dcfce7; padding: 20px; border: 2px solid #16a34a; border-radius: 8px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #166534; display: flex; align-items: center;">
+            <span style="display: inline-block; width: 24px; height: 24px; margin-right: 8px;">📄</span>
+            Factura Adjunta
+          </h4>
+          <p style="margin: 10px 0; color: #166534;">
+            Tu factura ha sido generada y está adjunta a este email en formato PDF.
+          </p>
+          <p style="margin: 10px 0; color: #166534; font-size: 14px;">
+            También puedes consultar todas tus facturas en cualquier momento desde tu área de cliente en nuestra web.
+          </p>
+        </div>
+        ` : ''}
         
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 30px 0;">
           <h4 style="margin-top: 0; color: #2c3e50;">¿Necesitas ayuda?</h4>
@@ -435,7 +451,32 @@ class ServerEmailService {
       const statusText = this.getStatusText(orderData.status)
       const transporter = getTransporter()
 
-
+      // Si hay invoiceId, obtener el PDF de la factura
+      let invoiceAttachment = null
+      if (orderData.invoiceId) {
+        try {
+          console.log('📄 Obteniendo PDF de factura para adjuntar al email:', orderData.invoiceId)
+          const { PDFService } = await import('./pdfService')
+          const pdfBuffer = await PDFService.generateInvoicePDF(orderData.invoiceId)
+          
+          if (pdfBuffer) {
+            // Obtener número de factura para el nombre del archivo
+            const { InvoiceService } = await import('./invoiceService')
+            const invoice = await InvoiceService.getInvoiceById(orderData.invoiceId)
+            const invoiceNumber = invoice ? `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}` : 'factura'
+            
+            invoiceAttachment = {
+              filename: `factura-${invoiceNumber}.pdf`,
+              content: pdfBuffer,
+              contentType: 'application/pdf'
+            }
+            console.log('✅ PDF de factura preparado para adjuntar:', invoiceAttachment.filename)
+          }
+        } catch (pdfError) {
+          console.error('Error obteniendo PDF de factura para email:', pdfError)
+          // Continuar sin adjuntar el PDF si hay error
+        }
+      }
 
       // Email para el cliente
       const clientEmailOptions: any = {
@@ -445,7 +486,8 @@ class ServerEmailService {
         },
         to: orderData.clientEmail,
         subject: `Actualización de tu pedido #${orderData.orderNumber} - ${statusText}`,
-        html: this.createOrderEmailTemplate(orderData, false)
+        html: this.createOrderEmailTemplate(orderData, false),
+        attachments: invoiceAttachment ? [invoiceAttachment] : []
       }
 
       // Email para el administrador
@@ -456,7 +498,8 @@ class ServerEmailService {
         },
         to: adminEmail,
         subject: `[ADMIN] Pedido #${orderData.orderNumber} actualizado - ${statusText}`,
-        html: this.createOrderEmailTemplate(orderData, true)
+        html: this.createOrderEmailTemplate(orderData, true),
+        attachments: invoiceAttachment ? [invoiceAttachment] : []
       }
 
       // Enviar ambos emails

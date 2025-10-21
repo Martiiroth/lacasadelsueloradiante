@@ -1,4 +1,5 @@
 // Tipos para el sistema de checkout y pedidos
+import type { Invoice } from './invoices'
 
 export interface Order {
   id: string
@@ -171,7 +172,11 @@ export interface OrderConfirmation {
   order: Order
   order_items: OrderItem[]
   confirmation_number: string
+  invoice?: Invoice | null // Factura generada (opcional)
 }
+
+// Re-exportamos tipos de facturas
+export type { Invoice, InvoiceStatus } from './invoices'
 
 // Tipos para formularios de checkout
 export interface CheckoutFormData {

@@ -12,6 +12,7 @@ import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'
 import EmailService from './emailService'
+import { InvoiceService } from './invoiceService'
 import { config } from 'dotenv'
 import path from 'path'
 
@@ -688,7 +689,27 @@ export class AdminService {
         return false
       }
 
-
+      // Si el estado es "delivered", generar factura automáticamente
+      let invoiceId: string | null = null
+      if (data.status === 'delivered') {
+        try {
+          console.log('📄 Generando factura automáticamente para pedido delivered:', orderId)
+          const invoice = await InvoiceService.createInvoiceFromOrder({
+            order_id: orderId,
+            auto_send: true
+          })
+          
+          if (invoice) {
+            invoiceId = invoice.id
+            console.log('✅ Factura generada automáticamente:', invoice.id, `(${invoice.prefix}${invoice.invoice_number}${invoice.suffix})`)
+          } else {
+            console.warn('⚠️ No se pudo generar la factura automáticamente para pedido:', orderId)
+          }
+        } catch (invoiceError) {
+          console.error('Error generando factura automática:', invoiceError)
+          // No fallar la actualización del pedido si falla la factura
+        }
+      }
 
       // Enviar notificación por email después de actualizar exitosamente
       try {
@@ -756,12 +777,14 @@ export class AdminService {
             createdAt: orderDetails.created_at,
             shippingAddress,
             billingAddress,
-            clientInfo
+            clientInfo,
+            invoiceId: invoiceId || undefined // Incluir ID de factura si existe
           }
 
           console.log('📧 Datos para email:', {
             status: emailData.status,
-            clientEmail: emailData.clientEmail
+            clientEmail: emailData.clientEmail,
+            invoiceId: emailData.invoiceId
           })
 
           // Enviar notificación usando API interna

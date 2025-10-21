@@ -160,99 +160,118 @@ export class PDFService {
     const margin = 20
     let currentY = margin
 
-    // Logo de la empresa (esquina superior izquierda)
-    const logoUrl = 'https://lacasadelsueloradiante.es/images/logo.png'
+    // Logo base64 (simplificado - puedes reemplazar con tu logo real en base64)
+    const logoBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    
     try {
-      // Agregar logo (40mm de ancho, altura proporcional)
-      doc.addImage(logoUrl, 'PNG', margin, currentY, 40, 40)
+      // Agregar logo (30mm de ancho)
+      doc.addImage(logoBase64, 'PNG', margin, currentY, 30, 30)
     } catch (error) {
-      console.log('No se pudo cargar el logo, continuando sin él')
+      console.log('No se pudo cargar el logo')
     }
 
-    // Header con datos de empresa (al lado del logo)
-    const textStartX = margin + 45
-    doc.setFontSize(14)
-    doc.setFont('helvetica', 'bold')
-    doc.text(company.name, textStartX, currentY + 5)
-    
-    doc.setFontSize(9)
-    doc.setFont('helvetica', 'normal')
-    doc.text(company.address.split('\n')[0], textStartX, currentY + 12)
-    doc.text(company.address.split('\n')[1], textStartX, currentY + 17)
-    doc.text(`NIF: ${company.nif}`, textStartX, currentY + 22)
-    doc.text(`Tel: ${company.phone}`, textStartX, currentY + 27)
-    doc.text(`Email: ${company.email}`, textStartX, currentY + 32)
-
-    currentY += 45
-
-    // Título FACTURA
-    doc.setFontSize(24)
+    // Título FACTURA (parte superior derecha)
+    doc.setFontSize(28)
     doc.setFont('helvetica', 'bold')
     const invoiceTitle = 'FACTURA'
     const titleWidth = doc.getTextWidth(invoiceTitle)
-    doc.text(invoiceTitle, pageWidth - margin - titleWidth, 30)
+    doc.text(invoiceTitle, pageWidth - margin - titleWidth, currentY + 10)
 
     // Número de factura
     const invoiceNumber = `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`
-    doc.setFontSize(12)
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'normal')
     const numberWidth = doc.getTextWidth(`Nº: ${invoiceNumber}`)
-    doc.text(`Nº: ${invoiceNumber}`, pageWidth - margin - numberWidth, 45)
+    doc.text(`Nº: ${invoiceNumber}`, pageWidth - margin - numberWidth, currentY + 20)
 
     // Fecha
     const invoiceDate = new Date(invoice.created_at).toLocaleDateString('es-ES')
     const dateWidth = doc.getTextWidth(`Fecha: ${invoiceDate}`)
-    doc.text(`Fecha: ${invoiceDate}`, pageWidth - margin - dateWidth, 55)
+    doc.text(`Fecha: ${invoiceDate}`, pageWidth - margin - dateWidth, currentY + 27)
 
     // Fecha de vencimiento
     if (invoice.due_date) {
       const dueDate = new Date(invoice.due_date).toLocaleDateString('es-ES')
       const dueDateWidth = doc.getTextWidth(`Vencimiento: ${dueDate}`)
-      doc.text(`Vencimiento: ${dueDate}`, pageWidth - margin - dueDateWidth, 65)
+      doc.text(`Vencimiento: ${dueDate}`, pageWidth - margin - dueDateWidth, currentY + 34)
     }
 
-    // Línea separadora después del header
+    currentY = 60
+
+    // Línea separadora
     doc.setDrawColor(200, 200, 200)
-    doc.line(margin, 75, pageWidth - margin, 75)
+    doc.line(margin, currentY, pageWidth - margin, currentY)
+    
+    currentY += 10
 
-    currentY = 85
+    // Layout de dos columnas: Cliente (izquierda) y Empresa (derecha)
+    const columnWidth = (pageWidth - margin * 2) / 2
+    const rightColumnX = margin + columnWidth + 10
 
-    // Datos del cliente
-    doc.setFontSize(12)
+    // COLUMNA IZQUIERDA: Datos del cliente
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
     doc.text('FACTURAR A:', margin, currentY)
-    currentY += 8
-
-    doc.setFontSize(10)
+    
+    let clientY = currentY + 7
+    doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     
     if (invoice.client) {
       const clientName = `${invoice.client.first_name} ${invoice.client.last_name}`
-      doc.text(clientName, margin, currentY)
-      currentY += 5
+      doc.text(clientName, margin, clientY)
+      clientY += 5
 
       if (invoice.client.company_name) {
-        doc.text(invoice.client.company_name, margin, currentY)
-        currentY += 5
+        doc.text(invoice.client.company_name, margin, clientY)
+        clientY += 5
       }
 
       if (invoice.client.nif_cif) {
-        doc.text(`NIF/CIF: ${invoice.client.nif_cif}`, margin, currentY)
-        currentY += 5
+        doc.text(`NIF/CIF: ${invoice.client.nif_cif}`, margin, clientY)
+        clientY += 5
       }
 
       if (invoice.client.address_line1) {
-        doc.text(invoice.client.address_line1, margin, currentY)
-        currentY += 5
+        doc.text(invoice.client.address_line1, margin, clientY)
+        clientY += 5
       }
 
       if (invoice.client.city && invoice.client.postal_code) {
-        doc.text(`${invoice.client.postal_code} ${invoice.client.city}`, margin, currentY)
-        currentY += 5
+        doc.text(`${invoice.client.postal_code} ${invoice.client.city}`, margin, clientY)
+        clientY += 5
+      }
+
+      if (invoice.client.email) {
+        doc.text(invoice.client.email, margin, clientY)
+        clientY += 5
       }
     }
 
-    currentY += 20
+    // COLUMNA DERECHA: Datos de la empresa
+    let companyY = currentY + 7
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('DATOS DE LA EMPRESA:', rightColumnX, currentY)
+    
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.text(company.name, rightColumnX, companyY)
+    companyY += 5
+    
+    doc.text(company.address.split('\n')[0], rightColumnX, companyY)
+    companyY += 5
+    doc.text(company.address.split('\n')[1], rightColumnX, companyY)
+    companyY += 5
+    
+    doc.text(`NIF: ${company.nif}`, rightColumnX, companyY)
+    companyY += 5
+    doc.text(`Tel: ${company.phone}`, rightColumnX, companyY)
+    companyY += 5
+    doc.text(`Email: ${company.email}`, rightColumnX, companyY)
+
+    // Avanzar currentY basándonos en cuál columna es más larga
+    currentY = Math.max(clientY, companyY) + 15
 
     // Tabla de items
     const tableStartY = currentY

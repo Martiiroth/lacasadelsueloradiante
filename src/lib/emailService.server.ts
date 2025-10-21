@@ -1,6 +1,6 @@
 // Email service que solo se ejecuta en el servidor
 import nodemailer from 'nodemailer'
-import { PDFService } from './pdfService'
+import { PDFServiceJsPDF } from './pdfServiceJsPDF'
 
 // Configuración del transporter usando la configuración de Zoho
 let transporter: nodemailer.Transporter | null = null
@@ -447,7 +447,7 @@ class ServerEmailService {
             invoiceId: orderData.invoiceId
           })
           
-          const pdfBuffer = await PDFService.generateInvoicePDF(orderData.invoiceId)
+          const pdfBuffer = await PDFServiceJsPDF.generateInvoicePDF(orderData.invoiceId)
           
           console.log('📄 [PDF] Buffer generado:', {
             bufferExists: !!pdfBuffer,

@@ -12,6 +12,7 @@ import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'
 import EmailService from './emailService'
+import { InvoiceService } from './invoiceServiceNew'
 import { config } from 'dotenv'
 import path from 'path'
 
@@ -1242,103 +1243,20 @@ export class AdminService {
   
   static async generateInvoiceForDeliveredOrder(orderId: string): Promise<any | null> {
     try {
-      // Obtener información del pedido
-      const orderDetails = await this.getOrderById(orderId)
-      if (!orderDetails) {
-        console.error('No se pudo obtener el pedido para generar factura')
+      console.log(`📄 Iniciando generación de factura para pedido ${orderId}`)
+      
+      // Usar el nuevo servicio de facturas robusto
+      const invoice = await InvoiceService.generateInvoiceForDeliveredOrder(orderId)
+      
+      if (invoice) {
+        console.log(`✅ Factura ${invoice.prefix}${invoice.invoice_number}${invoice.suffix} generada exitosamente para pedido ${orderId}`)
+        return invoice
+      } else {
+        console.error(`❌ No se pudo generar factura para pedido ${orderId}`)
         return null
       }
-
-      console.log('📋 Datos del pedido para facturación:', {
-        orderId: orderDetails.id,
-        clientId: orderDetails.client_id,
-        total: orderDetails.total_cents / 100,
-        status: orderDetails.status
-      })
-
-      // Obtener contador de facturas
-      let { data: counter, error: counterError } = await supabase
-        .from('invoice_counters')
-        .select('*')
-        .limit(1)
-        .single()
-
-      if (counterError || !counter) {
-        // Crear contador si no existe
-        const { data: newCounter, error: createCounterError } = await supabase
-          .from('invoice_counters')
-          .insert({
-            prefix: 'W-',
-            suffix: '-25',
-            next_number: 1
-          })
-          .select()
-          .single()
-
-        if (createCounterError || !newCounter) {
-          console.error('Error creating invoice counter:', createCounterError)
-          return null
-        }
-        counter = newCounter
-      }
-
-      // Crear factura
-      console.log('💾 Creando factura con datos:', {
-        client_id: orderDetails.client_id,
-        order_id: orderId,
-        invoice_number: counter.next_number,
-        prefix: counter.prefix,
-        suffix: counter.suffix,
-        total_cents: orderDetails.total_cents
-      })
-
-      const { data: invoice, error: invoiceError } = await supabase
-        .from('invoices')
-        .insert({
-          client_id: orderDetails.client_id,
-          order_id: orderId,
-          invoice_number: counter.next_number,
-          prefix: counter.prefix,
-          suffix: counter.suffix,
-          total_cents: orderDetails.total_cents,
-          currency: 'EUR',
-          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 días
-        })
-        .select(`
-          id,
-          client_id,
-          order_id,
-          invoice_number,
-          prefix,
-          suffix,
-          total_cents,
-          currency,
-          created_at,
-          due_date
-        `)
-        .single()
-
-      if (invoiceError || !invoice) {
-        console.error('Error creating invoice:', invoiceError)
-        return null
-      }
-
-      // Actualizar contador
-      await supabase
-        .from('invoice_counters')
-        .update({ next_number: counter.next_number + 1 })
-        .eq('id', counter.id)
-
-      console.log('📄 Factura creada exitosamente:', {
-        id: invoice.id,
-        number: `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`,
-        total: invoice.total_cents / 100,
-        order_id: orderId
-      })
-
-      return invoice
     } catch (error) {
-      console.error('Error in generateInvoiceForDeliveredOrder:', error)
+      console.error(`❌ Error en generateInvoiceForDeliveredOrder para pedido ${orderId}:`, error)
       return null
     }
   }

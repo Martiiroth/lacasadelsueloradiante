@@ -42,22 +42,8 @@ const nextConfig = {
         stream: false,
         util: false,
       }
-    } else {
-      // Configuración para PDFKit en servidor
-      // Incluir archivos AFM (Adobe Font Metrics) de PDFKit
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        canvas: false,
-      }
     }
     return config
-  },
-
-  // Configuración para incluir archivos de PDFKit en standalone
-  outputFileTracingIncludes: {
-    '/api/**/*': [
-      './node_modules/pdfkit/js/data/**/*',
-    ],
   },
   
   // Optimizaciones de imágenes  

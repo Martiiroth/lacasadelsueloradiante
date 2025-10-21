@@ -21,10 +21,9 @@ export default function InvoicesPage() {
     setError(null)
     
     try {
-      const response = await fetch('/api/invoices-new', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get_all' })
+      const response = await fetch('/api/invoices-new?action=get_all', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
       })
       
       if (!response.ok) {
@@ -34,7 +33,7 @@ export default function InvoicesPage() {
       const data = await response.json()
       
       if (data.success) {
-        setInvoices(data.invoices || [])
+        setInvoices(data.data?.invoices || [])
       } else {
         throw new Error(data.error || 'Error desconocido')
       }

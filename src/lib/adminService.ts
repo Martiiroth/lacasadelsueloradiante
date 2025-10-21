@@ -1245,14 +1245,31 @@ export class AdminService {
     try {
       console.log(`📄 Iniciando generación de factura para pedido ${orderId}`)
       
-      // Usar el nuevo servicio de facturas robusto
-      const invoice = await InvoiceService.generateInvoiceForDeliveredOrder(orderId)
+      // Usar la API de facturas en lugar del servicio directo (para evitar problemas de autenticación)
+      const response = await fetch('/api/invoices-new', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'generate_for_order',
+          order_id: orderId
+        })
+      })
       
-      if (invoice) {
+      if (!response.ok) {
+        console.error(`❌ Error en API de facturas: ${response.status} ${response.statusText}`)
+        return null
+      }
+      
+      const result = await response.json()
+      
+      if (result.success && result.invoice) {
+        const invoice = result.invoice
         console.log(`✅ Factura ${invoice.prefix}${invoice.invoice_number}${invoice.suffix} generada exitosamente para pedido ${orderId}`)
         return invoice
       } else {
-        console.error(`❌ No se pudo generar factura para pedido ${orderId}`)
+        console.error(`❌ Error en respuesta de API:`, result.error || 'Error desconocido')
         return null
       }
     } catch (error) {

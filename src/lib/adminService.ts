@@ -13,6 +13,7 @@ import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'
 import EmailService from './emailService'
 import { InvoiceService } from './invoiceService'
+import { ActivationCodesService } from './activationCodesService'
 import { config } from 'dotenv'
 import path from 'path'
 
@@ -708,6 +709,33 @@ export class AdminService {
         } catch (invoiceError) {
           console.error('Error generando factura automática:', invoiceError)
           // No fallar la actualización del pedido si falla la factura
+        }
+
+        // Generar código de activación premium para la app
+        try {
+          console.log('🔑 Generando código de activación premium para pedido:', orderId)
+          
+          // Obtener información del pedido para el client_id
+          const { data: orderData } = await supabase
+            .from('orders')
+            .select('client_id')
+            .eq('id', orderId)
+            .single()
+
+          const activationCode = await ActivationCodesService.generateCodeForOrder({
+            order_id: orderId,
+            client_id: orderData?.client_id || null,
+            expires_in_days: 30
+          })
+          
+          if (activationCode) {
+            console.log('✅ Código de activación generado:', activationCode.code, `(expira: ${new Date(activationCode.expires_at).toLocaleDateString()})`)
+          } else {
+            console.warn('⚠️ No se pudo generar código de activación para pedido:', orderId)
+          }
+        } catch (codeError) {
+          console.error('Error generando código de activación:', codeError)
+          // No fallar la actualización del pedido si falla el código
         }
       }
 

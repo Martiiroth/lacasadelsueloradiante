@@ -1,0 +1,447 @@
+# Sistema de Códigos de Activación Premium
+
+Sistema de códigos de activación para desbloquear funcionalidades premium en la app móvil. Los códigos se generan automáticamente al completar una compra y expiran 30 días después.
+
+## 📋 Características
+
+- ✅ Generación automática de códigos al completar pedido (status: delivered)
+- ✅ Formato de código: `XXXX-XXXX-XXXX` (12 caracteres sin ambigüedades)
+- ✅ Expiración automática a los 30 días
+- ✅ Validación desde API REST para apps móviles
+- ✅ Tracking de dispositivos y versiones de app
+- ✅ Revocación de códigos (ej: si se cancela pedido)
+- ✅ Panel para clientes con sus códigos activos
+
+## 🗄️ Base de Datos
+
+### Tabla `activation_codes`
+
+```sql
+CREATE TABLE activation_codes (
+  id UUID PRIMARY KEY,
+  code VARCHAR(12) UNIQUE,          -- Código de activación (ej: A2BC-D3FG-H4JK)
+  order_id UUID REFERENCES orders,
+  client_id UUID REFERENCES clients,
+  status VARCHAR(20),                -- active, expired, revoked
+  created_at TIMESTAMP,
+  expires_at TIMESTAMP,              -- created_at + 30 días
+  activated_at TIMESTAMP,            -- Primera validación
+  last_validated_at TIMESTAMP,       -- Última validación
+  device_id VARCHAR(255),            -- Dispositivo que activó
+  metadata JSONB                     -- Info adicional (app version, platform, etc)
+);
+```
+
+### Migración
+
+Ejecutar en Supabase SQL Editor:
+
+```bash
+# Desde la carpeta database/
+psql -f create_activation_codes_table.sql
+```
+
+O copiar y pegar el contenido del archivo en el SQL Editor de Supabase.
+
+## 🔧 Uso del Sistema
+
+### 1. Generación Automática
+
+Los códigos se generan automáticamente cuando un pedido cambia a `delivered`:
+
+```typescript
+// En adminService.ts - updateOrderStatus()
+if (data.status === 'delivered') {
+  // 1. Genera factura
+  const invoice = await InvoiceService.createInvoiceFromOrder(...)
+  
+  // 2. Genera código de activación
+  const activationCode = await ActivationCodesService.generateCodeForOrder({
+    order_id: orderId,
+    client_id: clientId,
+    expires_in_days: 30
+  })
+  
+  console.log('Código generado:', activationCode.code)
+  // Output: A2BC-D3FG-H4JK
+}
+```
+
+### 2. Validación desde App Móvil
+
+#### Endpoint: `POST /api/activation-codes/validate`
+
+```typescript
+// Ejemplo de request desde app móvil
+const response = await fetch('https://tudominio.com/api/activation-codes/validate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    code: 'A2BC-D3FG-H4JK',
+    device_id: 'iPhone14-ABC123',
+    app_version: '1.2.3',
+    platform: 'ios'
+  })
+})
+
+const result = await response.json()
+
+if (result.valid) {
+  console.log('✅ Código válido')
+  console.log('Expira en:', result.days_remaining, 'días')
+  console.log('Fecha expiración:', result.expires_at)
+  
+  // Habilitar funcionalidades premium en la app
+  enablePremiumFeatures()
+} else {
+  console.log('❌ Código inválido:', result.message)
+  // Mensaje: "Código expirado", "Código no encontrado", "Código revocado"
+}
+```
+
+#### Respuesta exitosa:
+
+```json
+{
+  "valid": true,
+  "code": {
+    "id": "uuid...",
+    "code": "A2BC-D3FG-H4JK",
+    "status": "active",
+    "expires_at": "2025-11-21T10:00:00Z",
+    "activated_at": "2025-10-22T10:00:00Z"
+  },
+  "days_remaining": 30,
+  "expires_at": "2025-11-21T10:00:00Z",
+  "message": "Código válido"
+}
+```
+
+#### Respuesta error:
+
+```json
+{
+  "valid": false,
+  "message": "Código expirado"
+}
+```
+
+### 3. Consultar Estado de un Código
+
+#### Endpoint: `GET /api/activation-codes/[code]`
+
+```typescript
+const response = await fetch('https://tudominio.com/api/activation-codes/A2BC-D3FG-H4JK')
+const data = await response.json()
+
+console.log('Estado:', data.is_valid)
+console.log('Días restantes:', data.days_remaining)
+```
+
+Respuesta:
+
+```json
+{
+  "code": {
+    "id": "uuid...",
+    "code": "A2BC-D3FG-H4JK",
+    "status": "active",
+    "order": {
+      "id": "uuid...",
+      "order_number": "1234",
+      "total_cents": 5999
+    }
+  },
+  "is_valid": true,
+  "is_expired": false,
+  "is_revoked": false,
+  "days_remaining": 28,
+  "expires_at": "2025-11-21T10:00:00Z"
+}
+```
+
+## 🧑‍💼 Servicios Disponibles
+
+### `ActivationCodesService`
+
+```typescript
+import { ActivationCodesService } from '@/lib/activationCodesService'
+
+// Generar código para orden
+const code = await ActivationCodesService.generateCodeForOrder({
+  order_id: 'uuid...',
+  client_id: 'uuid...',
+  expires_in_days: 30
+})
+
+// Validar código
+const validation = await ActivationCodesService.validateCode({
+  code: 'A2BC-D3FG-H4JK',
+  device_id: 'iPhone14-ABC123',
+  app_version: '1.2.3',
+  platform: 'ios'
+})
+
+// Obtener códigos de un cliente
+const codes = await ActivationCodesService.getClientCodes('client-uuid')
+
+// Revocar código
+await ActivationCodesService.revokeCode('code-uuid')
+
+// Limpiar códigos expirados (ejecutar como cron job)
+const expired = await ActivationCodesService.expireOldCodes()
+console.log(`${expired} códigos marcados como expirados`)
+```
+
+## 📱 Integración en App Móvil
+
+### Flutter Example
+
+```dart
+class ActivationService {
+  static const String baseUrl = 'https://tudominio.com/api';
+  
+  Future<bool> validateActivationCode(String code) async {
+    try {
+      final deviceId = await getDeviceId();
+      final appVersion = await getAppVersion();
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/activation-codes/validate'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'code': code,
+          'device_id': deviceId,
+          'app_version': appVersion,
+          'platform': Platform.isIOS ? 'ios' : 'android',
+        }),
+      );
+      
+      final result = jsonDecode(response.body);
+      
+      if (result['valid']) {
+        // Guardar en SharedPreferences
+        await saveActivationData(result);
+        return true;
+      }
+      
+      return false;
+    } catch (e) {
+      print('Error validando código: $e');
+      return false;
+    }
+  }
+  
+  Future<void> saveActivationData(Map<String, dynamic> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('activation_code', data['code']['code']);
+    await prefs.setString('expires_at', data['expires_at']);
+    await prefs.setBool('is_premium', true);
+  }
+  
+  Future<bool> isPremiumActive() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expiresAt = prefs.getString('expires_at');
+    
+    if (expiresAt == null) return false;
+    
+    final expirationDate = DateTime.parse(expiresAt);
+    return DateTime.now().isBefore(expirationDate);
+  }
+}
+```
+
+### React Native Example
+
+```typescript
+import AsyncStorage from '@react-native-async-storage/async-storage'
+
+class ActivationService {
+  static baseUrl = 'https://tudominio.com/api'
+  
+  static async validateCode(code: string): Promise<boolean> {
+    try {
+      const deviceId = await getDeviceId()
+      const appVersion = getAppVersion()
+      
+      const response = await fetch(`${this.baseUrl}/activation-codes/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          device_id: deviceId,
+          app_version: appVersion,
+          platform: Platform.OS
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (result.valid) {
+        await this.saveActivationData(result)
+        return true
+      }
+      
+      return false
+    } catch (error) {
+      console.error('Error validating code:', error)
+      return false
+    }
+  }
+  
+  static async saveActivationData(data: any) {
+    await AsyncStorage.setItem('activation_code', data.code.code)
+    await AsyncStorage.setItem('expires_at', data.expires_at)
+    await AsyncStorage.setItem('is_premium', 'true')
+  }
+  
+  static async isPremiumActive(): Promise<boolean> {
+    try {
+      const expiresAt = await AsyncStorage.getItem('expires_at')
+      if (!expiresAt) return false
+      
+      const expirationDate = new Date(expiresAt)
+      return new Date() < expirationDate
+    } catch {
+      return false
+    }
+  }
+}
+```
+
+## 🔐 Seguridad
+
+### Row Level Security (RLS)
+
+Las políticas de seguridad están configuradas para:
+
+- ✅ Clientes solo pueden ver sus propios códigos
+- ✅ Solo `service_role` puede crear/actualizar códigos
+- ✅ API de validación es pública (para apps)
+
+### Formato de Código
+
+- 12 caracteres alfanuméricos
+- Sin caracteres ambiguos (0, O, 1, I)
+- Formato: `XXXX-XXXX-XXXX`
+- Probabilidad de colisión: ~1 en 3.4 × 10^21
+
+## 🔄 Ciclo de Vida de un Código
+
+```
+1. COMPRA REALIZADA
+   └─> Orden creada (status: pending)
+
+2. PAGO CONFIRMADO
+   └─> Orden actualizada (status: processing)
+
+3. PEDIDO ENTREGADO
+   └─> Orden actualizada (status: delivered)
+       ├─> ✅ Factura generada automáticamente
+       └─> ✅ Código de activación generado
+           └─> Código: A2BC-D3FG-H4JK
+               └─> Expira: +30 días
+
+4. CLIENTE USA APP
+   └─> Valida código via API
+       ├─> Si válido: Activa premium
+       └─> Si expirado: Muestra error
+
+5. DESPUÉS DE 30 DÍAS
+   └─> Código expira automáticamente
+       └─> status: expired
+```
+
+## 📊 Consultas Útiles
+
+```sql
+-- Ver códigos activos
+SELECT code, expires_at, 
+       EXTRACT(DAY FROM (expires_at - NOW())) as days_remaining
+FROM activation_codes
+WHERE status = 'active'
+AND expires_at > NOW()
+ORDER BY expires_at;
+
+-- Ver códigos por cliente
+SELECT c.email, ac.code, ac.status, ac.expires_at
+FROM activation_codes ac
+JOIN clients c ON c.id = ac.client_id
+WHERE c.email = 'cliente@example.com';
+
+-- Códigos por expirar (próximos 7 días)
+SELECT code, expires_at
+FROM activation_codes
+WHERE status = 'active'
+AND expires_at BETWEEN NOW() AND NOW() + INTERVAL '7 days';
+
+-- Estadísticas
+SELECT 
+  status,
+  COUNT(*) as total,
+  ROUND(AVG(EXTRACT(EPOCH FROM (last_validated_at - created_at))/86400)) as avg_days_used
+FROM activation_codes
+GROUP BY status;
+```
+
+## 🔄 Cron Jobs Recomendados
+
+### Expirar códigos antiguos
+
+```typescript
+// Ejecutar diariamente
+import { ActivationCodesService } from '@/lib/activationCodesService'
+
+export async function expireOldCodes() {
+  const expired = await ActivationCodesService.expireOldCodes()
+  console.log(`✅ ${expired} códigos expirados`)
+}
+```
+
+Configurar en Vercel Cron o similar:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/expire-codes",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}
+```
+
+## 🐛 Troubleshooting
+
+### El código no se genera
+
+1. Verificar que la tabla existe: `SELECT * FROM activation_codes LIMIT 1`
+2. Verificar que el pedido cambió a `delivered`
+3. Revisar logs del servidor: buscar "Generando código de activación"
+
+### El código no valida
+
+1. Verificar formato (sin espacios, con guiones)
+2. Verificar fecha de expiración
+3. Verificar estado: `SELECT status FROM activation_codes WHERE code = 'XXX'`
+
+### CORS errors desde app
+
+Asegúrate que los endpoints tienen `OPTIONS` handler configurado para CORS.
+
+## 📝 Notas
+
+- Los códigos son de un solo uso por dispositivo (se guarda `device_id`)
+- Un código puede validarse múltiples veces desde el mismo dispositivo
+- Los códigos expirados no pueden reactivarse
+- Los códigos revocados no pueden usarse (ej: pedido cancelado)
+
+## 🔗 Referencias
+
+- Tabla: `activation_codes`
+- Servicio: `src/lib/activationCodesService.ts`
+- Tipos: `src/types/activation-codes.ts`
+- API Validación: `/api/activation-codes/validate`
+- API Consulta: `/api/activation-codes/[code]`

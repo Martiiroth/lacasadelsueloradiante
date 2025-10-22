@@ -249,20 +249,38 @@ export class OrderService {
         // Check stock availability first
         const stockCheck = await this.checkVariantStock(item.variant_id, item.qty)
         
-        if (!stockCheck.available) {
+        // Permitir productos bajo pedido (stock 0)
+        // Solo advertir si hay stock positivo pero insuficiente
+        if (stockCheck.current_stock > 0 && !stockCheck.available) {
           const errorMsg = `Stock insuficiente para variante ${item.variant_id}. Disponible: ${stockCheck.current_stock}, Solicitado: ${item.qty}`
           console.error(`❌ ${errorMsg}`)
           throw new Error(errorMsg)
         }
 
-        // Update stock (subtract the quantity)
+        // Si stock es 0 o negativo, es producto bajo pedido, no descontar
+        if (stockCheck.current_stock <= 0) {
+          console.log(`📦 Producto bajo pedido (stock: ${stockCheck.current_stock}), no se descuenta stock para variante ${item.variant_id}`)
+          return {
+            success: true,
+            variant_id: item.variant_id,
+            qty_ordered: item.qty,
+            old_stock: stockCheck.current_stock,
+            new_stock: stockCheck.current_stock,
+            change: 0,
+            stock_check: stockCheck,
+            backorder: true
+          }
+        }
+
+        // Update stock (subtract the quantity) solo si hay stock disponible
         const stockUpdate = await this.updateVariantStock(item.variant_id, -item.qty)
         
         return {
           ...stockUpdate,
           variant_id: item.variant_id,
           qty_ordered: item.qty,
-          stock_check: stockCheck
+          stock_check: stockCheck,
+          backorder: false
         }
       })
 
@@ -272,12 +290,13 @@ export class OrderService {
       // Log stock update results
       stockUpdateResults.forEach(result => {
         if (result.success) {
-          console.log(`Stock updated for variant ${result.variant_id}: ${result.old_stock} -> ${result.new_stock} (-${result.qty_ordered})`)
-          if (!result.stock_check.available) {
-            console.warn(`Warning: Order created with insufficient stock for variant ${result.variant_id}`)
+          if ('backorder' in result && result.backorder) {
+            console.log(`📦 Producto bajo pedido - variant ${result.variant_id}: Stock sin cambios (${result.old_stock})`)
+          } else {
+            console.log(`✅ Stock actualizado - variant ${result.variant_id}: ${result.old_stock} -> ${result.new_stock} (-${result.qty_ordered})`)
           }
         } else {
-          console.error(`Failed to update stock for variant ${result.variant_id}:`, result.error)
+          console.error(`❌ Error al actualizar stock - variant ${result.variant_id}`)
         }
       })
 
@@ -759,7 +778,10 @@ export class OrderService {
     for (const item of orderItems) {
       const stockCheck = await this.checkVariantStock(item.variant_id, item.qty)
       
-      if (!stockCheck.available) {
+      // Permitir productos bajo pedido (stock 0)
+      // Solo bloquear si hay stock positivo pero insuficiente
+      // Si stock es 0, se asume que es "bajo pedido" y se permite
+      if (stockCheck.current_stock > 0 && !stockCheck.available) {
         issues.push({
           variant_id: item.variant_id,
           requested: item.qty,

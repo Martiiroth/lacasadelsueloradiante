@@ -278,6 +278,42 @@ export class AdminService {
     }
   }
 
+  static async getClientById(clientId: string): Promise<AdminClient | null> {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select(`
+          *,
+          role:customer_roles (
+            id,
+            name,
+            description
+          )
+        `)
+        .eq('id', clientId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching client by ID:', error)
+        return null
+      }
+
+      if (!data) {
+        return null
+      }
+
+      // Enriquecer con estadísticas
+      const stats = await this.getClientStats(clientId)
+      return {
+        ...data,
+        stats
+      }
+    } catch (error) {
+      console.error('Error in getClientById:', error)
+      return null
+    }
+  }
+
   static async getClientStats(clientId: string) {
     try {
       const { data: orders } = await supabase

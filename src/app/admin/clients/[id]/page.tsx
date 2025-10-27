@@ -41,8 +41,7 @@ export default function AdminClientDetail() {
   const loadClientDetail = async () => {
     try {
       setLoading(true)
-      const clients = await AdminService.getAllClients({})
-      const foundClient = clients.find(c => c.id === clientId)
+      const foundClient = await AdminService.getClientById(clientId)
       
       if (foundClient) {
         setClient(foundClient)

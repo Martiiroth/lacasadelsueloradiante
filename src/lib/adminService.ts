@@ -310,6 +310,41 @@ export class AdminService {
     }
   }
 
+  static async searchClients(searchTerm: string, limit: number = 50): Promise<AdminClient[]> {
+    try {
+      if (!searchTerm || searchTerm.trim() === '') {
+        return []
+      }
+
+      const search = searchTerm.trim()
+      let query = supabase
+        .from('clients')
+        .select(`
+          *,
+          role:customer_roles (
+            id,
+            name,
+            description
+          )
+        `)
+        .or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,company_name.ilike.%${search}%`)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error searching clients:', error)
+        return []
+      }
+
+      return data || []
+    } catch (error) {
+      console.error('Error in searchClients:', error)
+      return []
+    }
+  }
+
   static async getClientStats(clientId: string) {
     try {
       const { data: orders } = await supabase

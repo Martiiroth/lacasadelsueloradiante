@@ -75,6 +75,7 @@ export default function AdminOrderCreate() {
   const [saving, setSaving] = useState(false)
   const [clients, setClients] = useState<AdminClient[]>([])
   const [clientSearch, setClientSearch] = useState('')
+  const [searchingClients, setSearchingClients] = useState(false)
   const [selectedClient, setSelectedClient] = useState<AdminClient | null>(null)
   const [products, setProducts] = useState<ProductOption[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
@@ -114,23 +115,31 @@ export default function AdminOrderCreate() {
   })
 
   useEffect(() => {
-    loadClients()
     loadProducts()
   }, [])
 
-
-
-  const loadClients = async () => {
-    try {
-      setLoading(true)
-      const data = await AdminService.getAllClients({})
-      setClients(data)
-    } catch (err) {
-      console.error('Error loading clients:', err)
-    } finally {
-      setLoading(false)
+  // Búsqueda de clientes en tiempo real
+  useEffect(() => {
+    if (clientSearch.trim() === '') {
+      setClients([])
+      return
     }
-  }
+
+    const searchClients = async () => {
+      try {
+        setSearchingClients(true)
+        const results = await AdminService.searchClients(clientSearch)
+        setClients(results)
+      } catch (err) {
+        console.error('Error searching clients:', err)
+      } finally {
+        setSearchingClients(false)
+      }
+    }
+
+    const timer = setTimeout(searchClients, 300) // Debounce de 300ms
+    return () => clearTimeout(timer)
+  }, [clientSearch])
 
   const loadProducts = async () => {
     try {
@@ -402,11 +411,7 @@ export default function AdminOrderCreate() {
     }
   }
 
-  const filteredClients = clients.filter(client =>
-    clientSearch === '' || 
-    `${client.first_name} ${client.last_name}`.toLowerCase().includes(clientSearch.toLowerCase()) ||
-    client.email.toLowerCase().includes(clientSearch.toLowerCase())
-  )
+  const filteredClients = clients // Ya están filtrados desde la búsqueda en la API
 
   return (
     <AdminLayout>
@@ -498,7 +503,12 @@ export default function AdminOrderCreate() {
                     
                     {clientSearch && (
                       <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-md">
-                        {filteredClients.map((client) => (
+                        {searchingClients && (
+                          <div className="px-4 py-3 text-sm text-gray-500">
+                            Buscando clientes...
+                          </div>
+                        )}
+                        {!searchingClients && filteredClients.map((client) => (
                           <button
                             key={client.id}
                             onClick={() => handleClientSelect(client)}
@@ -519,7 +529,7 @@ export default function AdminOrderCreate() {
                             </div>
                           </button>
                         ))}
-                        {filteredClients.length === 0 && (
+                        {!searchingClients && filteredClients.length === 0 && (
                           <div className="px-4 py-3 text-sm text-gray-500">
                             No se encontraron clientes
                           </div>

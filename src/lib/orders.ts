@@ -330,15 +330,22 @@ export class OrderService {
       }
 
       // Calcular total de la orden incluyendo envío
-      const subtotal_cents = orderItems.reduce((total, item) => {
+      const itemsSubtotalCents = orderItems.reduce((total, item) => {
         return total + (item.price_cents * item.qty)
       }, 0)
       
-      const total_cents = subtotal_cents + shippingMethod.price_cents
+      const shippingCostCents = shippingMethod.price_cents
+      const totalWithTaxCents = itemsSubtotalCents + shippingCostCents
+      
+      // subtotal_cents debe incluir items + envío sin IVA
+      const TAX_RATE = 21
+      const subtotal_cents = Math.round(totalWithTaxCents / (1 + TAX_RATE / 100))
+      const total_cents = totalWithTaxCents
 
       console.log('💰 Calculando total de la orden:', {
+        itemsSubtotal: itemsSubtotalCents,
+        shipping_cents: shippingCostCents,
         subtotal_cents,
-        shipping_cents: shippingMethod.price_cents,
         total_cents,
         shipping_method: shippingMethod.name
       })
@@ -347,6 +354,8 @@ export class OrderService {
       const { error: updateError } = await supabase
         .from('orders')
         .update({ 
+          subtotal_cents,
+          shipping_cost_cents: shippingCostCents,
           total_cents,
           shipping_method_id: orderData.shipping_method_id 
         })

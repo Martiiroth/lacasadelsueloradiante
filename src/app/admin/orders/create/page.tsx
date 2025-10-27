@@ -168,21 +168,24 @@ export default function AdminOrderCreate() {
 
 
 
-  const handleClientSelect = (client: AdminClient) => {
+  const handleClientSelect = async (client: AdminClient) => {
     setSelectedClient(client)
     
     // Recalcular precios de items existentes con el nuevo rol
-    const updatedItems = orderData.items.map(item => {
-      if (item.variant_id) {
+    const updatedItems = await Promise.all(orderData.items.map(async (item) => {
+      if (item.variant_id && client.role?.id) {
         const product = products.find(p => p.id === item.product_id)
         const variant = product?.variants.find(v => v.id === item.variant_id)
         if (variant) {
-          const newPrice = calculateRolePrice(variant.price_public_cents, client.role?.name || 'guest')
+          // Obtener el precio de rol desde la tabla role_prices
+          const rolePrice = await AdminService.getRolePriceForVariant(item.variant_id, client.role.id)
+          // Si existe precio de rol, usarlo; si no, usar el precio público
+          const newPrice = rolePrice !== null ? rolePrice : variant.price_public_cents
           return { ...item, price_cents: newPrice }
         }
       }
       return item
-    })
+    }))
 
     setOrderData({
       ...orderData,
@@ -258,7 +261,7 @@ export default function AdminOrderCreate() {
     return orderData.items.reduce((total, item) => total + (item.qty * item.price_cents), 0)
   }
 
-  const handleProductVariantSelect = (index: number, productId: string, variantId: string) => {
+  const handleProductVariantSelect = async (index: number, productId: string, variantId: string) => {
     const selectedProduct = products.find(p => p.id === productId)
     const selectedVariant = selectedProduct?.variants.find(v => v.id === variantId)
     
@@ -266,9 +269,12 @@ export default function AdminOrderCreate() {
       // Calcular precio basado en el rol del cliente
       let finalPrice = selectedVariant.price_public_cents
       
-      // Aquí puedes agregar lógica para aplicar descuentos por rol
-      if (selectedClient?.role?.name) {
-        finalPrice = calculateRolePrice(selectedVariant.price_public_cents, selectedClient.role.name)
+      // Obtener el precio del rol desde la tabla role_prices
+      if (selectedClient?.role?.id) {
+        const rolePrice = await AdminService.getRolePriceForVariant(variantId, selectedClient.role.id)
+        if (rolePrice !== null) {
+          finalPrice = rolePrice
+        }
       }
 
       const updatedItems = [...orderData.items]
@@ -286,19 +292,6 @@ export default function AdminOrderCreate() {
         items: updatedItems
       })
     }
-  }
-
-  const calculateRolePrice = (basePrice: number, roleName: string): number => {
-    // Definir descuentos por rol
-    const roleDiscounts: { [key: string]: number } = {
-      'admin': 0.30,        // 30% descuento
-      'sat': 0.25,          // 25% descuento
-      'instalador': 0.20,   // 20% descuento
-      'guest': 0.00         // Sin descuento
-    }
-
-    const discount = roleDiscounts[roleName] || 0
-    return Math.round(basePrice * (1 - discount))
   }
 
   const handleSave = async () => {

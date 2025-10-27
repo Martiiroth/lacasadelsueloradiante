@@ -345,6 +345,27 @@ export class AdminService {
     }
   }
 
+  static async getRolePriceForVariant(variantId: string, roleId: number): Promise<number | null> {
+    try {
+      const { data, error } = await supabase
+        .from('role_prices')
+        .select('price_cents')
+        .eq('variant_id', variantId)
+        .eq('role_id', roleId)
+        .single()
+
+      if (error) {
+        // Si no hay precio específico para este rol, retornar null
+        return null
+      }
+
+      return data?.price_cents || null
+    } catch (error) {
+      console.error('Error getting role price:', error)
+      return null
+    }
+  }
+
   static async getClientStats(clientId: string) {
     try {
       const { data: orders } = await supabase

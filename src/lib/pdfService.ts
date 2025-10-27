@@ -204,7 +204,9 @@ export class PDFService {
             created_at,
             confirmation_number,
             shipping_address,
-            billing_address
+            billing_address,
+            shipping_cost_cents,
+            subtotal_cents
           )
         `)
         .eq('id', invoiceId)
@@ -477,6 +479,13 @@ export class PDFService {
     doc.text('Subtotal (Base imponible):', totalsX - 50, currentY)
     doc.text(this.formatCurrency(invoice.subtotal_cents, config.currency), totalsX, currentY)
     currentY += 6
+
+    // Mostrar envío si existe
+    if (data.invoice.order?.shipping_cost_cents && data.invoice.order.shipping_cost_cents > 0) {
+      doc.text('Envío:', totalsX - 50, currentY)
+      doc.text(this.formatCurrency(data.invoice.order.shipping_cost_cents, config.currency), totalsX, currentY)
+      currentY += 6
+    }
 
     doc.text(`IVA (${invoice.tax_rate}%):`, totalsX - 50, currentY)
     doc.text(this.formatCurrency(invoice.tax_cents, config.currency), totalsX, currentY)

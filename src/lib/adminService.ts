@@ -1063,6 +1063,8 @@ export class AdminService {
   static async createOrder(orderData: {
     client_id: string
     status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+    subtotal_cents: number
+    shipping_cost_cents: number
     total_cents: number
     shipping_address: any
     items: Array<{
@@ -1091,6 +1093,8 @@ export class AdminService {
       const orderInsert: any = {
         client_id: orderData.client_id,
         status: orderData.status,
+        subtotal_cents: orderData.subtotal_cents,
+        shipping_cost_cents: orderData.shipping_cost_cents,
         total_cents: orderData.total_cents,
         shipping_address: orderData.shipping_address
         // created_at y updated_at tienen DEFAULT now() en la DB

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminClient } from '@/types/admin'
 import { AdminService } from '@/lib/adminService'
+import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import {
   ShoppingBagIcon,
@@ -79,6 +80,8 @@ export default function AdminOrderCreate() {
   const [selectedClient, setSelectedClient] = useState<AdminClient | null>(null)
   const [products, setProducts] = useState<ProductOption[]>([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+  const [shippingMethods, setShippingMethods] = useState<Array<{id: string, name: string, price_cents: number}>>([])
+  const [shippingCostCents, setShippingCostCents] = useState(0)
   
   const [orderData, setOrderData] = useState<NewOrderData>({
     client_id: '',
@@ -116,7 +119,23 @@ export default function AdminOrderCreate() {
 
   useEffect(() => {
     loadProducts()
+    loadShippingMethods()
   }, [])
+
+  const loadShippingMethods = async () => {
+    try {
+      const { data: methods, error } = await supabase
+        .from('shipping_methods')
+        .select('id, name, price_cents')
+        .eq('active', true)
+      
+      if (!error && methods) {
+        setShippingMethods(methods)
+      }
+    } catch (err) {
+      console.error('Error loading shipping methods:', err)
+    }
+  }
 
   // Búsqueda de clientes en tiempo real
   useEffect(() => {
@@ -259,8 +278,7 @@ export default function AdminOrderCreate() {
 
   const calculateTotal = () => {
     const itemsTotal = orderData.items.reduce((total, item) => total + (item.qty * item.price_cents), 0)
-    // TODO: Agregar costo de envío aquí cuando se implemente
-    return itemsTotal
+    return itemsTotal + shippingCostCents
   }
 
   const handleProductVariantSelect = async (index: number, productId: string, variantId: string) => {
@@ -362,11 +380,16 @@ export default function AdminOrderCreate() {
         payment_method: orderData.payment_method,
         notes: orderData.notes
       }
+
+      const subtotalCents = orderData.items.reduce((total, item) => total + (item.qty * item.price_cents), 0)
+      const totalCents = subtotalCents + shippingCostCents
       
       console.log('Datos del pedido a enviar:', {
         client_id: orderData.client_id,
         status: orderData.status,
-        total_cents: calculateTotal(),
+        subtotal_cents: subtotalCents,
+        shipping_cost_cents: shippingCostCents,
+        total_cents: totalCents,
         items_count: orderData.items.length,
         combined_address: combinedAddress
       })
@@ -374,7 +397,9 @@ export default function AdminOrderCreate() {
       const newOrderId = await AdminService.createOrder({
         client_id: orderData.client_id,
         status: orderData.status,
-        total_cents: calculateTotal(),
+        subtotal_cents: subtotalCents,
+        shipping_cost_cents: shippingCostCents,
+        total_cents: totalCents,
         shipping_address: combinedAddress,
         items: orderData.items
       })
@@ -978,8 +1003,20 @@ export default function AdminOrderCreate() {
                   </div>
                 ))}
                 
-                <div className="border-t border-gray-200 pt-4">
-                  <div className="flex justify-between items-center">
+                <div className="border-t border-gray-200 pt-4 space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="text-gray-900">
+                      €{((orderData.items.reduce((total, item) => total + (item.qty * item.price_cents), 0)) / 100).toFixed(2)}
+                    </span>
+                  </div>
+                  {shippingCostCents > 0 && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-600">Envío:</span>
+                      <span className="text-gray-900">€{(shippingCostCents / 100).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center border-t border-gray-200 pt-2">
                     <span className="text-base font-medium text-gray-900">Total del Pedido:</span>
                     <span className="text-base font-medium text-gray-900">
                       €{(calculateTotal() / 100).toFixed(2)}
@@ -1001,14 +1038,21 @@ export default function AdminOrderCreate() {
                     <select
                       required
                       value={orderData.shipping_method}
-                      onChange={(e) => setOrderData({ ...orderData, shipping_method: e.target.value })}
+                      onChange={(e) => {
+                        const selectedMethod = shippingMethods.find(m => m.id === e.target.value)
+                        setOrderData({ ...orderData, shipping_method: e.target.value })
+                        if (selectedMethod) {
+                          setShippingCostCents(selectedMethod.price_cents)
+                        }
+                      }}
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     >
                       <option value="">Seleccionar método</option>
-                      <option value="standard">Envío Estándar (3-5 días)</option>
-                      <option value="express">Envío Express (1-2 días)</option>
-                      <option value="pickup">Recogida en tienda</option>
-                      <option value="installation">Instalación incluida</option>
+                      {shippingMethods.map(method => (
+                        <option key={method.id} value={method.id}>
+                          {method.name} - €{(method.price_cents / 100).toFixed(2)}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>

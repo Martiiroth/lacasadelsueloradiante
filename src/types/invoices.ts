@@ -49,6 +49,8 @@ export interface InvoiceOrder {
   confirmation_number?: string
   shipping_address?: any
   billing_address?: any
+  shipping_cost_cents?: number
+  subtotal_cents?: number
 }
 
 export interface InvoiceItem {

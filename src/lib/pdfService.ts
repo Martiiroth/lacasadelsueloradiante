@@ -344,33 +344,36 @@ export class PDFService {
     doc.setFontSize(9)
     doc.setFont('helvetica', 'normal')
     
-    if (invoice.client) {
-      const clientName = `${invoice.client.first_name} ${invoice.client.last_name}`
+    // Usar datos del cliente o de la dirección de facturación de la orden
+    const clientData = invoice.client || (invoice.order?.billing_address as any)
+    
+    if (clientData) {
+      const clientName = `${clientData.first_name} ${clientData.last_name}`
       doc.text(clientName, margin, clientY)
       clientY += 5
 
-      if (invoice.client.company_name) {
-        doc.text(invoice.client.company_name, margin, clientY)
+      if (clientData.company_name) {
+        doc.text(clientData.company_name, margin, clientY)
         clientY += 5
       }
 
-      if (invoice.client.nif_cif) {
-        doc.text(`NIF/CIF: ${invoice.client.nif_cif}`, margin, clientY)
+      if (clientData.nif_cif) {
+        doc.text(`NIF/CIF: ${clientData.nif_cif}`, margin, clientY)
         clientY += 5
       }
 
-      if (invoice.client.address_line1) {
-        doc.text(invoice.client.address_line1, margin, clientY)
+      if (clientData.address_line1) {
+        doc.text(clientData.address_line1, margin, clientY)
         clientY += 5
       }
 
-      if (invoice.client.city && invoice.client.postal_code) {
-        doc.text(`${invoice.client.postal_code} ${invoice.client.city}`, margin, clientY)
+      if (clientData.city && clientData.postal_code) {
+        doc.text(`${clientData.postal_code} ${clientData.city}`, margin, clientY)
         clientY += 5
       }
 
-      if (invoice.client.email) {
-        doc.text(invoice.client.email, margin, clientY)
+      if (clientData.email) {
+        doc.text(clientData.email, margin, clientY)
         clientY += 5
       }
     }

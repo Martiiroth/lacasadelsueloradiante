@@ -67,7 +67,7 @@ export class InvoiceService {
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .insert({
-          client_id: data.client_id || order.client_id,
+          client_id: data.client_id || order.client_id || null, // Permitir null para clientes invitados
           order_id: data.order_id,
           invoice_number: counter.next_number,
           prefix: counter.prefix,

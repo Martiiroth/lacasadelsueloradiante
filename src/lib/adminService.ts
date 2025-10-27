@@ -234,12 +234,8 @@ export class AdminService {
       }
 
       if (filters?.client_search) {
-        query = query.or(`
-          first_name.ilike.%${filters.client_search}%,
-          last_name.ilike.%${filters.client_search}%,
-          email.ilike.%${filters.client_search}%,
-          company_name.ilike.%${filters.client_search}%
-        `)
+        const searchTerm = filters.client_search
+        query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%`)
       }
 
       if (filters?.client_date_from) {
@@ -2428,10 +2424,8 @@ export class AdminService {
 
       // Aplicar filtros
       if (filters?.product_search) {
-        query = query.or(`
-          name.ilike.%${filters.product_search}%,
-          slug.ilike.%${filters.product_search}%
-        `)
+        const searchTerm = filters.product_search
+        query = query.or(`name.ilike.%${searchTerm}%,slug.ilike.%${searchTerm}%`)
       }
 
       // Paginación
@@ -2691,10 +2685,8 @@ export class AdminService {
 
       // Aplicar filtros
       if (filters?.product_search) {
-        query = query.or(`
-          code.ilike.%${filters.product_search}%,
-          description.ilike.%${filters.product_search}%
-        `)
+        const searchTerm = filters.product_search
+        query = query.or(`code.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
       }
 
       // Paginación

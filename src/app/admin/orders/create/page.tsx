@@ -381,8 +381,13 @@ export default function AdminOrderCreate() {
         notes: orderData.notes
       }
 
-      const subtotalCents = orderData.items.reduce((total, item) => total + (item.qty * item.price_cents), 0)
-      const totalCents = subtotalCents + shippingCostCents
+      const itemsTotalCents = orderData.items.reduce((total, item) => total + (item.qty * item.price_cents), 0)
+      // subtotal_cents incluye items + envío (base imponible para IVA, sin IVA)
+      // Los precios ya incluyen IVA, así que: subtotal_sin_iva = (items + envío) / 1.21
+      const subtotalWithTaxCents = itemsTotalCents + shippingCostCents
+      const TAX_RATE = 21
+      const subtotalCents = Math.round(subtotalWithTaxCents / (1 + TAX_RATE / 100))
+      const totalCents = subtotalWithTaxCents
       
       console.log('Datos del pedido a enviar:', {
         client_id: orderData.client_id,

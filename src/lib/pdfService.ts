@@ -476,9 +476,13 @@ export class PDFService {
     const totalsX = pageWidth - margin - 60
 
     doc.setFont('helvetica', 'normal')
-    doc.text('Subtotal (Base imponible):', totalsX - 50, currentY)
-    doc.text(this.formatCurrency(invoice.subtotal_cents, config.currency), totalsX, currentY)
-    currentY += 6
+    
+    // Calcular subtotal de items (sin envío, sin IVA)
+    // invoice.subtotal_cents = (items + envío) sin IVA
+    // shipping_cost_cents ya incluye IVA
+    const shippingWithoutTax = data.invoice.order?.shipping_cost_cents 
+      ? Math.round(data.invoice.order.shipping_cost_cents / 1.21)
+      : 0
 
     // Mostrar envío si existe
     if (data.invoice.order?.shipping_cost_cents && data.invoice.order.shipping_cost_cents > 0) {
@@ -486,6 +490,11 @@ export class PDFService {
       doc.text(this.formatCurrency(data.invoice.order.shipping_cost_cents, config.currency), totalsX, currentY)
       currentY += 6
     }
+    
+    // Base imponible
+    doc.text('Base imponible:', totalsX - 50, currentY)
+    doc.text(this.formatCurrency(invoice.subtotal_cents, config.currency), totalsX, currentY)
+    currentY += 6
 
     doc.text(`IVA (${invoice.tax_rate}%):`, totalsX - 50, currentY)
     doc.text(this.formatCurrency(invoice.tax_cents, config.currency), totalsX, currentY)

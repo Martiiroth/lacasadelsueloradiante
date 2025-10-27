@@ -27,7 +27,7 @@ export class InvoiceService {
       // Verificar que el pedido existe
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('id, client_id, total_cents, status')
+        .select('id, client_id, total_cents, subtotal_cents, shipping_cost_cents, status')
         .eq('id', data.order_id)
         .single()
 
@@ -68,7 +68,14 @@ export class InvoiceService {
       // Calcular IVA (21%)
       const TAX_RATE = 21
       const totalWithTax = order.total_cents
-      const subtotal = Math.round(totalWithTax / (1 + TAX_RATE / 100))
+      
+      // El subtotal debe incluir productos + envío (sin IVA)
+      // Si subtotal_cents está en la orden, usarlo; si no, calcularlo
+      let subtotal = order.subtotal_cents
+      if (!subtotal) {
+        subtotal = Math.round(totalWithTax / (1 + TAX_RATE / 100))
+      }
+      
       const taxAmount = totalWithTax - subtotal
 
       // Crear factura

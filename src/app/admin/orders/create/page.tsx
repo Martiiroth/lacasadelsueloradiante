@@ -258,7 +258,9 @@ export default function AdminOrderCreate() {
   }
 
   const calculateTotal = () => {
-    return orderData.items.reduce((total, item) => total + (item.qty * item.price_cents), 0)
+    const itemsTotal = orderData.items.reduce((total, item) => total + (item.qty * item.price_cents), 0)
+    // TODO: Agregar costo de envío aquí cuando se implemente
+    return itemsTotal
   }
 
   const handleProductVariantSelect = async (index: number, productId: string, variantId: string) => {

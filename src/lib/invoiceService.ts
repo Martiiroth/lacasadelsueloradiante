@@ -45,7 +45,15 @@ export class InvoiceService {
 
       if (existingInvoice) {
         console.log('Ya existe una factura para este pedido:', existingInvoice.id)
-        return await this.getInvoiceById(existingInvoice.id)
+        const invoice = await this.getInvoiceById(existingInvoice.id)
+        
+        // Si auto_send está activado, reenviar la factura
+        if (data.auto_send && invoice) {
+          console.log('📧 Reenviando factura existente:', existingInvoice.id)
+          await this.resendInvoice(existingInvoice.id)
+        }
+        
+        return invoice
       }
 
       // Obtener o crear contador de facturas

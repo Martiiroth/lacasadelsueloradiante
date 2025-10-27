@@ -977,22 +977,6 @@ export default function AdminOrderCreate() {
                 ))}
                 
                 <div className="border-t border-gray-200 pt-4">
-                  {selectedClient?.role?.name && selectedClient.role.name !== 'guest' && (
-                    <div className="mb-3 p-3 bg-green-50 rounded-md">
-                      <div className="flex items-center">
-                        <div className="text-sm">
-                          <p className="font-medium text-green-800">
-                            Descuento aplicado por rol: {selectedClient.role.name}
-                          </p>
-                          <p className="text-green-600">
-                            {selectedClient.role.name === 'admin' ? '30% de descuento' :
-                             selectedClient.role.name === 'sat' ? '25% de descuento' :
-                             selectedClient.role.name === 'instalador' ? '20% de descuento' : ''}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                   <div className="flex justify-between items-center">
                     <span className="text-base font-medium text-gray-900">Total del Pedido:</span>
                     <span className="text-base font-medium text-gray-900">

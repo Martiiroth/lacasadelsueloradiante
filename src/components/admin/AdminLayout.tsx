@@ -19,7 +19,7 @@ import { useAuth } from '../../contexts/AuthContext'
 
 interface AdminLayoutProps {
   children: ReactNode
-  activeSection?: 'overview' | 'clients' | 'orders' | 'products' | 'categories' | 'brands' | 'coupons' | 'settings'
+  activeSection?: 'overview' | 'clients' | 'orders' | 'invoices' | 'products' | 'categories' | 'brands' | 'coupons' | 'settings'
 }
 
 interface NavItem {
@@ -55,6 +55,12 @@ const navItems: NavItem[] = [
     icon: PlusIcon
   },
   {
+    id: 'invoices',
+    label: 'Facturas',
+    href: '/admin/invoices',
+    icon: DocumentTextIcon
+  },
+  {
     id: 'products',
     label: 'Productos',
     href: '/admin/products',
@@ -79,12 +85,6 @@ const navItems: NavItem[] = [
     icon: TicketIcon
   },
 
-  {
-    id: 'settings',
-    label: 'Configuración',
-    href: '/admin/settings',
-    icon: Cog6ToothIcon
-  }
 ]
 
 export default function AdminLayout({ children, activeSection = 'overview' }: AdminLayoutProps) {

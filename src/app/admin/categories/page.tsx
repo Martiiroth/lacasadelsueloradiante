@@ -14,7 +14,8 @@ import {
   PlusIcon,
   TagIcon,
   CubeIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  EllipsisVerticalIcon
 } from '@heroicons/react/24/outline'
 
 export default function AdminCategories() {
@@ -24,10 +25,23 @@ export default function AdminCategories() {
   const [error, setError] = useState<string | null>(null)
   const [filters, setFilters] = useState<AdminFilters>({})
   const [searchTerm, setSearchTerm] = useState('')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   useEffect(() => {
     loadCategories()
   }, [filters])
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenMenuId(null)
+      }
+    }
+    if (openMenuId) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [openMenuId])
 
   const loadCategories = async () => {
     try {
@@ -170,26 +184,14 @@ export default function AdminCategories() {
 
         {/* Categories Table */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-hidden">
+            <table className="w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Categoría
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Slug
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Productos
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Subcategorías
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Creada
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
@@ -197,62 +199,87 @@ export default function AdminCategories() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {categories.map((category) => (
                   <tr key={category.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10">
                           <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
                             <FolderIcon className="h-6 w-6 text-indigo-600" />
                           </div>
                         </div>
-                        <div className="ml-4">
+                        <div className="ml-4 min-w-0 flex-1">
                           {renderCategoryHierarchy(category)}
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              <TagIcon className="h-3 w-3 mr-1" />
+                              {category.slug}
+                            </span>
+                            <span className="text-xs text-gray-400 flex items-center">
+                              <CubeIcon className="h-3 w-3 mr-1 text-gray-400" />
+                              {category.stats?.total_products || 0} productos
+                            </span>
+                            <span className="text-xs text-gray-400 flex items-center">
+                              <FolderIcon className="h-3 w-3 mr-1 text-gray-400" />
+                              {category.stats?.total_subcategories || 0} subcategorías
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(category.created_at).toLocaleDateString('es-ES')}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        <TagIcon className="h-3 w-3 mr-1" />
-                        {category.slug}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <CubeIcon className="h-4 w-4 mr-1 text-gray-400" />
-                        {category.stats?.total_products || 0}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <FolderIcon className="h-4 w-4 mr-1 text-gray-400" />
-                        {category.stats?.total_subcategories || 0}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(category.created_at).toLocaleDateString('es-ES')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => router.push(`/admin/categories/${category.id}`)}
-                          className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded-md hover:bg-indigo-50"
                           title="Ver detalles"
                         >
-                          <EyeIcon className="h-4 w-4" />
+                          <EyeIcon className="h-5 w-5" />
                         </button>
-                        <button
-                          onClick={() => router.push(`/admin/categories/${category.id}/edit`)}
-                          className="text-gray-600 hover:text-gray-900 flex items-center"
-                          title="Editar"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteCategory(category.id, category.name)}
-                          className="text-red-600 hover:text-red-900 flex items-center"
-                          title="Eliminar"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === category.id ? null : category.id)}
+                            className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-100"
+                            title="Más opciones"
+                          >
+                            <EllipsisVerticalIcon className="h-5 w-5" />
+                          </button>
+                          {openMenuId === category.id && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setOpenMenuId(null)}
+                              />
+                              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                                <div className="py-1" role="menu">
+                                  <button
+                                    onClick={() => {
+                                      router.push(`/admin/categories/${category.id}/edit`)
+                                      setOpenMenuId(null)
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    role="menuitem"
+                                  >
+                                    <PencilIcon className="h-4 w-4 mr-2" />
+                                    Editar
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      deleteCategory(category.id, category.name)
+                                      setOpenMenuId(null)
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                    role="menuitem"
+                                  >
+                                    <TrashIcon className="h-4 w-4 mr-2" />
+                                    Eliminar
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>

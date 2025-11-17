@@ -16,7 +16,8 @@ import {
   TruckIcon,
   XCircleIcon,
   PlusIcon,
-  TrashIcon
+  TrashIcon,
+  EllipsisVerticalIcon
 } from '@heroicons/react/24/outline'
 
 export default function AdminOrders() {
@@ -32,10 +33,23 @@ export default function AdminOrders() {
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   useEffect(() => {
     loadOrders()
   }, [filters])
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenMenuId(null)
+      }
+    }
+    if (openMenuId) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [openMenuId])
 
   const loadOrders = async () => {
     try {
@@ -290,26 +304,17 @@ export default function AdminOrders() {
         <div className="bg-white shadow rounded-lg overflow-hidden">
           
           {/* Desktop Table View - Hidden on mobile */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="hidden lg:block overflow-hidden">
+            <table className="w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Pedido
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cliente
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Estado
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
@@ -317,110 +322,134 @@ export default function AdminOrders() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {orders.slice(0, displayedCount).map((order) => (
                   <tr key={order.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <ShoppingBagIcon className="h-8 w-8 text-gray-400 mr-3" />
-                        <div>
+                        <ShoppingBagIcon className="h-8 w-8 text-gray-400 mr-3 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
                           <div className="text-sm font-medium text-gray-900">
-                            #{order.id.slice(-8)}
+                            Pedido #{order.id.slice(-8)}
                           </div>
-
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {order.client ? (
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {order.client.first_name} {order.client.last_name}
+                          <div className="mt-1">
+                            {order.client ? (
+                              <div>
+                                <div className="text-sm text-gray-900">
+                                  {order.client.first_name} {order.client.last_name}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {order.client.email}
+                                </div>
+                              </div>
+                            ) : order.billing_address ? (
+                              <div>
+                                <div className="text-sm text-gray-900">
+                                  <span className="inline-flex items-center">
+                                    {order.billing_address.first_name} {order.billing_address.last_name}
+                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                      Invitado
+                                    </span>
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {order.billing_address.email}
+                                </div>
+                                {order.billing_address.phone && (
+                                  <div className="text-xs text-gray-400">
+                                    Tel: {order.billing_address.phone}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-500">Cliente no encontrado</span>
+                            )}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {order.client.email}
-                          </div>
-                        </div>
-                      ) : order.billing_address ? (
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            <span className="inline-flex items-center">
-                              {order.billing_address.first_name} {order.billing_address.last_name}
-                              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                Invitado
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            <div className="text-sm font-medium text-gray-900">
+                              €{(order.total_cents / 100).toFixed(2)}
+                            </div>
+                            {order.order_items && (
+                              <span className="text-xs text-gray-400">
+                                {order.order_items.length} artículos
                               </span>
+                            )}
+                            <span className="text-xs text-gray-400">
+                              {new Date(order.created_at).toLocaleDateString('es-ES')}
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(order.created_at).toLocaleTimeString('es-ES', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })}
                             </span>
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {order.billing_address.email}
-                          </div>
-                          {order.billing_address.phone && (
-                            <div className="text-xs text-gray-400">
-                              Tel: {order.billing_address.phone}
-                            </div>
-                          )}
                         </div>
-                      ) : (
-                        <span className="text-sm text-gray-500">Cliente no encontrado</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <select
-                          value={order.status}
-                          onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border-0 bg-transparent cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getStatusColor(order.status)}`}
-                        >
-                          <option value="pending">Pendiente</option>
-                          <option value="confirmed">Confirmado</option>
-                          <option value="processing">Procesando</option>
-                          <option value="shipped">Enviado</option>
-                          <option value="delivered">Entregado</option>
-                          <option value="cancelled">Cancelado</option>
-                        </select>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        €{(order.total_cents / 100).toFixed(2)}
-                      </div>
-                      {order.order_items && (
-                        <div className="text-sm text-gray-500">
-                          {order.order_items.length} artículos
-                        </div>
-                      )}
+                    <td className="px-6 py-4">
+                      <select
+                        value={order.status}
+                        onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border-0 bg-transparent cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getStatusColor(order.status)}`}
+                      >
+                        <option value="pending">Pendiente</option>
+                        <option value="confirmed">Confirmado</option>
+                        <option value="processing">Procesando</option>
+                        <option value="shipped">Enviado</option>
+                        <option value="delivered">Entregado</option>
+                        <option value="cancelled">Cancelado</option>
+                      </select>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div>
-                        {new Date(order.created_at).toLocaleDateString('es-ES')}
-                      </div>
-                      <div className="text-xs">
-                        {new Date(order.created_at).toLocaleTimeString('es-ES', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => router.push(`/admin/orders/${order.id}`)}
-                          className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded-md hover:bg-indigo-50"
                           title="Ver detalles"
                         >
-                          <EyeIcon className="h-4 w-4" />
+                          <EyeIcon className="h-5 w-5" />
                         </button>
-                        <button
-                          onClick={() => router.push(`/admin/orders/${order.id}/edit`)}
-                          className="text-gray-600 hover:text-gray-900 flex items-center"
-                          title="Editar"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteOrder(order.id)}
-                          className="text-red-600 hover:text-red-900 flex items-center"
-                          title="Eliminar"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === order.id ? null : order.id)}
+                            className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-100"
+                            title="Más opciones"
+                          >
+                            <EllipsisVerticalIcon className="h-5 w-5" />
+                          </button>
+                          {openMenuId === order.id && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setOpenMenuId(null)}
+                              />
+                              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                                <div className="py-1" role="menu">
+                                  <button
+                                    onClick={() => {
+                                      router.push(`/admin/orders/${order.id}/edit`)
+                                      setOpenMenuId(null)
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    role="menuitem"
+                                  >
+                                    <PencilIcon className="h-4 w-4 mr-2" />
+                                    Editar
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      deleteOrder(order.id)
+                                      setOpenMenuId(null)
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                    role="menuitem"
+                                  >
+                                    <TrashIcon className="h-4 w-4 mr-2" />
+                                    Eliminar
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>

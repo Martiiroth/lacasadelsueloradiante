@@ -17,7 +17,8 @@ import {
   XCircleIcon,
   TagIcon,
   CurrencyEuroIcon,
-  ArchiveBoxIcon
+  ArchiveBoxIcon,
+  EllipsisVerticalIcon
 } from '@heroicons/react/24/outline'
 
 export default function AdminProducts() {
@@ -32,10 +33,23 @@ export default function AdminProducts() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [selectedType, setSelectedType] = useState<string>('')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   useEffect(() => {
     loadProducts()
   }, [filters])
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpenMenuId(null)
+      }
+    }
+    if (openMenuId) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [openMenuId])
 
   const loadProducts = async () => {
     try {
@@ -231,29 +245,17 @@ export default function AdminProducts() {
 
         {/* Products Table */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-hidden">
+            <table className="w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Producto
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Categoría
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Etiquetas
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Variantes
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Stock
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Creado
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
@@ -261,7 +263,7 @@ export default function AdminProducts() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredProducts.slice(0, displayedCount).map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4">
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-12 w-12">
                           {product.images && product.images.length > 0 ? (
@@ -276,87 +278,102 @@ export default function AdminProducts() {
                             </div>
                           )}
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                        <div className="ml-4 min-w-0 flex-1">
+                          <div className="text-sm font-medium text-gray-900 break-words">
                             {product.title}
                           </div>
                           {product.short_description && (
-                            <div className="text-sm text-gray-500 truncate max-w-xs">
-                              {product.short_description.substring(0, 80)}
-                              {product.short_description.length > 80 && '...'}
+                            <div className="text-sm text-gray-500 break-words mt-1">
+                              {product.short_description.length > 100 
+                                ? `${product.short_description.substring(0, 100)}...`
+                                : product.short_description}
                             </div>
                           )}
-                          <div className="text-xs text-gray-400">
-                            Slug: {product.slug}
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            {product.categories && product.categories.length > 0 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <TagIcon className="h-3 w-3 mr-1" />
+                                {product.categories[0].category.name}
+                              </span>
+                            )}
+                            {product.is_new && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Nuevo
+                              </span>
+                            )}
+                            {product.is_on_sale && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                En oferta
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-400">
+                              {product.stats?.total_variants || 0} variantes
+                            </span>
+                            <span className="text-xs text-gray-400">
+                              {new Date(product.created_at).toLocaleDateString('es-ES')}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {product.categories && product.categories.length > 0 ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          <TagIcon className="h-3 w-3 mr-1" />
-                          {product.categories[0].category.name}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 text-xs">Sin categoría</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex space-x-1">
-                        {product.is_new && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Nuevo
-                          </span>
-                        )}
-                        {product.is_on_sale && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                            En oferta
-                          </span>
-                        )}
-                        {!product.is_new && !product.is_on_sale && (
-                          <span className="text-gray-400 text-xs">Normal</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center">
-                        <CubeIcon className="h-4 w-4 mr-1 text-gray-400" />
-                        {product.stats?.total_variants || 0}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className={`flex items-center ${(product.stats?.total_stock || 0) < 10 ? 'text-red-600' : 'text-green-600'}`}>
+                    <td className="px-6 py-4">
+                      <div className={`flex items-center text-sm font-medium ${(product.stats?.total_stock || 0) < 10 ? 'text-red-600' : 'text-green-600'}`}>
                         <ArchiveBoxIcon className="h-4 w-4 mr-1" />
                         {product.stats?.total_stock || 0}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(product.created_at).toLocaleDateString('es-ES')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end space-x-2">
                         <button
                           onClick={() => router.push(`/admin/products/${product.id}`)}
-                          className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded-md hover:bg-indigo-50"
                           title="Ver detalles"
                         >
-                          <EyeIcon className="h-4 w-4" />
+                          <EyeIcon className="h-5 w-5" />
                         </button>
-                        <button
-                          onClick={() => router.push(`/admin/products/${product.id}/edit`)}
-                          className="text-gray-600 hover:text-gray-900 flex items-center"
-                          title="Editar"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteProduct(product.id, product.title)}
-                          className="text-red-600 hover:text-red-900 flex items-center"
-                          title="Eliminar"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
+                        <div className="relative">
+                          <button
+                            onClick={() => setOpenMenuId(openMenuId === product.id ? null : product.id)}
+                            className="text-gray-600 hover:text-gray-900 p-1 rounded-md hover:bg-gray-100"
+                            title="Más opciones"
+                          >
+                            <EllipsisVerticalIcon className="h-5 w-5" />
+                          </button>
+                          {openMenuId === product.id && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setOpenMenuId(null)}
+                              />
+                              <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                                <div className="py-1" role="menu">
+                                  <button
+                                    onClick={() => {
+                                      router.push(`/admin/products/${product.id}/edit`)
+                                      setOpenMenuId(null)
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    role="menuitem"
+                                  >
+                                    <PencilIcon className="h-4 w-4 mr-2" />
+                                    Editar
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      deleteProduct(product.id, product.title)
+                                      setOpenMenuId(null)
+                                    }}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                    role="menuitem"
+                                  >
+                                    <TrashIcon className="h-4 w-4 mr-2" />
+                                    Eliminar
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>

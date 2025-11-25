@@ -56,6 +56,19 @@ export default function AdminOrderEdit() {
     region: '',
     postal_code: ''
   })
+  const [orderItems, setOrderItems] = useState<Array<{
+    id: string
+    qty: number
+    price_cents: number
+    variant?: {
+      id?: string
+      title?: string
+      product?: {
+        title: string
+      }
+    }
+  }>>([])
+  const [calculatedTotal, setCalculatedTotal] = useState(0)
 
   const orderId = params.id as string
 
@@ -75,6 +88,22 @@ export default function AdminOrderEdit() {
         console.log('Pedido encontrado:', foundOrder)
         setOrder(foundOrder)
         setStatus(foundOrder.status)
+        
+        // Set order items
+        if (foundOrder.order_items) {
+          setOrderItems(foundOrder.order_items.map(item => ({
+            id: item.id,
+            qty: item.qty,
+            price_cents: item.price_cents,
+            variant: item.variant
+          })))
+          // Calcular total inicial
+          const subtotal = foundOrder.order_items.reduce(
+            (sum, item) => sum + item.price_cents * item.qty,
+            0
+          )
+          setCalculatedTotal(subtotal)
+        }
         
         // Set client info
         if (foundOrder.client) {
@@ -199,7 +228,34 @@ export default function AdminOrderEdit() {
         return;
       }
 
-      alert('Pedido, cliente y direcciones actualizados correctamente');
+      // Actualizar items del pedido si han cambiado
+      if (order.order_items) {
+        const itemsChanged = orderItems.some((item, index) => {
+          const originalItem = order.order_items![index]
+          return !originalItem || item.qty !== originalItem.qty
+        }) || orderItems.length !== order.order_items.length
+
+        if (itemsChanged) {
+          const itemsToUpdate = orderItems.map(item => ({
+            id: item.id,
+            qty: item.qty
+          }))
+
+          const itemsUpdateResult = await AdminService.updateOrderItems(order.id, itemsToUpdate)
+          
+          if (!itemsUpdateResult.success) {
+            alert(`Error al actualizar items del pedido: ${itemsUpdateResult.error}`)
+            return
+          }
+
+          // Actualizar total en el estado local
+          if (itemsUpdateResult.newTotal !== undefined) {
+            setCalculatedTotal(itemsUpdateResult.newTotal)
+          }
+        }
+      }
+
+      alert('Pedido actualizado correctamente');
       router.push(`/admin/orders/${order.id}`);
       
     } catch (err) {
@@ -514,39 +570,95 @@ export default function AdminOrderEdit() {
               </div>
             </div>
 
-            {/* Order Items (Read Only for now) */}
+            {/* Order Items (Editable) */}
             <div className="bg-white shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-medium text-gray-900">Artículos del Pedido</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  La edición de artículos se implementará en una futura versión
+                  Edita las cantidades o elimina artículos del pedido
                 </p>
               </div>
               <div className="px-6 py-4">
-                {order.order_items && order.order_items.length > 0 ? (
+                {orderItems.length > 0 ? (
                   <div className="space-y-3">
-                    {order.order_items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between bg-gray-50 p-3 rounded-md">
-                        <div className="flex-1">
-                          <h4 className="text-sm font-medium text-gray-900">
-                            {item.variant?.product?.title || 'Producto sin nombre'}
-                          </h4>
-                          <p className="text-sm text-gray-500">
-                            Cantidad: {item.qty} × €{(item.price_cents / 100).toFixed(2)}
-                          </p>
+                    {orderItems.map((item, index) => (
+                      <div key={item.id} className="bg-gray-50 p-4 rounded-md">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="text-sm font-medium text-gray-900">
+                              {item.variant?.product?.title || 'Producto sin nombre'}
+                            </h4>
+                            {item.variant?.title && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Variante: {item.variant.title}
+                              </p>
+                            )}
+                            <p className="text-sm text-gray-600 mt-1">
+                              Precio unitario: €{(item.price_cents / 100).toFixed(2)}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const newItems = orderItems.filter((_, i) => i !== index)
+                              setOrderItems(newItems)
+                              const newSubtotal = newItems.reduce(
+                                (sum, it) => sum + it.price_cents * it.qty,
+                                0
+                              )
+                              setCalculatedTotal(newSubtotal)
+                            }}
+                            className="ml-4 p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+                            title="Eliminar artículo"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-gray-900">
-                            €{((item.price_cents * item.qty) / 100).toFixed(2)}
-                          </p>
+                        <div className="flex items-center space-x-3">
+                          <label className="text-sm font-medium text-gray-700">Cantidad:</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.qty}
+                            onChange={(e) => {
+                              const newQty = Math.max(1, parseInt(e.target.value) || 1)
+                              const newItems = [...orderItems]
+                              newItems[index] = { ...newItems[index], qty: newQty }
+                              setOrderItems(newItems)
+                              const newSubtotal = newItems.reduce(
+                                (sum, it) => sum + it.price_cents * it.qty,
+                                0
+                              )
+                              setCalculatedTotal(newSubtotal)
+                            }}
+                            className="w-20 px-2 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                          <div className="flex-1 text-right">
+                            <p className="text-sm font-medium text-gray-900">
+                              Subtotal: €{((item.price_cents * item.qty) / 100).toFixed(2)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     ))}
-                    <div className="border-t border-gray-200 pt-3">
+                    <div className="border-t border-gray-200 pt-3 space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-base font-medium text-gray-900">Total:</span>
-                        <span className="text-base font-medium text-gray-900">
-                          €{(order.total_cents / 100).toFixed(2)}
+                        <span className="text-sm text-gray-600">Subtotal:</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          €{(calculatedTotal / 100).toFixed(2)}
+                        </span>
+                      </div>
+                      {order.shipping_cost_cents && order.shipping_cost_cents > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Envío:</span>
+                          <span className="text-sm font-medium text-gray-900">
+                            €{(order.shipping_cost_cents / 100).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+                        <span className="text-base font-semibold text-gray-900">Total:</span>
+                        <span className="text-base font-semibold text-gray-900">
+                          €{((calculatedTotal + (order.shipping_cost_cents || 0)) / 100).toFixed(2)}
                         </span>
                       </div>
                     </div>

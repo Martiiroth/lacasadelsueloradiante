@@ -949,6 +949,110 @@ export class AdminService {
     }
   }
 
+  /**
+   * Actualiza los items de un pedido (cantidades y elimina items)
+   * Recalcula el total del pedido automáticamente
+   */
+  static async updateOrderItems(
+    orderId: string,
+    items: Array<{
+      id: string
+      qty: number
+    }>
+  ): Promise<{ success: boolean; newTotal?: number; error?: string }> {
+    try {
+      // Obtener el pedido actual para comparar
+      const { data: currentOrder, error: orderError } = await supabase
+        .from('orders')
+        .select('id, total_cents, subtotal_cents, shipping_cost_cents')
+        .eq('id', orderId)
+        .single()
+
+      if (orderError || !currentOrder) {
+        return { success: false, error: 'Pedido no encontrado' }
+      }
+
+      // Obtener items actuales del pedido
+      const { data: currentItems, error: itemsError } = await supabase
+        .from('order_items')
+        .select('id, variant_id, qty, price_cents')
+        .eq('order_id', orderId)
+
+      if (itemsError) {
+        return { success: false, error: 'Error al obtener items del pedido' }
+      }
+
+      // Identificar items a eliminar (están en currentItems pero no en items)
+      const itemsToDelete = currentItems?.filter(
+        (currentItem) => !items.find((item) => item.id === currentItem.id)
+      ) || []
+
+      // Eliminar items que ya no están en la lista
+      if (itemsToDelete.length > 0) {
+        const deleteIds = itemsToDelete.map((item) => item.id)
+        const { error: deleteError } = await supabase
+          .from('order_items')
+          .delete()
+          .in('id', deleteIds)
+
+        if (deleteError) {
+          return { success: false, error: 'Error al eliminar items' }
+        }
+      }
+
+      // Actualizar cantidades de items existentes
+      const updatePromises = items.map(async (item) => {
+        const { error } = await supabase
+          .from('order_items')
+          .update({ qty: item.qty })
+          .eq('id', item.id)
+
+        if (error) {
+          throw new Error(`Error al actualizar item ${item.id}: ${error.message}`)
+        }
+      })
+
+      await Promise.all(updatePromises)
+
+      // Recalcular total del pedido
+      const { data: updatedItems, error: recalcError } = await supabase
+        .from('order_items')
+        .select('qty, price_cents')
+        .eq('order_id', orderId)
+
+      if (recalcError) {
+        return { success: false, error: 'Error al recalcular total' }
+      }
+
+      const newSubtotal = updatedItems?.reduce(
+        (sum, item) => sum + item.price_cents * item.qty,
+        0
+      ) || 0
+
+      const shippingCost = currentOrder.shipping_cost_cents || 0
+      const newTotal = newSubtotal + shippingCost
+
+      // Actualizar total del pedido
+      const { error: updateTotalError } = await supabase
+        .from('orders')
+        .update({
+          subtotal_cents: newSubtotal,
+          total_cents: newTotal,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId)
+
+      if (updateTotalError) {
+        return { success: false, error: 'Error al actualizar total del pedido' }
+      }
+
+      return { success: true, newTotal }
+    } catch (error: any) {
+      console.error('Error in updateOrderItems:', error)
+      return { success: false, error: error.message || 'Error desconocido' }
+    }
+  }
+
   static async cancelOrder(orderId: string): Promise<boolean> {
     try {
       // First, get order items to restore stock

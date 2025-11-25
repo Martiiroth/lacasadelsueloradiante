@@ -43,6 +43,8 @@ export interface AdminOrder {
   client_id: string
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
   total_cents: number
+  subtotal_cents?: number
+  shipping_cost_cents?: number
   shipping_address: any
   billing_address?: any
   created_at: string

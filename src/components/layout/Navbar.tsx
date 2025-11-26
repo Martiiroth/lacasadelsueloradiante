@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '../../contexts/AuthContext'
 import CartIcon from '../cart/CartIcon'
 
@@ -27,10 +28,14 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center flex-shrink-0">
             <Link href="/" className="flex items-center space-x-3">
-              <img 
+              <Image 
                 src="/images/logo.png" 
                 alt="La Casa del Suelo Radiante" 
+                width={80}
+                height={80}
+                priority
                 className="h-20 w-20"
+                style={{ width: '80px', height: '80px' }}
               />
             </Link>
           </div>

@@ -145,8 +145,12 @@ function ProductGrid({ products, loading, error, displayedCount, totalCount, onS
   return (
     <>
       <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
-        {products.slice(0, displayedCount).map((product) => (
-          <ProductCard key={product.id} product={product} />
+        {products.slice(0, displayedCount).map((product, index) => (
+          <ProductCard 
+            key={product.id} 
+            product={product} 
+            priority={index < 3} // Priorizar las primeras 3 imágenes para LCP
+          />
         ))}
       </div>
 
@@ -865,7 +869,10 @@ export default function FeaturedProducts({
             </p>
           </div>
 
-          {renderContent()}
+          {/* Contenedor con min-height para evitar CLS durante la carga */}
+          <div style={{ minHeight: loading && products.length === 0 ? '600px' : 'auto' }}>
+            {renderContent()}
+          </div>
         </div>
       </section>
     </LoadingState>

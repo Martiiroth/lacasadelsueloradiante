@@ -172,9 +172,9 @@ export default function SaleProducts({ limit = 6 }: SaleProductsProps) {
 
         {/* Grid de productos en oferta */}
         <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-12">
-          {products.map((product) => (
+          {products.map((product, index) => (
             <div key={product.id} className="transform hover:scale-105 transition-transform duration-300">
-              <ProductCard product={product} />
+              <ProductCard product={product} priority={index === 0} />
             </div>
           ))}
         </div>

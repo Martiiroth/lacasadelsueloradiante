@@ -12,6 +12,7 @@ interface OptimizedImageProps {
   height?: number
   sizes?: string
   priority?: boolean
+  fetchPriority?: 'auto' | 'high' | 'low'
 }
 
 export default function OptimizedImage({ 
@@ -22,7 +23,8 @@ export default function OptimizedImage({
   width,
   height,
   sizes = "(max-width: 480px) 50vw, (max-width: 768px) 33vw, 25vw",
-  priority = false
+  priority = false,
+  fetchPriority = 'auto'
 }: OptimizedImageProps) {
   const [imageError, setImageError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -64,6 +66,7 @@ export default function OptimizedImage({
         height={height}
         sizes={sizes}
         priority={priority}
+        fetchPriority={fetchPriority}
         className={`${fill ? 'object-cover' : ''} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
         onLoad={() => {
           setIsLoading(false)

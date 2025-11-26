@@ -70,6 +70,9 @@ export default function RootLayout({
     <html lang="es">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+        {/* Preconnect a Supabase para mejorar LCP */}
+        <link rel="preconnect" href="https://supabase.lacasadelsueloradianteapp.com" />
+        <link rel="dns-prefetch" href="https://supabase.lacasadelsueloradianteapp.com" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/images/logo.png" type="image/png" />
         <link rel="apple-touch-icon" href="/images/logo.png" />

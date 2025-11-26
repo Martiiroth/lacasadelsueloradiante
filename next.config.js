@@ -45,6 +45,16 @@ const nextConfig = {
     }
     return config
   },
+
+  // Configuración de compilación para reducir transpilación innecesaria
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+
+  // Configuración de transpilación para navegadores modernos
+  transpilePackages: [],
   
   // Optimizaciones de imágenes  
   images: {

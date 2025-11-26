@@ -8,9 +8,10 @@ import OptimizedImage from '../ui/OptimizedImage'
 
 interface ProductCardProps {
   product: ProductCardData
+  priority?: boolean
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, priority = false }: ProductCardProps) {
   const { user } = useAuth()
   const { calculatePrice, formatPrice, showWithVAT } = usePricing()
 
@@ -30,7 +31,8 @@ export default function ProductCard({ product }: ProductCardProps) {
             className="aspect-square w-full"
             fill={true}
             sizes="(max-width: 480px) 50vw, (max-width: 768px) 33vw, (max-width: 1200px) 25vw, 20vw"
-            priority={false}
+            priority={priority}
+            fetchPriority={priority ? 'high' : 'auto'}
           />
 
           {/* Badges */}

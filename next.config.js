@@ -60,9 +60,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@heroicons/react', '@radix-ui/react-dialog', '@radix-ui/react-alert-dialog'],
   },
-
-  // Configuración de SWC para reducir transpilación
-  swcMinify: true,
   
   // Optimizaciones de imágenes  
   images: {

@@ -1,21 +1,12 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import dynamic from 'next/dynamic'
 import { AuthProvider } from '../contexts/AuthContext'
 import { CartProvider } from '../contexts/CartContext'
 import { PricingProvider } from '../hooks/usePricing'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
-
-// Lazy load componentes no críticos para mejorar el renderizado inicial
-const WhatsAppButton = dynamic(() => import('../components/ui/WhatsAppButton'), {
-  ssr: false,
-})
-
-const NetworkErrorHandler = dynamic(() => import('../components/NetworkErrorHandler'), {
-  ssr: false,
-})
+import NonCriticalComponents from '../components/layout/NonCriticalComponents'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -128,8 +119,7 @@ export default function RootLayout({
                   {children}
                 </main>
                 <Footer />
-                <WhatsAppButton />
-                <NetworkErrorHandler />
+                <NonCriticalComponents />
               </div>
             </PricingProvider>
           </CartProvider>

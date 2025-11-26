@@ -1,9 +1,14 @@
 'use client'
 
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import FeaturedProducts from '../components/home/FeaturedProducts'
 import SaleProducts from '../components/home/SaleProducts'
-import RegisterPopup from '../components/RegisterPopup'
+
+// Lazy load RegisterPopup ya que aparece después de 5 segundos
+const RegisterPopup = dynamic(() => import('../components/RegisterPopup'), {
+  ssr: false,
+})
 
 export default function HomePage() {
   return (

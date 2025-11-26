@@ -986,18 +986,18 @@ export default function AdminOrderCreate() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700">Precio unitario (€)</label>
+                          <label className="block text-sm font-medium text-gray-700">Precio unitario (€) *</label>
                           <input
                             type="number"
                             min="0"
                             step="0.01"
+                            required
                             value={(item.price_cents / 100).toFixed(2)}
                             onChange={(e) => updateOrderItem(index, 'price_cents', Math.round(parseFloat(e.target.value || '0') * 100))}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-50"
-                            readOnly={!!item.variant_id} // Solo lectura si es producto automático
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                           />
                           {item.variant_id && (
-                            <p className="text-xs text-gray-500 mt-1">Precio calculado automáticamente según el rol</p>
+                            <p className="text-xs text-gray-500 mt-1">Precio sugerido según el rol. Puedes modificarlo manualmente.</p>
                           )}
                         </div>
                       </div>

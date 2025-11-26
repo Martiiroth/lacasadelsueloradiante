@@ -90,12 +90,12 @@ function ProductGrid({ products, loading, error, displayedCount, totalCount, onS
     return (
       <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
-            <div className="aspect-square bg-gray-200"></div>
+          <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse" style={{ minHeight: '400px' }}>
+            <div className="aspect-square bg-gray-200" style={{ width: '100%', height: '0', paddingBottom: '100%' }}></div>
             <div className="p-4">
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-3 bg-gray-200 rounded mb-3 w-3/4"></div>
-              <div className="h-5 bg-gray-200 rounded w-1/2"></div>
+              <div className="h-4 bg-gray-200 rounded mb-2" style={{ width: '90%' }}></div>
+              <div className="h-3 bg-gray-200 rounded mb-3" style={{ width: '75%' }}></div>
+              <div className="h-5 bg-gray-200 rounded" style={{ width: '50%' }}></div>
             </div>
           </div>
         ))}
@@ -870,7 +870,7 @@ export default function FeaturedProducts({
           </div>
 
           {/* Contenedor con min-height para evitar CLS durante la carga */}
-          <div style={{ minHeight: loading && products.length === 0 ? '600px' : 'auto' }}>
+          <div style={{ minHeight: loading && products.length === 0 ? '600px' : undefined }}>
             {renderContent()}
           </div>
         </div>

@@ -1,15 +1,28 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import dynamic from 'next/dynamic'
 import { AuthProvider } from '../contexts/AuthContext'
 import { CartProvider } from '../contexts/CartContext'
 import { PricingProvider } from '../hooks/usePricing'
 import Navbar from '../components/layout/Navbar'
 import Footer from '../components/layout/Footer'
-import WhatsAppButton from '../components/ui/WhatsAppButton'
-import NetworkErrorHandler from '../components/NetworkErrorHandler'
 
-const inter = Inter({ subsets: ['latin'] })
+// Lazy load componentes no críticos para mejorar el renderizado inicial
+const WhatsAppButton = dynamic(() => import('../components/ui/WhatsAppButton'), {
+  ssr: false,
+})
+
+const NetworkErrorHandler = dynamic(() => import('../components/NetworkErrorHandler'), {
+  ssr: false,
+})
+
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
   title: {
@@ -79,18 +92,33 @@ export default function RootLayout({
         <meta name="theme-color" content="#2563eb" />
         <meta name="msapplication-TileColor" content="#2563eb" />
         <meta name="msapplication-TileImage" content="/images/logo.png" />
+        {/* CSS crítico inline para evitar bloqueo de renderizado */}
         <style dangerouslySetInnerHTML={{
           __html: `
-            @media (max-width: 1023px) {
+            /* CSS crítico para productos grid - evitar CLS */
+            .products-grid {
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: 1rem;
+            }
+            @media (min-width: 1024px) {
               .products-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                gap: 1rem !important;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 1.5rem;
               }
+            }
+            /* Prevenir CLS en sección de productos */
+            #productos {
+              min-height: 600px;
+            }
+            /* Optimizar carga de fuentes */
+            body {
+              font-family: var(--font-inter, system-ui, -apple-system, sans-serif);
             }
           `
         }} />
       </head>
-      <body className={`${inter.className} overflow-x-hidden`}>
+      <body className={`${inter.variable} ${inter.className} overflow-x-hidden`}>
         <AuthProvider>
           <CartProvider>
             <PricingProvider>

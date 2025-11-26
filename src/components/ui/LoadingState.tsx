@@ -35,14 +35,16 @@ export function LoadingState({ children, fallback, delay = 300 }: LoadingStatePr
  */
 export function ProductSkeleton({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="products-grid grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
-          <div className="aspect-square bg-gray-200"></div>
-          <div className="p-4">
-            <div className="h-4 bg-gray-200 rounded mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded mb-3 w-3/4"></div>
-            <div className="h-5 bg-gray-200 rounded w-1/2"></div>
+        <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse" style={{ minHeight: '400px' }}>
+          <div className="aspect-square bg-gray-200" style={{ width: '100%', paddingBottom: '100%', position: 'relative' }}>
+            <div className="absolute inset-0 bg-gray-200"></div>
+          </div>
+          <div className="p-3 sm:p-4">
+            <div className="h-4 bg-gray-200 rounded mb-2" style={{ width: '90%' }}></div>
+            <div className="h-3 bg-gray-200 rounded mb-3" style={{ width: '75%' }}></div>
+            <div className="h-5 bg-gray-200 rounded" style={{ width: '50%' }}></div>
           </div>
         </div>
       ))}

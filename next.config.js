@@ -55,6 +55,14 @@ const nextConfig = {
 
   // Configuración de transpilación para navegadores modernos
   transpilePackages: [],
+
+  // Optimizaciones experimentales para navegadores modernos
+  experimental: {
+    optimizePackageImports: ['@heroicons/react', '@radix-ui/react-dialog', '@radix-ui/react-alert-dialog'],
+  },
+
+  // Configuración de SWC para reducir transpilación
+  swcMinify: true,
   
   // Optimizaciones de imágenes  
   images: {
@@ -138,7 +146,7 @@ const nextConfig = {
     BUSINESS_CIF: process.env.BUSINESS_CIF,
   },
 
-  // Headers de seguridad
+  // Headers de seguridad y caché
   async headers() {
     return [
       {
@@ -155,6 +163,34 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+      // Headers de caché para recursos estáticos
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/image/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },

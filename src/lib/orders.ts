@@ -22,6 +22,9 @@ import type {
 import type { CartItem } from '../types/cart'
 
 export class OrderService {
+  // Umbral para envío gratis (en céntimos)
+  private static readonly FREE_SHIPPING_THRESHOLD_CENTS = 8000 // 80€
+
   // Obtener métodos de envío disponibles
   static async getShippingMethods(): Promise<ShippingMethod[]> {
     try {
@@ -135,8 +138,14 @@ export class OrderService {
       // Calcular impuestos (por ahora 0, se puede implementar según necesidades)
       const tax_cents = 0
 
+      // Calcular costo de envío: gratis si el subtotal >= 80€
+      const subtotalAfterDiscount = subtotal_cents - discount_cents
+      const shipping_cents = subtotalAfterDiscount >= this.FREE_SHIPPING_THRESHOLD_CENTS 
+        ? 0 
+        : shippingMethod.price_cents
+
       // Calcular total
-      const total_cents = subtotal_cents + shippingMethod.price_cents + tax_cents - discount_cents
+      const total_cents = subtotal_cents + shipping_cents + tax_cents - discount_cents
 
       // Convertir CartItems a OrderItems para el resumen
       const orderItems: OrderItem[] = cartItems.map(item => ({
@@ -150,7 +159,7 @@ export class OrderService {
 
       return {
         subtotal_cents,
-        shipping_cents: shippingMethod.price_cents,
+        shipping_cents: shipping_cents,
         discount_cents,
         tax_cents,
         total_cents: Math.max(0, total_cents), // Asegurar que no sea negativo
@@ -334,8 +343,26 @@ export class OrderService {
         return total + (item.price_cents * item.qty)
       }, 0)
       
-      const shippingCostCents = shippingMethod.price_cents
-      const totalWithTaxCents = itemsSubtotalCents + shippingCostCents
+      // Calcular descuento del cupón si existe (para determinar el umbral de envío gratis)
+      let discountCents = 0
+      if (orderData.coupon_code) {
+        const coupon = await this.validateCoupon(orderData.coupon_code)
+        if (coupon) {
+          if (coupon.discount_type === 'percentage') {
+            discountCents = Math.round((itemsSubtotalCents * coupon.discount_value) / 100)
+          } else if (coupon.discount_type === 'fixed') {
+            discountCents = coupon.discount_value
+          }
+        }
+      }
+      
+      // Calcular costo de envío: gratis si el subtotal después del descuento >= 80€
+      const subtotalAfterDiscount = itemsSubtotalCents - discountCents
+      const shippingCostCents = subtotalAfterDiscount >= this.FREE_SHIPPING_THRESHOLD_CENTS 
+        ? 0 
+        : shippingMethod.price_cents
+      
+      const totalWithTaxCents = itemsSubtotalCents + shippingCostCents - discountCents
       
       // subtotal_cents debe incluir items + envío sin IVA
       const TAX_RATE = 21
@@ -344,10 +371,13 @@ export class OrderService {
 
       console.log('💰 Calculando total de la orden:', {
         itemsSubtotal: itemsSubtotalCents,
+        discount_cents: discountCents,
+        subtotalAfterDiscount: subtotalAfterDiscount,
         shipping_cents: shippingCostCents,
         subtotal_cents,
         total_cents,
-        shipping_method: shippingMethod.name
+        shipping_method: shippingMethod.name,
+        freeShippingApplied: subtotalAfterDiscount >= this.FREE_SHIPPING_THRESHOLD_CENTS
       })
 
       // Actualizar total de la orden

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { OrderService } from '../../lib/orders'
+import { useCart } from '../../contexts/CartContext'
 import type { ShippingMethod, PaymentMethod } from '../../types/checkout'
 
 interface PaymentFormProps {
@@ -11,6 +12,7 @@ interface PaymentFormProps {
 }
 
 export default function PaymentForm({ onSubmit, onBack, isLoading = false }: PaymentFormProps) {
+  const { cartItems } = useCart()
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([])
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<string>('')
@@ -19,7 +21,11 @@ export default function PaymentForm({ onSubmit, onBack, isLoading = false }: Pay
   const [couponValidating, setCouponValidating] = useState(false)
   const [couponError, setCouponError] = useState<string>('')
   const [couponSuccess, setCouponSuccess] = useState<string>('')
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  
+  // Umbral para envío gratis (en céntimos)
+  const FREE_SHIPPING_THRESHOLD_CENTS = 8000 // 80€
 
   useEffect(() => {
     loadMethods()
@@ -60,15 +66,42 @@ export default function PaymentForm({ onSubmit, onBack, isLoading = false }: Pay
     try {
       const coupon = await OrderService.validateCoupon(couponCode.trim())
       if (coupon) {
+        setAppliedCoupon(coupon)
         setCouponSuccess(`Cupón aplicado: ${coupon.description || `${coupon.discount_value}${coupon.discount_type === 'percentage' ? '%' : '€'} de descuento`}`)
       } else {
+        setAppliedCoupon(null)
         setCouponError('El cupón no es válido o ha expirado')
       }
     } catch (error) {
+      setAppliedCoupon(null)
       setCouponError('Error al validar el cupón')
     } finally {
       setCouponValidating(false)
     }
+  }
+  
+  // Calcular si el envío debe ser gratis
+  const calculateShippingCost = (method: ShippingMethod): number => {
+    // Calcular subtotal del carrito
+    const subtotal_cents = cartItems.reduce((total, item) => {
+      return total + (item.price_at_addition_cents * item.qty)
+    }, 0)
+    
+    // Calcular descuento del cupón si existe
+    let discount_cents = 0
+    if (appliedCoupon) {
+      if (appliedCoupon.discount_type === 'percentage') {
+        discount_cents = Math.round((subtotal_cents * appliedCoupon.discount_value) / 100)
+      } else if (appliedCoupon.discount_type === 'fixed') {
+        discount_cents = appliedCoupon.discount_value
+      }
+    }
+    
+    // Calcular subtotal después del descuento
+    const subtotalAfterDiscount = subtotal_cents - discount_cents
+    
+    // Envío gratis si el subtotal >= 80€
+    return subtotalAfterDiscount >= FREE_SHIPPING_THRESHOLD_CENTS ? 0 : method.price_cents
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -149,7 +182,7 @@ export default function PaymentForm({ onSubmit, onBack, isLoading = false }: Pay
                         </p>
                       </div>
                       <p className="font-medium text-gray-900">
-                        {method.price_cents === 0 ? 'Gratis' : formatPrice(method.price_cents)}
+                        {calculateShippingCost(method) === 0 ? 'Gratis' : formatPrice(calculateShippingCost(method))}
                       </p>
                     </div>
                   </div>
@@ -266,6 +299,7 @@ export default function PaymentForm({ onSubmit, onBack, isLoading = false }: Pay
                     setCouponCode(e.target.value)
                     setCouponError('')
                     setCouponSuccess('')
+                    setAppliedCoupon(null)
                   }}
                   placeholder="Introduce tu código de cupón"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"

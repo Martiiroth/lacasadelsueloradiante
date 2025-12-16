@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
               price: item.price_cents / 100
             })) || [],
             subtotal: orderData.subtotal_cents / 100,
-            shipping: orderData.shipping_cents / 100,
+            shipping: orderData.shipping_cost_cents / 100,
             tax: orderData.tax_cents / 100,
             total: orderData.total_cents / 100,
             createdAt: orderData.created_at,

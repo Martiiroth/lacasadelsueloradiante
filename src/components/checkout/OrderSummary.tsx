@@ -218,7 +218,7 @@ export default function OrderSummary({
                       </p>
                     </div>
                     <p className="font-medium text-gray-900">
-                      {shippingMethod.price_cents === 0 ? 'Gratis' : formatPrice(shippingMethod.price_cents)}
+                      {summary.shipping_cents === 0 ? 'Gratis' : formatPrice(summary.shipping_cents)}
                     </p>
                   </div>
                 </div>

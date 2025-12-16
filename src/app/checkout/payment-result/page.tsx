@@ -48,12 +48,29 @@ function PaymentResultContent() {
             })
           })
 
-          if (!response.ok) {
-            const errorData = await response.text()
-            throw new Error(`Error procesando pago: ${response.status} - ${errorData}`)
+          // Leer el texto de la respuesta una sola vez
+          const text = await response.text()
+
+          if (!text || text.trim() === '') {
+            throw new Error(`El servidor devolvió una respuesta vacía (${response.status})`)
           }
 
-          const result = await response.json()
+          // Intentar parsear JSON
+          let result
+          try {
+            result = JSON.parse(text)
+          } catch (parseError) {
+            console.error('Error parseando JSON:', parseError, 'Respuesta:', text)
+            if (!response.ok) {
+              throw new Error(`Error procesando pago: ${response.status} - ${text}`)
+            }
+            throw new Error('El servidor devolvió una respuesta inválida')
+          }
+
+          if (!response.ok) {
+            throw new Error(result.error || `Error procesando pago: ${response.status}`)
+          }
+
           console.log('✅ Respuesta de Redsys procesada:', result)
         }
         

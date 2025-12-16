@@ -51,10 +51,26 @@ export default function RedsysPaymentForm({
         })
       })
 
-      const data = await response.json()
+      // Leer el texto de la respuesta una sola vez
+      const text = await response.text()
+
+      // Verificar si la respuesta está vacía
+      if (!text || text.trim() === '') {
+        throw new Error(`El servidor devolvió una respuesta vacía (${response.status})`)
+      }
+
+      // Intentar parsear JSON
+      let data
+      try {
+        data = JSON.parse(text)
+      } catch (parseError) {
+        console.error('Error parseando JSON:', parseError, 'Respuesta:', text)
+        // Si no es JSON, puede ser un mensaje de error en texto plano
+        throw new Error(text || 'El servidor devolvió una respuesta inválida')
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error al preparar el pago')
+        throw new Error(data.error || `Error al preparar el pago (${response.status})`)
       }
 
       if (data.success && data.paymentForm) {
@@ -62,10 +78,11 @@ export default function RedsysPaymentForm({
         onSuccess?.()
         return data.paymentForm
       } else {
-        throw new Error('Respuesta inesperada del servidor')
+        throw new Error(data.error || 'Respuesta inesperada del servidor')
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al preparar el pago'
+      console.error('Error en preparePayment:', err)
       setError(errorMessage)
       onError?.(errorMessage)
       return null

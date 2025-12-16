@@ -78,13 +78,26 @@ export interface RedsysDecodedResponse {
 export class RedsysService {
   
   /**
-   * Genera un número de pedido único para Redsys (máximo 12 caracteres)
+   * Genera un número de pedido único para Redsys (exactamente 12 caracteres numéricos)
+   * Redsys requiere que DS_MERCHANT_ORDER sea exactamente 12 dígitos numéricos
    */
   static generateOrderNumber(): string {
+    // Usar timestamp para garantizar unicidad
     const timestamp = Date.now().toString()
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
-    // Redsys requiere que los 4 primeros caracteres sean numéricos
-    return (timestamp.slice(-9) + random).slice(0, 12)
+    // Generar un número aleatorio de 4 dígitos para asegurar unicidad
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+    
+    // Combinar: últimos 8 dígitos del timestamp + 4 dígitos aleatorios = 12 dígitos
+    const orderNumber = (timestamp.slice(-8) + random).padStart(12, '0').slice(0, 12)
+    
+    // Validar que tenga exactamente 12 dígitos numéricos
+    if (!/^\d{12}$/.test(orderNumber)) {
+      console.error('Error generando número de orden para Redsys:', orderNumber)
+      // Fallback: usar solo números
+      return Date.now().toString().slice(-12).padStart(12, '0')
+    }
+    
+    return orderNumber
   }
 
   /**
@@ -165,6 +178,25 @@ export class RedsysService {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
     const orderNumber = this.generateOrderNumber()
 
+    console.log('🔢 Generando número de orden para Redsys:', {
+      orderNumber,
+      length: orderNumber.length,
+      isValid: /^\d{12}$/.test(orderNumber),
+      orderId
+    })
+
+    // Validar que el número de orden tenga exactamente 12 dígitos numéricos
+    if (!/^\d{12}$/.test(orderNumber)) {
+      console.error('❌ Número de orden inválido:', orderNumber)
+      throw new Error(`Número de orden inválido para Redsys: ${orderNumber}. Debe tener exactamente 12 dígitos.`)
+    }
+
+    // Validar que el amount sea un número entero positivo (en céntimos)
+    const amountInt = Math.floor(amount)
+    if (isNaN(amountInt) || amountInt <= 0) {
+      throw new Error(`Importe inválido para Redsys: ${amount}. Debe ser un número entero positivo.`)
+    }
+
     // Parámetros del comercio
     const params: RedsysPaymentParams = {
       DS_MERCHANT_MERCHANTCODE: MERCHANT_CODE,
@@ -172,7 +204,7 @@ export class RedsysService {
       DS_MERCHANT_TRANSACTIONTYPE: '0', // 0 = Autorización
       DS_MERCHANT_CURRENCY: CURRENCY,
       DS_MERCHANT_ORDER: orderNumber,
-      DS_MERCHANT_AMOUNT: amount.toString(),
+      DS_MERCHANT_AMOUNT: amountInt.toString(),
       DS_MERCHANT_PRODUCTDESCRIPTION: description,
       DS_MERCHANT_MERCHANTURL: `${appUrl}/api/payments/redsys/callback`,
       DS_MERCHANT_URLOK: `${appUrl}/checkout/payment-result?status=success&order=${orderId}`,

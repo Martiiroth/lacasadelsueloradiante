@@ -84,7 +84,7 @@ export class PDFService {
         throw new Error(`No se encontró el pedido con ID: ${orderId}`)
       }
 
-      // Obtener items del pedido
+      // Obtener items del pedido (incluir nombres personalizados)
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select(`
@@ -107,11 +107,12 @@ export class PDFService {
       const invoiceItems: InvoiceItem[] = orderItems?.map(item => ({
         id: item.id,
         invoice_id: orderId,
-        variant_id: item.variant_id,
+        variant_id: item.variant_id || '',
         qty: item.qty,
         price_cents: item.price_cents,
-        product_title: item.variant?.product?.title,
-        variant_title: item.variant?.title,
+        // Si es producto personalizado, usar nombres guardados; si no, usar de la relación
+        product_title: item.product_title || item.variant?.product?.title || 'Producto',
+        variant_title: item.variant_title || item.variant?.title,
         sku: item.variant?.sku
       })) || []
 
@@ -217,7 +218,7 @@ export class PDFService {
         return null
       }
 
-      // Obtener items de la factura (desde order_items del pedido relacionado)
+      // Obtener items de la factura (desde order_items del pedido relacionado, incluir nombres personalizados)
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .select(`
@@ -241,11 +242,12 @@ export class PDFService {
       const invoiceItems: InvoiceItem[] = orderItems?.map(item => ({
         id: item.id,
         invoice_id: invoiceId,
-        variant_id: item.variant_id,
+        variant_id: item.variant_id || '',
         qty: item.qty,
         price_cents: item.price_cents,
-        product_title: item.variant?.product?.title,
-        variant_title: item.variant?.title,
+        // Si es producto personalizado, usar nombres guardados; si no, usar de la relación
+        product_title: item.product_title || item.variant?.product?.title || 'Producto',
+        variant_title: item.variant_title || item.variant?.title,
         sku: item.variant?.sku
       })) || []
 

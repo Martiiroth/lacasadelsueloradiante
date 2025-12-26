@@ -255,6 +255,8 @@ export async function POST(request: NextRequest) {
             order_items (
               qty,
               price_cents,
+              product_title,
+              variant_title,
               product_variants (
                 title,
                 products (
@@ -292,7 +294,10 @@ export async function POST(request: NextRequest) {
               : orderData.guest_email || 'Cliente',
             clientEmail: orderData.clients?.email || orderData.guest_email || '',
             items: orderData.order_items?.map((item: any) => ({
-              title: item.product_variants?.products?.title || 'Producto',
+              // Si es producto personalizado, usar nombres guardados; si no, usar de la relación
+              title: item.product_title 
+                ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
+                : item.product_variants?.products?.title || 'Producto',
               quantity: item.qty,
               price: item.price_cents / 100
             })) || [],

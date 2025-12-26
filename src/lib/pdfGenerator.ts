@@ -109,16 +109,19 @@ export const generateDeliveryNote = (order: AdminOrder) => {
   let currentY = tableStartY + 15
   const rowHeight = 15
   
-  order.order_items?.forEach((item, index) => {
-    const productName = item.variant ? (
-      item.variant.title ||
-      [item.variant.option1, item.variant.option2, item.variant.option3]
-        .filter(Boolean)
-        .join(' / ') ||
-      `${item.variant.product?.title} - Variante`
-    ) : 'Producto sin variante'
+  order.order_items?.forEach((item: any, index) => {
+    // Si es producto personalizado, usar nombres guardados
+    const productName = item.product_title 
+      ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
+      : item.variant 
+        ? (item.variant.title ||
+           [item.variant.option1, item.variant.option2, item.variant.option3]
+             .filter(Boolean)
+             .join(' / ') ||
+           `${item.variant.product?.title} - Variante`)
+        : 'Producto sin variante'
     
-    const sku = item.variant?.sku || 'N/A'
+    const sku = item.variant?.sku || (item.product_title ? 'PERSONALIZADO' : 'N/A')
     const quantity = item.qty.toString()
     const unitPrice = `€${(item.price_cents / 100).toFixed(2)}`
     const total = `€${((item.price_cents * item.qty) / 100).toFixed(2)}`

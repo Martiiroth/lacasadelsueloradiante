@@ -347,31 +347,49 @@ export default function AdminOrderCreate() {
         payment: orderData.payment_method
       })
       
-      // Validar items
-      const invalidItems = orderData.items.filter((item, index) => 
-        !item.product_title || item.qty <= 0 || item.price_cents <= 0
-      )
+      // Limpiar product_id si es producto personalizado antes de validar
+      const cleanedItems = orderData.items.map(item => {
+        if (item.product_id === '__CUSTOM__' || (!item.product_id && item.product_title)) {
+          // Producto personalizado - no necesita product_id ni variant_id
+          return {
+            ...item,
+            product_id: undefined,
+            variant_id: undefined
+          }
+        }
+        return item
+      })
+
+      // Validar items (después de limpiar)
+      const invalidItems = cleanedItems.filter((item, index) => {
+        // Para productos del catálogo: deben tener variant_id
+        // Para productos personalizados: deben tener product_title
+        const isCustomProduct = !item.product_id && item.product_title
+        const isCatalogProduct = item.variant_id || (item.product_id && item.product_title)
+        const hasProduct = isCustomProduct || isCatalogProduct
+        return !hasProduct || item.qty <= 0 || item.price_cents <= 0
+      })
       
       if (invalidItems.length > 0) {
-        alert('Todos los artículos deben tener producto, cantidad válida (mayor a 0) y precio válido')
+        alert('Todos los artículos deben tener:\n- Producto seleccionado del catálogo con variante O\n- Nombre de producto personalizado\n- Cantidad válida (mayor a 0)\n- Precio válido (mayor a 0)')
         return
       }
       
       console.log('Validaciones básicas completadas')
 
-      // Advertir sobre productos sin variante seleccionada
-      const itemsWithoutVariant = orderData.items.filter(item => 
+      // Advertir sobre productos del catálogo sin variante seleccionada (excluir personalizados)
+      const itemsWithoutVariant = cleanedItems.filter(item => 
         item.product_id && !item.variant_id
       )
       
       if (itemsWithoutVariant.length > 0) {
         const confirmed = confirm(
-          `Hay ${itemsWithoutVariant.length} artículo(s) sin variante específica seleccionada. ` +
+          `Hay ${itemsWithoutVariant.length} artículo(s) del catálogo sin variante específica seleccionada. ` +
           `Esto puede afectar el control de stock. ¿Deseas continuar?`
         )
         if (!confirmed) return
       }
-      
+
       // Combinar billing y shipping address en el campo shipping_address (único disponible en DB)
       const combinedAddress = {
         billing: orderData.billing_address,
@@ -381,7 +399,7 @@ export default function AdminOrderCreate() {
         notes: orderData.notes
       }
 
-      const itemsTotalCents = orderData.items.reduce((total, item) => total + (item.qty * item.price_cents), 0)
+      const itemsTotalCents = cleanedItems.reduce((total, item) => total + (item.qty * item.price_cents), 0)
       // subtotal_cents incluye items + envío (base imponible para IVA, sin IVA)
       // Los precios ya incluyen IVA, así que: subtotal_sin_iva = (items + envío) / 1.21
       const subtotalWithTaxCents = itemsTotalCents + shippingCostCents
@@ -406,7 +424,7 @@ export default function AdminOrderCreate() {
         shipping_cost_cents: shippingCostCents,
         total_cents: totalCents,
         shipping_address: combinedAddress,
-        items: orderData.items
+        items: cleanedItems
       })
       
       if (newOrderId) {
@@ -902,7 +920,19 @@ export default function AdminOrderCreate() {
                           value={item.product_id || ''}
                           onChange={(e) => {
                             const productId = e.target.value
-                            if (productId) {
+                            if (productId === '__CUSTOM__') {
+                              // Producto personalizado - limpiar IDs y permitir entrada manual
+                              const updatedItems = [...orderData.items]
+                              updatedItems[index] = {
+                                ...updatedItems[index],
+                                product_id: '__CUSTOM__', // Marca para identificar producto personalizado
+                                variant_id: '',
+                                product_title: '',
+                                variant_title: '',
+                                price_cents: 0
+                              }
+                              setOrderData({ ...orderData, items: updatedItems })
+                            } else if (productId) {
                               // Auto-seleccionar la primera variante si solo hay una
                               const selectedProduct = products.find(p => p.id === productId)
                               if (selectedProduct && selectedProduct.variants.length === 1) {
@@ -920,11 +950,26 @@ export default function AdminOrderCreate() {
                                 }
                                 setOrderData({ ...orderData, items: updatedItems })
                               }
+                            } else {
+                              // Limpiar todo
+                              const updatedItems = [...orderData.items]
+                              updatedItems[index] = {
+                                ...updatedItems[index],
+                                product_id: '',
+                                variant_id: '',
+                                product_title: '',
+                                variant_title: '',
+                                price_cents: 0
+                              }
+                              setOrderData({ ...orderData, items: updatedItems })
                             }
                           }}
                           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         >
                           <option value="">Seleccionar producto...</option>
+                          <option value="__CUSTOM__" className="font-semibold text-indigo-600">
+                            ➕ Producto Personalizado (no existe en catálogo)
+                          </option>
                           {products.map(product => (
                             <option key={product.id} value={product.id}>
                               {product.title} ({product.variants.length} variante{product.variants.length !== 1 ? 's' : ''})
@@ -932,6 +977,32 @@ export default function AdminOrderCreate() {
                           ))}
                         </select>
                       </div>
+
+                      {/* Campos para producto personalizado */}
+                      {(item.product_id === '__CUSTOM__' || (!item.product_id && !item.variant_id)) && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Nombre del Producto *</label>
+                            <input
+                              type="text"
+                              value={item.product_title || ''}
+                              onChange={(e) => updateOrderItem(index, 'product_title', e.target.value)}
+                              placeholder="Ej: Instalación de suelo radiante"
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Descripción/Variante (opcional)</label>
+                            <input
+                              type="text"
+                              value={item.variant_title || ''}
+                              onChange={(e) => updateOrderItem(index, 'variant_title', e.target.value)}
+                              placeholder="Ej: Para vivienda de 100m²"
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            />
+                          </div>
+                        </>
+                      )}
 
                       {/* Selector de Variante */}
                       {item.product_id && (
@@ -960,11 +1031,18 @@ export default function AdminOrderCreate() {
                       )}
 
                       {/* Información del producto seleccionado */}
-                      {item.product_title && item.variant_title && (
+                      {item.product_title && (item.variant_id || item.variant_title) && (
                         <div className="bg-gray-50 p-3 rounded-md">
                           <p className="text-sm font-medium text-gray-900">{item.product_title}</p>
-                          <p className="text-sm text-gray-600">{item.variant_title}</p>
-                          {selectedClient?.role?.name && selectedClient.role.name !== 'guest' && (
+                          {item.variant_title && (
+                            <p className="text-sm text-gray-600">{item.variant_title}</p>
+                          )}
+                          {!item.variant_id && (
+                            <p className="text-xs text-amber-600 mt-1">
+                              ⚠️ Producto personalizado - No se descontará stock
+                            </p>
+                          )}
+                          {selectedClient?.role?.name && selectedClient.role.name !== 'guest' && item.variant_id && (
                             <p className="text-sm text-green-600">
                               Precio con descuento {selectedClient.role.name}: 
                               €{(item.price_cents / 100).toFixed(2)}

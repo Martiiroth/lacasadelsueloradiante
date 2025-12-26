@@ -1220,12 +1220,15 @@ export class AdminService {
       
       console.log('AdminService.createOrder - Order creado exitosamente:', order.id)
 
-      // Create order items and update stock - Solo campos que existen en el esquema
+      // Create order items and update stock - Incluir nombres de productos personalizados
       const orderItems = orderData.items.map(item => ({
         order_id: order.id,
         variant_id: item.variant_id || null, // Use real variant_id if available
         qty: item.qty,
-        price_cents: item.price_cents
+        price_cents: item.price_cents,
+        // Guardar nombres de producto cuando es personalizado (sin variant_id)
+        product_title: !item.variant_id ? item.product_title : null,
+        variant_title: !item.variant_id && item.variant_title ? item.variant_title : null
       }))
 
       console.log('AdminService.createOrder - Insertando order items:', orderItems)

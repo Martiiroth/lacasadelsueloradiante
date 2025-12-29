@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
 import { supabase } from '@/lib/supabase'
+import ServerEmailService from '@/lib/emailService.server'
 
 export async function POST(
   request: NextRequest,
@@ -102,41 +103,30 @@ export async function POST(
       invoiceId: emailData.invoiceId
     })
 
-    // Enviar notificación usando API interna
-    const apiUrl = typeof window === 'undefined' 
-      ? 'http://localhost:3000/api/notifications'  // En servidor, usar localhost interno
-      : '/api/notifications'  // En cliente, usar ruta relativa
-    
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'send_order_notification',
-        orderData: emailData
-      })
-    })
-    
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('Error en API de notificaciones:', errorText)
+    // Enviar notificación directamente usando el servicio de email
+    try {
+      const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData)
+      
+      if (emailSent) {
+        console.log(`✅ Correo reenviado exitosamente para pedido #${orderDetails.id}`)
+        return NextResponse.json({ 
+          success: true,
+          message: 'Correo reenviado exitosamente'
+        })
+      } else {
+        console.error('Error reenviando correo: el servicio retornó false')
+        return NextResponse.json(
+          { error: 'Error al enviar el correo', details: 'El servicio de email retornó false' },
+          { status: 500 }
+        )
+      }
+    } catch (emailError) {
+      console.error('Error enviando correo:', emailError)
       return NextResponse.json(
-        { error: 'Error al enviar el correo', details: errorText },
-        { status: 500 }
-      )
-    }
-    
-    const result = await response.json()
-    
-    if (result.success) {
-      console.log(`✅ Correo reenviado exitosamente para pedido #${orderDetails.id}`)
-      return NextResponse.json({ 
-        success: true,
-        message: 'Correo reenviado exitosamente'
-      })
-    } else {
-      console.error('Error reenviando correo:', result.message)
-      return NextResponse.json(
-        { error: 'Error al enviar el correo', details: result.message },
+        { 
+          error: 'Error al enviar el correo', 
+          details: emailError instanceof Error ? emailError.message : 'Error desconocido al enviar el correo'
+        },
         { status: 500 }
       )
     }

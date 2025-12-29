@@ -754,17 +754,32 @@ export class AdminService {
           )
         `)
         .eq('id', orderId)
-        .single()
+        .maybeSingle() // Usar maybeSingle en lugar de single para manejar casos donde no existe
 
       if (error) {
         console.error('Error fetching order by ID:', error)
+        console.error('Error details:', JSON.stringify(error, null, 2))
         return null
       }
 
-      console.log('AdminService.getOrderById - Pedido obtenido:', data)
+      if (!data) {
+        console.log('AdminService.getOrderById - Pedido no encontrado:', orderId)
+        return null
+      }
+
+      console.log('AdminService.getOrderById - Pedido obtenido:', {
+        id: data.id,
+        client_id: data.client_id,
+        has_client: !!data.client,
+        guest_email: (data as any).guest_email
+      })
       return data as AdminOrder
     } catch (error) {
       console.error('Error in getOrderById:', error)
+      if (error instanceof Error) {
+        console.error('Error message:', error.message)
+        console.error('Error stack:', error.stack)
+      }
       return null
     }
   }

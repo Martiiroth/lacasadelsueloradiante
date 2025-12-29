@@ -217,10 +217,14 @@ export default function OrderDetailPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-gray-900 truncate">
-                        {item.variant?.product?.title || 'Producto'}
+                        {/* Prioridad: nombres personalizados guardados en order_items */}
+                        {(item as any).product_title || item.variant?.product?.title || 'Producto'}
                       </h3>
-                      {item.variant?.title && (
-                        <p className="text-sm text-gray-600">{item.variant.title}</p>
+                      {/* Mostrar variant_title si está disponible (personalizado o del catálogo) */}
+                      {((item as any).variant_title || item.variant?.title) && (
+                        <p className="text-sm text-gray-600">
+                          {(item as any).variant_title || item.variant?.title}
+                        </p>
                       )}
                       {item.variant?.sku && (
                         <p className="text-xs text-gray-500">SKU: {item.variant.sku}</p>

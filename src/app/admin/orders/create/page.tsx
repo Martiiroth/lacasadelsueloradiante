@@ -1005,29 +1005,48 @@ export default function AdminOrderCreate() {
                       )}
 
                       {/* Selector de Variante */}
-                      {item.product_id && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Variante *</label>
-                          <select
-                            value={item.variant_id || ''}
-                            onChange={(e) => {
-                              if (e.target.value && item.product_id) {
-                                handleProductVariantSelect(index, item.product_id, e.target.value)
-                              }
-                            }}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                          >
-                            <option value="">Seleccionar variante...</option>
-                            {products
-                              .find(p => p.id === item.product_id)
-                              ?.variants.map(variant => (
-                                <option key={variant.id} value={variant.id}>
-                                  {variant.title} - €{(variant.price_public_cents / 100).toFixed(2)} 
-                                  {variant.stock > 0 ? ` (Stock: ${variant.stock})` : ' (Sin stock)'}
-                                </option>
-                              ))}
-                          </select>
-                        </div>
+                      {item.product_id && item.product_id !== '__CUSTOM__' && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Variante *</label>
+                            <select
+                              value={item.variant_id || ''}
+                              onChange={(e) => {
+                                if (e.target.value && item.product_id) {
+                                  handleProductVariantSelect(index, item.product_id, e.target.value)
+                                }
+                              }}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            >
+                              <option value="">Seleccionar variante...</option>
+                              {products
+                                .find(p => p.id === item.product_id)
+                                ?.variants.map(variant => (
+                                  <option key={variant.id} value={variant.id}>
+                                    {variant.title} - €{(variant.price_public_cents / 100).toFixed(2)} 
+                                    {variant.stock > 0 ? ` (Stock: ${variant.stock})` : ' (Sin stock)'}
+                                  </option>
+                                ))}
+                            </select>
+                          </div>
+                          
+                          {/* Campo editable para nombre de variante */}
+                          {item.variant_id && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">
+                                Nombre de Variante (editable)
+                                <span className="text-xs text-gray-500 ml-2">Puedes modificar el nombre que aparecerá en la factura</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={item.variant_title || ''}
+                                onChange={(e) => updateOrderItem(index, 'variant_title', e.target.value)}
+                                placeholder="Dejar vacío para usar el nombre del catálogo"
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                              />
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {/* Información del producto seleccionado */}

@@ -18,7 +18,8 @@ import {
   TruckIcon,
   CalendarIcon,
   TagIcon,
-  DocumentArrowDownIcon
+  DocumentArrowDownIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline'
 import DeliverOrderButton from '@/components/admin/DeliverOrderButton'
 
@@ -29,6 +30,7 @@ export default function AdminOrderDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
+  const [resendingEmail, setResendingEmail] = useState(false)
 
   const orderId = params.id as string
 
@@ -114,6 +116,33 @@ export default function AdminOrderDetail() {
     } catch (error) {
       console.error('Error generating delivery note:', error)
       alert('Error al generar el albarán')
+    }
+  }
+
+  const handleResendEmail = async () => {
+    if (!order) return
+    
+    try {
+      setResendingEmail(true)
+      const response = await fetch(`/api/admin/orders/${order.id}/resend-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert('Correo reenviado exitosamente')
+      } else {
+        alert(`Error al reenviar el correo: ${result.error || result.message || 'Error desconocido'}`)
+      }
+    } catch (err) {
+      console.error('Error resending email:', err)
+      alert('Error al reenviar el correo')
+    } finally {
+      setResendingEmail(false)
     }
   }
 
@@ -253,7 +282,7 @@ export default function AdminOrderDetail() {
                 </h3>
               </div>
               <div className="px-6 py-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
                     {getStatusLabel(order.status)}
                   </span>
@@ -270,6 +299,16 @@ export default function AdminOrderDetail() {
                     <option value="delivered">Entregado</option>
                     <option value="cancelled">Cancelado</option>
                   </select>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleResendEmail}
+                    disabled={resendingEmail}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <EnvelopeIcon className="h-4 w-4 mr-2" />
+                    {resendingEmail ? 'Reenviando...' : 'Reenviar Correo'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -289,26 +328,37 @@ export default function AdminOrderDetail() {
                       <div key={item.id} className="flex items-center justify-between border-b border-gray-100 pb-4">
                         <div className="flex-1">
                           <h4 className="text-sm font-medium text-gray-900">
-                            {item.variant ? (
-                              // Prioritario: título específico de la variante
-                              item.variant.title ||
-                              // Fallback: opciones concatenadas
-                              [item.variant.option1, item.variant.option2, item.variant.option3]
-                                .filter(Boolean)
-                                .join(' / ') ||
-                              // Último recurso: mostrar el producto con indicación de variante
-                              `${item.variant.product?.title} - Variante` ||
-                              'Variante sin identificar'
-                            ) : (
-                              'Producto sin variante'
-                            )}
+                            {/* Prioridad: nombres personalizados guardados en order_items */}
+                            {(item as any).variant_title 
+                              ? (item as any).variant_title 
+                              : (item as any).product_title 
+                                ? (item as any).product_title
+                                : item.variant 
+                                  ? (
+                                      // Título específico de la variante del catálogo
+                                      item.variant.title ||
+                                      // Fallback: opciones concatenadas
+                                      [item.variant.option1, item.variant.option2, item.variant.option3]
+                                        .filter(Boolean)
+                                        .join(' / ') ||
+                                      // Último recurso: mostrar el producto con indicación de variante
+                                      `${item.variant.product?.title} - Variante` ||
+                                      'Variante sin identificar'
+                                    )
+                                  : 'Producto sin variante'
+                            }
                           </h4>
-                          {/* Mostrar producto padre como contexto si hay variante */}
-                          {item.variant && item.variant.title && (
-                            <p className="text-sm text-gray-500">
-                              {item.variant.product?.title}
-                            </p>
-                          )}
+                          {/* Mostrar producto padre como contexto */}
+                          <p className="text-sm text-gray-500">
+                            {/* Si hay product_title personalizado, mostrarlo; si no, usar del catálogo */}
+                            {(item as any).product_title 
+                              ? (item as any).product_title 
+                              : item.variant?.product?.title || 'Producto sin nombre'}
+                            {/* Mostrar variant_title si es diferente del título principal */}
+                            {(item as any).variant_title && 
+                             (item as any).variant_title !== (item as any).product_title && 
+                             ` - ${(item as any).variant_title}`}
+                          </p>
                           <p className="text-sm text-gray-500">
                             Cantidad: {item.qty}
                           </p>

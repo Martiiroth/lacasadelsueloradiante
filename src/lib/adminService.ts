@@ -662,9 +662,13 @@ export class AdminService {
             id,
             qty,
             price_cents,
+            product_title,
+            variant_title,
             variant:product_variants (
+              id,
               title,
               product:products (
+                id,
                 title
               )
             )
@@ -738,6 +742,8 @@ export class AdminService {
             id,
             qty,
             price_cents,
+            product_title,
+            variant_title,
             variant:product_variants (
               id,
               title,
@@ -884,8 +890,11 @@ export class AdminService {
             status: data.status,
             clientName,
             clientEmail: orderDetails.client?.email || '',
-            items: orderDetails.order_items?.map(item => ({
-              title: item.variant?.product?.title || 'Producto',
+            items: orderDetails.order_items?.map((item: any) => ({
+              // Si es producto personalizado, usar nombres guardados; si no, usar de la relación
+              title: item.product_title 
+                ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
+                : item.variant?.product?.title || 'Producto',
               quantity: item.qty,
               price: (item.price_cents || 0) / 100
             })) || [],
@@ -1227,8 +1236,11 @@ export class AdminService {
         qty: item.qty,
         price_cents: item.price_cents,
         // Guardar nombres de producto cuando es personalizado (sin variant_id)
+        // También guardar variant_title si fue editado (incluso para productos del catálogo)
         product_title: !item.variant_id ? item.product_title : null,
-        variant_title: !item.variant_id && item.variant_title ? item.variant_title : null
+        variant_title: !item.variant_id 
+          ? (item.variant_title || null)  // Producto personalizado: guardar si existe
+          : (item.variant_title || null)  // Producto del catálogo: guardar si fue editado (prioridad sobre nombre del catálogo)
       }))
 
       console.log('AdminService.createOrder - Insertando order items:', orderItems)

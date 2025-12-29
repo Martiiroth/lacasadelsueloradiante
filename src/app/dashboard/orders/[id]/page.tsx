@@ -209,11 +209,13 @@ export default function OrderDetailPage() {
                       {/* Información del producto */}
                       <div className="flex-1">
                         <h3 className="text-sm font-medium text-gray-900">
-                          {item.variant?.product?.title || 'Producto'}
+                          {/* Prioridad: nombres personalizados guardados en order_items */}
+                          {(item as any).product_title || item.variant?.product?.title || 'Producto'}
                         </h3>
-                        {item.variant?.title && (
+                        {/* Mostrar variant_title si está disponible (personalizado o del catálogo) */}
+                        {((item as any).variant_title || item.variant?.title) && (
                           <p className="text-sm text-gray-500">
-                            Variante: {item.variant.title}
+                            Variante: {(item as any).variant_title || item.variant?.title}
                           </p>
                         )}
                         {item.variant?.sku && (

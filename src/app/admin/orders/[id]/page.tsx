@@ -43,8 +43,7 @@ export default function AdminOrderDetail() {
   const loadOrderDetail = async () => {
     try {
       setLoading(true)
-      const orders = await AdminService.getAllOrders({})
-      const foundOrder = orders.find(o => o.id === orderId)
+      const foundOrder = await AdminService.getOrderById(orderId)
       
       if (foundOrder) {
         setOrder(foundOrder)

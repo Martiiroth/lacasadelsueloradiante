@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
-import { supabase } from '@/lib/supabase'
 import ServerEmailService from '@/lib/emailService.server'
-import { cookies } from 'next/headers'
+import { createClient } from '@/utils/supabase/server'
 
 export async function POST(
   request: NextRequest,
@@ -10,24 +9,16 @@ export async function POST(
 ) {
   const { id } = await params
   try {
-    // Verificación de autenticación
-    const cookieStore = await cookies()
-    const authToken = cookieStore.get('sb-access-token')?.value
-
-    if (!authToken) {
-      console.error('❌ No authorization token provided')
-      return NextResponse.json(
-        { error: 'No autorizado - Token requerido' },
-        { status: 401 }
-      )
-    }
-
-    // Verificar que el usuario es admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser(authToken)
+    // Verificación de autenticación usando el cliente de Supabase del servidor
+    const supabase = await createClient()
+    
+    // Verificar que el usuario está autenticado
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
     if (authError || !user) {
       console.error('❌ Invalid token or user not found:', authError)
       return NextResponse.json(
-        { error: 'Token inválido o usuario no encontrado' },
+        { error: 'No autorizado - Token requerido' },
         { status: 401 }
       )
     }

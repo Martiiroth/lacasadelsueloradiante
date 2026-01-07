@@ -78,12 +78,31 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
-      // Supabase Storage - Dominio correcto del proyecto
+      // Supabase Storage - Dominio correcto del proyecto (producción)
+      {
+        protocol: 'https',
+        hostname: 'supabase.lacasadelsueloradiante.es',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'supabase.lacasadelsueloradiante.es',
+        port: '',
+        pathname: '/**',
+      },
+      // Supabase Storage - Dominio alternativo del proyecto
       {
         protocol: 'https',
         hostname: 'supabase.lacasadelsueloradianteapp.com',
         port: '',
         pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'supabase.lacasadelsueloradianteapp.com',
+        port: '',
+        pathname: '/**',
       },
       // Supabase - Wildcard para cualquier proyecto de Supabase (desarrollo/testing)
       {
@@ -91,13 +110,6 @@ const nextConfig = {
         hostname: '*.supabase.co',
         port: '',
         pathname: '/storage/v1/object/public/**',
-      },
-      // Dominio personalizado de Supabase (si existe)
-      {
-        protocol: 'https',
-        hostname: 'supabase.lacasadelsueloradianteapp.com',
-        port: '',
-        pathname: '/**',
       },
       // Permitir localhost para desarrollo
       {

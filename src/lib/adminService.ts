@@ -1764,21 +1764,42 @@ export class AdminService {
 
             // Create variant images
             if (variantData.images && variantData.images.length > 0) {
-              const variantImages = variantData.images.map((imageItem, index) => ({
-                variant_id: createdVariant.id,
-                url: imageItem.url,
-                alt: imageItem.alt || '',
-                position: index
-              }))
+              // Filtrar imágenes válidas (excluir blob URLs, imágenes con errores, etc.)
+              const validVariantImages = variantData.images.filter((imageItem: any) => {
+                // Excluir imágenes con errores
+                if (imageItem.error) return false
+                
+                // Excluir imágenes que aún tienen archivo sin subir
+                if (imageItem.file) return false
+                
+                // Excluir URLs blob temporales
+                if (imageItem.url && imageItem.url.startsWith('blob:')) return false
+                
+                // Aceptar URLs válidas (HTTP/HTTPS)
+                return imageItem.url && 
+                       imageItem.url.trim() !== '' && 
+                       (imageItem.url.startsWith('http://') || imageItem.url.startsWith('https://'))
+              })
+              
+              if (validVariantImages.length > 0) {
+                const variantImages = validVariantImages.map((imageItem: any, index: number) => ({
+                  variant_id: createdVariant.id,
+                  url: imageItem.url,
+                  alt: imageItem.alt || '',
+                  position: index
+                }))
 
-              const { error: variantImagesError } = await supabase
-                .from('variant_images')
-                .insert(variantImages)
+                const { error: variantImagesError } = await supabase
+                  .from('variant_images')
+                  .insert(variantImages)
 
-              if (variantImagesError) {
-                console.warn(`Error creating images for variant ${createdVariant.id}:`, variantImagesError)
+                if (variantImagesError) {
+                  console.warn(`Error creating images for variant ${createdVariant.id}:`, variantImagesError)
+                } else {
+                  console.log(`Created ${variantImages.length} images for variant ${createdVariant.id}`)
+                }
               } else {
-                console.log(`Created ${variantImages.length} images for variant ${createdVariant.id}`)
+                console.log(`No valid images found for variant ${createdVariant.id} (filtered out blob URLs or invalid images)`)
               }
             }
 
@@ -1833,25 +1854,43 @@ export class AdminService {
         }
       }
 
-      // Create images
+      // Create images (filtrar solo imágenes válidas)
       if (data.images && data.images.length > 0) {
-        const images = data.images.map(imageItem => ({
-          product_id: product.id,
-          url: imageItem.url,
-          alt: imageItem.alt,
-          position: imageItem.position,
-          created_at: new Date().toISOString()
-        }))
+        // Filtrar imágenes válidas (excluir blob URLs, imágenes con errores, etc.)
+        const validImages = data.images.filter((imageItem: any) => {
+          // Excluir imágenes con errores
+          if (imageItem.error) return false
+          
+          // Excluir URLs blob temporales
+          if (imageItem.url && imageItem.url.startsWith('blob:')) return false
+          
+          // Aceptar URLs válidas (HTTP/HTTPS)
+          return imageItem.url && 
+                 imageItem.url.trim() !== '' && 
+                 (imageItem.url.startsWith('http://') || imageItem.url.startsWith('https://'))
+        })
+        
+        if (validImages.length > 0) {
+          const images = validImages.map((imageItem: any) => ({
+            product_id: product.id,
+            url: imageItem.url,
+            alt: imageItem.alt || '',
+            position: imageItem.position,
+            created_at: new Date().toISOString()
+          }))
 
-        const { error: imagesError } = await supabase
-          .from('product_images')
-          .insert(images)
+          const { error: imagesError } = await supabase
+            .from('product_images')
+            .insert(images)
 
-        if (imagesError) {
-          console.warn('Error creating images:', imagesError)
-          // Don't fail the entire operation for images
+          if (imagesError) {
+            console.warn('Error creating images:', imagesError)
+            // Don't fail the entire operation for images
+          } else {
+            console.log(`Created ${images.length} valid images (filtered out ${data.images.length - validImages.length} invalid images)`)
+          }
         } else {
-          console.log(`Created ${images.length} images`)
+          console.log(`No valid images to create (all ${data.images.length} images were filtered out - likely blob URLs)`)
         }
       }
 

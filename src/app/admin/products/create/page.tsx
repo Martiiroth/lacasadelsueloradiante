@@ -117,15 +117,82 @@ export default function CreateProductPage() {
       setLoading(true)
       setError(null)
       
+      // Validar que las imágenes estén completamente subidas
+      const uploadingImages = images.filter(img => img.uploading)
+      if (uploadingImages.length > 0) {
+        setError('Espera a que todas las imágenes terminen de subirse antes de guardar')
+        setLoading(false)
+        return
+      }
+
+      // Filtrar imágenes válidas (con URLs válidas de Supabase Storage, no blob URLs temporales)
+      const validImages = images.filter(img => {
+        // Excluir imágenes con errores
+        if (img.error) return false
+        
+        // Excluir imágenes que aún tienen archivo sin subir
+        if (img.file) return false
+        
+        // Excluir URLs blob temporales
+        if (img.url && img.url.startsWith('blob:')) return false
+        
+        // Aceptar URLs válidas (HTTP/HTTPS o que contengan supabase)
+        return img.url && 
+               img.url.trim() !== '' && 
+               (img.url.startsWith('http://') || img.url.startsWith('https://'))
+      })
+      
       // Convert images to CreateImageData format
-      const imageData = images.map((img, index) => ({
+      const imageData = validImages.map((img, index) => ({
         url: img.url,
         alt: img.alt || '',
         position: index
       }))
 
+      // Validar y filtrar imágenes de variantes antes de enviar
+      // Primero validar que no haya imágenes subiendo
+      const variantImagesUploading = formData.variants.some((variant) => {
+        if (!variant.images || variant.images.length === 0) return false
+        return variant.images.some((img: ImageData) => {
+          return img.uploading || img.error || img.file || (img.url && img.url.startsWith('blob:'))
+        })
+      })
+      
+      if (variantImagesUploading) {
+        setError('Espera a que todas las imágenes de las variantes terminen de subirse antes de guardar')
+        setLoading(false)
+        return
+      }
+      
+      // Filtrar y procesar imágenes válidas de variantes
+      const processedVariants = formData.variants.map((variant) => {
+        if (!variant.images || variant.images.length === 0) {
+          return { ...variant, images: [] }
+        }
+        
+        // Filtrar solo imágenes válidas (sin errores, sin archivos pendientes, sin blob URLs)
+        const validVariantImages = variant.images.filter((img: ImageData) => {
+          if (img.error) return false
+          if (img.file) return false
+          if (img.url && img.url.startsWith('blob:')) return false
+          return img.url && 
+                 img.url.trim() !== '' && 
+                 (img.url.startsWith('http://') || img.url.startsWith('https://'))
+        })
+        
+        return {
+          ...variant,
+          images: validVariantImages.map((img: ImageData, index: number) => ({
+            url: img.url,
+            alt: img.alt || '',
+            position: index
+          }))
+        }
+      })
+
       const productData: CreateProductData = {
         ...formData,
+        variants: processedVariants,
         images: imageData,
         resources: resources
       }

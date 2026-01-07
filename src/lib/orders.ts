@@ -523,9 +523,9 @@ export class OrderService {
 
         // Enviar notificación de nuevo pedido
         // Solo intentar enviar email en el servidor (createOrder solo se ejecuta en servidor)
-        try {
-          if (typeof window === 'undefined') {
-            // En servidor, usar ServerEmailService directamente
+        if (typeof window === 'undefined') {
+          // En servidor, usar ServerEmailService directamente
+          try {
             const ServerEmailService = (await import('./emailService.server')).default
             const emailSent = await ServerEmailService.sendNewOrderNotification(emailData)
             
@@ -534,8 +534,13 @@ export class OrderService {
             } else {
               console.log(`⚠️ No se pudo enviar la notificación de nuevo pedido del cliente #${order.id}`)
             }
-          } else {
-            // En cliente, usar EmailService que hace fetch a la API
+          } catch (emailError) {
+            console.error('Error enviando notificación de nuevo pedido del cliente por email:', emailError)
+            // No fallar la operación si el email falla
+          }
+        } else {
+          // En cliente, usar EmailService que hace fetch a la API
+          try {
             const emailSent = await EmailService.sendNewOrderNotification(emailData)
             
             if (emailSent) {
@@ -543,10 +548,14 @@ export class OrderService {
             } else {
               console.log(`⚠️ No se pudo enviar la notificación de nuevo pedido del cliente #${order.id}`)
             }
+          } catch (emailError) {
+            console.error('Error enviando notificación de nuevo pedido del cliente por email:', emailError)
+            // No fallar la operación si el email falla
           }
-        } catch (emailError) {
-        console.error('Error enviando notificación de nuevo pedido del cliente por email:', emailError)
-        // No fallar la operación si el email falla
+        }
+      } catch (emailOuterError) {
+        console.error('Error preparando datos para email:', emailOuterError)
+        // No fallar la operación si hay error preparando el email
       }
 
       const confirmation: OrderConfirmation = {

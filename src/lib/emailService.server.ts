@@ -448,7 +448,7 @@ class ServerEmailService {
   // recipients: 'client' | 'admin' | 'both' - determina a quién enviar (default: 'both')
   static async sendOrderStatusNotification(orderData: OrderEmailData, recipients: 'client' | 'admin' | 'both' = 'both'): Promise<boolean> {
     try {
-  const adminEmail = 'consultas@lacasadelsueloradiante.es'
+      const adminEmail = process.env.EMAIL_ADMIN_ADDRESS || 'consultas@lacasadelsueloradiante.es'
       const statusText = this.getStatusText(orderData.status)
       const transporter = getTransporter()
 

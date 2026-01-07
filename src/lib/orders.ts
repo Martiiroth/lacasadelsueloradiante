@@ -481,17 +481,36 @@ export class OrderService {
           }
         }
         
+        // Obtener order_items con nombres personalizados desde la base de datos
+        const { data: savedOrderItems } = await supabase
+          .from('order_items')
+          .select(`
+            *,
+            variant:product_variants(
+              title,
+              option1,
+              option2,
+              option3,
+              product:products(title)
+            )
+          `)
+          .eq('order_id', order.id)
+        
+        const items = (savedOrderItems || []).map((item: any) => ({
+          title: item.product_title 
+            ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
+            : (item.variant?.product?.title || item.variant?.title || 'Producto'),
+          quantity: item.qty,
+          price: (item.price_cents || 0) / 100
+        }))
+        
         const emailData = {
           orderId: order.id,
           orderNumber: order.id, // Usar ID como número de pedido
           status: 'pending', // Nuevo pedido siempre es pending
           clientName,
           clientEmail,
-          items: orderItems.map(item => ({
-            title: item.variant?.product?.title || 'Producto',
-            quantity: item.qty,
-            price: (item.price_cents || 0) / 100
-          })),
+          items,
           total: total_cents / 100,
           createdAt: order.created_at,
           shippingAddress: orderData.shipping_address ? 
@@ -502,8 +521,9 @@ export class OrderService {
           clientInfo: clientInfo // Agregar información completa del cliente
         }
 
-        // Enviar notificación de nuevo pedido
-        const emailSent = await EmailService.sendNewOrderNotification(emailData)
+        // Enviar notificación de nuevo pedido usando ServerEmailService directamente
+        const ServerEmailService = (await import('./emailService.server')).default
+        const emailSent = await ServerEmailService.sendNewOrderNotification(emailData)
         
         if (emailSent) {
           console.log(`✅ Notificación de nuevo pedido del cliente enviada para #${order.id}`)

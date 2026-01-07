@@ -927,37 +927,18 @@ export class AdminService {
             invoiceId: emailData.invoiceId
           })
 
-          // Enviar notificación usando API interna
-          // Usar un enfoque diferente para evitar problemas con ad blockers
+          // Enviar notificación usando ServerEmailService directamente
           try {
-            // Llamar a la API desde el servidor usando la URL interna de Docker
-            const apiUrl = typeof window === 'undefined' 
-              ? 'http://localhost:3000/api/notifications'  // En servidor, usar localhost interno
-              : '/api/notifications'  // En cliente, usar ruta relativa
-            
-            const response = await fetch(apiUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                action: 'send_order_notification',
-                orderData: emailData
-              })
-            })
-            
-            if (!response.ok) {
-              throw new Error(`API responded with status ${response.status}`)
-            }
-            
-            const result = await response.json()
-            const emailSent = result.success
+            const ServerEmailService = (await import('./emailService.server')).default
+            const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData)
             
             if (emailSent) {
               console.log(`✅ Notificación enviada para pedido #${orderDetails.id}`)
             } else {
               console.log(`⚠️ No se pudo enviar la notificación para pedido #${orderDetails.id}`)
             }
-          } catch (fetchError) {
-            console.error('Error al llamar a la API de notificaciones:', fetchError)
+          } catch (emailError) {
+            console.error('Error al enviar notificación por email:', emailError)
             // Continuar sin fallar la operación
           }
         }
@@ -1388,17 +1369,33 @@ export class AdminService {
           }
         }
         
+        // Obtener order_items con nombres personalizados
+        const { data: savedOrderItems } = await supabase
+          .from('order_items')
+          .select(`
+            *,
+            variant:product_variants(
+              title,
+              product:products(title)
+            )
+          `)
+          .eq('order_id', order.id)
+        
+        const items = (savedOrderItems || []).map((item: any) => ({
+          title: item.product_title 
+            ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
+            : (item.variant?.product?.title || item.variant?.title || 'Producto'),
+          quantity: item.qty,
+          price: (item.price_cents || 0) / 100
+        }))
+        
         const emailData = {
           orderId: order.id,
           orderNumber: order.id, // Usar ID como número de pedido
           status: 'pending', // Nuevo pedido siempre es pending
           clientName,
           clientEmail: clientData?.email || (clientInfo?.email) || '',
-          items: orderData.items.map(item => ({
-            title: 'Producto', // Necesitaríamos hacer una consulta adicional para obtener el título
-            quantity: item.qty,
-            price: item.price_cents / 100
-          })),
+          items,
           total: orderData.items.reduce((sum, item) => sum + (item.price_cents * item.qty), 0) / 100,
           createdAt: order.created_at,
           shippingAddress: orderData.shipping_address ? 
@@ -1409,8 +1406,9 @@ export class AdminService {
           clientInfo: clientInfo // Agregar información completa del cliente
         }
 
-        // Enviar notificación de nuevo pedido
-        const emailSent = await EmailService.sendNewOrderNotification(emailData)
+        // Enviar notificación de nuevo pedido usando ServerEmailService directamente
+        const ServerEmailService = (await import('./emailService.server')).default
+        const emailSent = await ServerEmailService.sendNewOrderNotification(emailData)
         
         if (emailSent) {
           console.log(`✅ Notificación de nuevo pedido enviada para #${order.id}`)

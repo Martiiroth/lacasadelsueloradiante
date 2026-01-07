@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { RedsysService, RedsysResponse } from '@/lib/redsys'
 import { createClient } from '@/utils/supabase/server'
-import EmailService from '@/lib/emailService.server'
+import ServerEmailService from '@/lib/emailService.server'
 
 export async function POST(request: NextRequest) {
   console.log('🔔 ===== CALLBACK DE REDSYS RECIBIDO VIA POST =====')
@@ -264,7 +264,7 @@ async function processRedsysCallback(redsysResponse: RedsysResponse) {
             })() : null)
           }
 
-          await EmailService.sendNewOrderNotification(emailData)
+          await ServerEmailService.sendNewOrderNotification(emailData)
           console.log('📧 Correo de confirmación enviado para orden:', orderId)
         }
       } catch (emailError) {

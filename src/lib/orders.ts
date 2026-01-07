@@ -542,9 +542,9 @@ export class OrderService {
               console.log(`✅ Notificación de nuevo pedido del cliente enviada para #${order.id}`)
             } else {
               console.log(`⚠️ No se pudo enviar la notificación de nuevo pedido del cliente #${order.id}`)
+            }
           }
-        }
-      } catch (emailError) {
+        } catch (emailError) {
         console.error('Error enviando notificación de nuevo pedido del cliente por email:', emailError)
         // No fallar la operación si el email falla
       }

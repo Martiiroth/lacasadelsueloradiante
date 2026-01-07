@@ -21,8 +21,8 @@ function getTransporter() {
 
     transporter = nodemailer.createTransport({
       host: 'mail.lacasadelsueloradiante.es',
-      port: 465, // Puerto SSL según configuración del servidor
-      secure: true, // SSL directo
+      port: 587, // Puerto STARTTLS según configuración del servidor
+      secure: false, // STARTTLS (usa secure: false con puerto 587)
       auth: {
         user: emailUser,
         pass: emailPassword,
@@ -445,7 +445,8 @@ class ServerEmailService {
   }
 
   // Enviar notificación de cambio de estado
-  static async sendOrderStatusNotification(orderData: OrderEmailData): Promise<boolean> {
+  // recipients: 'client' | 'admin' | 'both' - determina a quién enviar (default: 'both')
+  static async sendOrderStatusNotification(orderData: OrderEmailData, recipients: 'client' | 'admin' | 'both' = 'both'): Promise<boolean> {
     try {
   const adminEmail = 'consultas@lacasadelsueloradiante.es'
       const statusText = this.getStatusText(orderData.status)
@@ -499,10 +500,13 @@ class ServerEmailService {
       }
 
       // Email para el cliente
+      const fromAddress = process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER || 'consultas@lacasadelsueloradiante.es'
+      const fromName = process.env.EMAIL_FROM_NAME || 'La Casa del Suelo Radiante'
+      
       const clientEmailOptions: any = {
         from: {
-          name: 'La Casa del Suelo Radiante',
-          address: 'consultas@lacasadelsueloradianteapp.com'
+          name: fromName,
+          address: fromAddress
         },
         to: orderData.clientEmail,
         subject: `Actualización de tu pedido #${orderData.orderNumber} - ${statusText}`,
@@ -513,8 +517,8 @@ class ServerEmailService {
       // Email para el administrador
       const adminEmailOptions: any = {
         from: {
-          name: 'La Casa del Suelo Radiante',
-          address: 'consultas@lacasadelsueloradianteapp.com'
+          name: fromName,
+          address: fromAddress
         },
         to: adminEmail,
         subject: `[ADMIN] Pedido #${orderData.orderNumber} actualizado - ${statusText}`,
@@ -522,46 +526,79 @@ class ServerEmailService {
         attachments: pdfAttachment ? [pdfAttachment] : []
       }
 
-      // Enviar ambos emails
+      // Determinar qué emails enviar según recipients
+      const sendToClient = recipients === 'client' || recipients === 'both'
+      const sendToAdmin = recipients === 'admin' || recipients === 'both'
+
       console.log('📧 [EMAIL] Enviando emails con configuración:', {
+        recipients,
+        sendToClient,
+        sendToAdmin,
         clientEmail: orderData.clientEmail,
         pdfAttached: !!pdfAttachment,
         pdfType: orderData.status === 'pending' ? 'PROFORMA' : (orderData.invoiceId ? 'FACTURA' : 'NINGUNO')
       })
 
-      const [clientResult, adminResult] = await Promise.allSettled([
-        transporter.sendMail(clientEmailOptions),
-        transporter.sendMail(adminEmailOptions)
-      ])
+      // Preparar array de promesas según recipients
+      const emailPromises: Promise<any>[] = []
+      if (sendToClient) {
+        emailPromises.push(transporter.sendMail(clientEmailOptions))
+      }
+      if (sendToAdmin) {
+        emailPromises.push(transporter.sendMail(adminEmailOptions))
+      }
+
+      // Enviar emails
+      const results = await Promise.allSettled(emailPromises)
 
       // Log de resultados detallados
       console.log('📧 [EMAIL] Resultados del envío:')
       
-      if (clientResult.status === 'fulfilled') {
-        console.log(`✅ [EMAIL] Email enviado al cliente ${orderData.clientEmail}:`, {
-          messageId: clientResult.value.messageId,
-          response: clientResult.value.response
-        })
-      } else {
-        console.error(`❌ [EMAIL] Error enviando email al cliente:`, {
-          error: clientResult.reason instanceof Error ? clientResult.reason.message : String(clientResult.reason),
-          clientEmail: orderData.clientEmail
-        })
+      let clientResult: PromiseSettledResult<any> | null = null
+      let adminResult: PromiseSettledResult<any> | null = null
+
+      if (sendToClient && sendToAdmin) {
+        // Ambos emails enviados
+        clientResult = results[0]
+        adminResult = results[1]
+      } else if (sendToClient) {
+        // Solo cliente
+        clientResult = results[0]
+      } else if (sendToAdmin) {
+        // Solo admin
+        adminResult = results[0]
       }
 
-      if (adminResult.status === 'fulfilled') {
-        console.log(`✅ [EMAIL] Email enviado al administrador:`, {
-          messageId: adminResult.value.messageId,
-          response: adminResult.value.response
-        })
-      } else {
-        console.error(`❌ [EMAIL] Error enviando email al administrador:`, {
-          error: adminResult.reason instanceof Error ? adminResult.reason.message : String(adminResult.reason)
-        })
+      if (clientResult) {
+        if (clientResult.status === 'fulfilled') {
+          console.log(`✅ [EMAIL] Email enviado al cliente ${orderData.clientEmail}:`, {
+            messageId: clientResult.value.messageId,
+            response: clientResult.value.response
+          })
+        } else {
+          console.error(`❌ [EMAIL] Error enviando email al cliente:`, {
+            error: clientResult.reason instanceof Error ? clientResult.reason.message : String(clientResult.reason),
+            clientEmail: orderData.clientEmail
+          })
+        }
+      }
+
+      if (adminResult) {
+        if (adminResult.status === 'fulfilled') {
+          console.log(`✅ [EMAIL] Email enviado al administrador:`, {
+            messageId: adminResult.value.messageId,
+            response: adminResult.value.response
+          })
+        } else {
+          console.error(`❌ [EMAIL] Error enviando email al administrador:`, {
+            error: adminResult.reason instanceof Error ? adminResult.reason.message : String(adminResult.reason)
+          })
+        }
       }
 
       // Retornar true si al menos uno se envió correctamente
-      return clientResult.status === 'fulfilled' || adminResult.status === 'fulfilled'
+      const success = results.some(result => result.status === 'fulfilled')
+      return success
     } catch (error) {
       console.error('Error in sendOrderStatusNotification:', error)
       return false
@@ -606,10 +643,13 @@ class ServerEmailService {
       const adminEmail = process.env.EMAIL_ADMIN_ADDRESS || 'admin@lacasadelsueloradiante.es'
       const transporter = getTransporter()
 
+      const fromAddress = process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER || 'consultas@lacasadelsueloradiante.es'
+      const fromName = process.env.EMAIL_FROM_NAME || 'Sistema La Casa del Suelo Radiante'
+      
       const emailOptions = {
         from: {
-          name: 'Sistema La Casa del Suelo Radiante',
-          address: process.env.EMAIL_USER || 'noreply@lacasadelsueloradiante.es'
+          name: fromName,
+          address: fromAddress
         },
         to: adminEmail,
         subject: `🎉 Nuevo Cliente Registrado - ${registrationData.clientName}`,

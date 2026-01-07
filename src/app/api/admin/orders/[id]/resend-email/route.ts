@@ -9,7 +9,18 @@ export async function POST(
 ) {
   const { id } = await params
   try {
-    console.log('📧 Reenviando correo para pedido:', id)
+    // Leer body para obtener recipients
+    let recipients: 'client' | 'admin' | 'both' = 'both'
+    try {
+      const body = await request.json()
+      if (body.recipients && ['client', 'admin', 'both'].includes(body.recipients)) {
+        recipients = body.recipients
+      }
+    } catch {
+      // Si no hay body o es inválido, usar 'both' por defecto
+    }
+    
+    console.log('📧 Reenviando correo para pedido:', id, 'recipients:', recipients)
     
     // Obtener el pedido completo
     const orderDetails = await AdminService.getOrderById(id)
@@ -105,7 +116,7 @@ export async function POST(
 
     // Enviar notificación directamente usando el servicio de email
     try {
-      const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData)
+      const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData, recipients)
       
       if (emailSent) {
         console.log(`✅ Correo reenviado exitosamente para pedido #${orderDetails.id}`)

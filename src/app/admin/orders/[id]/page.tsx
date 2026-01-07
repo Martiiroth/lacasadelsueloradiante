@@ -31,6 +31,7 @@ export default function AdminOrderDetail() {
   const [error, setError] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [resendingEmail, setResendingEmail] = useState(false)
+  const [showEmailMenu, setShowEmailMenu] = useState(false)
 
   const orderId = params.id as string
 
@@ -118,22 +119,28 @@ export default function AdminOrderDetail() {
     }
   }
 
-  const handleResendEmail = async () => {
+  const handleResendEmail = async (recipients: 'client' | 'admin' | 'both') => {
     if (!order) return
     
     try {
       setResendingEmail(true)
+      setShowEmailMenu(false)
+      
       const response = await fetch(`/api/admin/orders/${order.id}/resend-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ recipients })
       })
 
       const result = await response.json()
 
       if (result.success) {
-        alert('Correo reenviado exitosamente')
+        const recipientText = recipients === 'client' ? 'al cliente' : 
+                             recipients === 'admin' ? 'al administrador' : 
+                             'al cliente y administrador'
+        alert(`Correo reenviado exitosamente ${recipientText}`)
       } else {
         alert(`Error al reenviar el correo: ${result.error || result.message || 'Error desconocido'}`)
       }
@@ -299,15 +306,54 @@ export default function AdminOrderDetail() {
                     <option value="cancelled">Cancelado</option>
                   </select>
                 </div>
-                <div className="flex justify-end">
-                  <button
-                    onClick={handleResendEmail}
-                    disabled={resendingEmail}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <EnvelopeIcon className="h-4 w-4 mr-2" />
-                    {resendingEmail ? 'Reenviando...' : 'Reenviar Correo'}
-                  </button>
+                <div className="flex justify-end relative">
+                  <div className="relative inline-block text-left">
+                    <button
+                      onClick={() => setShowEmailMenu(!showEmailMenu)}
+                      disabled={resendingEmail}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <EnvelopeIcon className="h-4 w-4 mr-2" />
+                      {resendingEmail ? 'Reenviando...' : 'Reenviar Correo'}
+                      <svg className="ml-2 -mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    
+                    {showEmailMenu && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setShowEmailMenu(false)}
+                        ></div>
+                        <div className="absolute right-0 z-20 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                          <div className="py-1" role="menu">
+                            <button
+                              onClick={() => handleResendEmail('both')}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                              role="menuitem"
+                            >
+                              📧 Enviar a Cliente y Admin
+                            </button>
+                            <button
+                              onClick={() => handleResendEmail('client')}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                              role="menuitem"
+                            >
+                              👤 Enviar solo al Cliente
+                            </button>
+                            <button
+                              onClick={() => handleResendEmail('admin')}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                              role="menuitem"
+                            >
+                              🏢 Enviar solo al Admin
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -335,20 +381,20 @@ export default function AdminOrderDetail() {
                                 : item.variant 
                                   ? (
                                       // Título específico de la variante del catálogo
-                                      item.variant.title ||
-                                      // Fallback: opciones concatenadas
-                                      [item.variant.option1, item.variant.option2, item.variant.option3]
-                                        .filter(Boolean)
-                                        .join(' / ') ||
-                                      // Último recurso: mostrar el producto con indicación de variante
-                                      `${item.variant.product?.title} - Variante` ||
-                                      'Variante sin identificar'
+                              item.variant.title ||
+                              // Fallback: opciones concatenadas
+                              [item.variant.option1, item.variant.option2, item.variant.option3]
+                                .filter(Boolean)
+                                .join(' / ') ||
+                              // Último recurso: mostrar el producto con indicación de variante
+                              `${item.variant.product?.title} - Variante` ||
+                              'Variante sin identificar'
                                     )
                                   : 'Producto sin variante'
                             }
                           </h4>
                           {/* Mostrar producto padre como contexto */}
-                          <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500">
                             {/* Si hay product_title personalizado, mostrarlo; si no, usar del catálogo */}
                             {(item as any).product_title 
                               ? (item as any).product_title 
@@ -357,7 +403,7 @@ export default function AdminOrderDetail() {
                             {(item as any).variant_title && 
                              (item as any).variant_title !== (item as any).product_title && 
                              ` - ${(item as any).variant_title}`}
-                          </p>
+                            </p>
                           <p className="text-sm text-gray-500">
                             Cantidad: {item.qty}
                           </p>

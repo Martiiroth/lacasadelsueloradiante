@@ -389,7 +389,7 @@ export default function AdminOrderCreate() {
         )
         if (!confirmed) return
       }
-
+      
       // Combinar billing y shipping address en el campo shipping_address (único disponible en DB)
       const combinedAddress = {
         billing: orderData.billing_address,
@@ -1007,27 +1007,27 @@ export default function AdminOrderCreate() {
                       {/* Selector de Variante */}
                       {item.product_id && item.product_id !== '__CUSTOM__' && (
                         <>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">Variante *</label>
-                            <select
-                              value={item.variant_id || ''}
-                              onChange={(e) => {
-                                if (e.target.value && item.product_id) {
-                                  handleProductVariantSelect(index, item.product_id, e.target.value)
-                                }
-                              }}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            >
-                              <option value="">Seleccionar variante...</option>
-                              {products
-                                .find(p => p.id === item.product_id)
-                                ?.variants.map(variant => (
-                                  <option key={variant.id} value={variant.id}>
-                                    {variant.title} - €{(variant.price_public_cents / 100).toFixed(2)} 
-                                    {variant.stock > 0 ? ` (Stock: ${variant.stock})` : ' (Sin stock)'}
-                                  </option>
-                                ))}
-                            </select>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Variante *</label>
+                          <select
+                            value={item.variant_id || ''}
+                            onChange={(e) => {
+                              if (e.target.value && item.product_id) {
+                                handleProductVariantSelect(index, item.product_id, e.target.value)
+                              }
+                            }}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                          >
+                            <option value="">Seleccionar variante...</option>
+                            {products
+                              .find(p => p.id === item.product_id)
+                              ?.variants.map(variant => (
+                                <option key={variant.id} value={variant.id}>
+                                  {variant.title} - €{(variant.price_public_cents / 100).toFixed(2)} 
+                                  {variant.stock > 0 ? ` (Stock: ${variant.stock})` : ' (Sin stock)'}
+                                </option>
+                              ))}
+                          </select>
                           </div>
                           
                           {/* Campo editable para nombre de variante */}
@@ -1044,7 +1044,7 @@ export default function AdminOrderCreate() {
                                 placeholder="Dejar vacío para usar el nombre del catálogo"
                                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                               />
-                            </div>
+                        </div>
                           )}
                         </>
                       )}
@@ -1054,7 +1054,7 @@ export default function AdminOrderCreate() {
                         <div className="bg-gray-50 p-3 rounded-md">
                           <p className="text-sm font-medium text-gray-900">{item.product_title}</p>
                           {item.variant_title && (
-                            <p className="text-sm text-gray-600">{item.variant_title}</p>
+                          <p className="text-sm text-gray-600">{item.variant_title}</p>
                           )}
                           {!item.variant_id && (
                             <p className="text-xs text-amber-600 mt-1">

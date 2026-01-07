@@ -115,9 +115,9 @@ export const generateDeliveryNote = (order: AdminOrder) => {
       ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
       : item.variant 
         ? (item.variant.title ||
-           [item.variant.option1, item.variant.option2, item.variant.option3]
-             .filter(Boolean)
-             .join(' / ') ||
+      [item.variant.option1, item.variant.option2, item.variant.option3]
+        .filter(Boolean)
+        .join(' / ') ||
            `${item.variant.product?.title} - Variante`)
         : 'Producto sin variante'
     

@@ -128,19 +128,44 @@ export default function CreateProductPage() {
       // Filtrar imágenes válidas (con URLs válidas de Supabase Storage, no blob URLs temporales)
       const validImages = images.filter(img => {
         // Excluir imágenes con errores
-        if (img.error) return false
+        if (img.error) {
+          console.log('❌ Imagen excluida por error:', img)
+          return false
+        }
         
         // Excluir imágenes que aún tienen archivo sin subir
-        if (img.file) return false
+        if (img.file) {
+          console.log('❌ Imagen excluida por archivo pendiente:', img)
+          return false
+        }
+        
+        // Si tiene path, está subida y es válida (prioridad)
+        if (img.path) {
+          console.log('✅ Imagen válida (tiene path):', img.url)
+          return true
+        }
         
         // Excluir URLs blob temporales
-        if (img.url && img.url.startsWith('blob:')) return false
+        if (img.url && img.url.startsWith('blob:')) {
+          console.log('❌ Imagen excluida por blob URL:', img.url)
+          return false
+        }
         
-        // Aceptar URLs válidas (HTTP/HTTPS o que contengan supabase)
-        return img.url && 
+        // Aceptar URLs válidas (HTTP/HTTPS)
+        const isValid = img.url && 
                img.url.trim() !== '' && 
                (img.url.startsWith('http://') || img.url.startsWith('https://'))
+        
+        if (isValid) {
+          console.log('✅ Imagen válida (URL válida):', img.url)
+        } else {
+          console.log('❌ Imagen excluida (URL inválida):', img.url)
+        }
+        
+        return isValid
       })
+      
+      console.log(`📊 Imágenes procesadas: ${images.length} total, ${validImages.length} válidas`)
       
       // Convert images to CreateImageData format
       const imageData = validImages.map((img, index) => ({
@@ -154,6 +179,9 @@ export default function CreateProductPage() {
       const variantImagesUploading = formData.variants.some((variant) => {
         if (!variant.images || variant.images.length === 0) return false
         return variant.images.some((img: ImageData) => {
+          // Si tiene path, está subida (válida)
+          if (img.path) return false
+          // Verificar si está subiendo o tiene errores
           return img.uploading || img.error || img.file || (img.url && img.url.startsWith('blob:'))
         })
       })
@@ -174,7 +202,11 @@ export default function CreateProductPage() {
         const validVariantImages = variant.images.filter((img: ImageData) => {
           if (img.error) return false
           if (img.file) return false
+          // Si tiene path, está subida y es válida (prioridad)
+          if (img.path) return true
+          // Excluir URLs blob temporales
           if (img.url && img.url.startsWith('blob:')) return false
+          // Aceptar URLs válidas (HTTP/HTTPS)
           return img.url && 
                  img.url.trim() !== '' && 
                  (img.url.startsWith('http://') || img.url.startsWith('https://'))

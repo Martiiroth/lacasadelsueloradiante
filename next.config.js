@@ -41,7 +41,15 @@ const nextConfig = {
         os: false,
         stream: false,
         util: false,
+        dns: false,
+        child_process: false,
       }
+      
+      // Excluir nodemailer y sus dependencias del bundle del cliente
+      config.externals = config.externals || []
+      config.externals.push({
+        'nodemailer': 'commonjs nodemailer',
+      })
     }
     return config
   },
@@ -117,6 +125,29 @@ const nextConfig = {
 
   // Compresión
   compress: true,
+  
+  // Configuración de webpack para excluir módulos del servidor del bundle del cliente
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // En el cliente, excluir módulos que solo funcionan en el servidor
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        dns: false,
+        child_process: false,
+        net: false,
+        tls: false,
+        fs: false,
+      }
+      
+      // Excluir nodemailer del bundle del cliente
+      config.externals = config.externals || []
+      config.externals.push({
+        'nodemailer': 'commonjs nodemailer',
+        'nodemailer/lib/mailer': 'commonjs nodemailer/lib/mailer',
+      })
+    }
+    return config
+  },
   
   // Variables de entorno para el runtime del servidor
   env: {

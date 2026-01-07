@@ -35,11 +35,14 @@ export async function POST(
     // Verificar que el usuario tiene rol de admin
     const { data: client } = await supabase
       .from('clients')
-      .select('customer_role:customer_roles(name)')
-      .eq('id', user.id)
+      .select(`
+        *,
+        customer_role:customer_roles(*)
+      `)
+      .eq('auth_uid', user.id)
       .single()
 
-    const isAdmin = client?.customer_role?.name === 'admin'
+    const isAdmin = (client?.customer_role as any)?.name === 'admin'
     if (!isAdmin) {
       console.error('❌ User is not admin:', user.email)
       return NextResponse.json(

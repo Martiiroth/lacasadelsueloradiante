@@ -134,7 +134,22 @@ export default function AdminOrderDetail() {
         body: JSON.stringify({ recipients })
       })
 
-      const result = await response.json()
+      // Leer respuesta como texto primero para manejar errores
+      const responseText = await response.text()
+      let result
+      
+      try {
+        result = JSON.parse(responseText)
+      } catch (parseError) {
+        // Si la respuesta no es JSON válido, crear un objeto de error
+        console.error('Error parsing response:', parseError)
+        console.error('Response text:', responseText)
+        throw new Error(`Error del servidor (${response.status}): ${responseText || response.statusText}`)
+      }
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || `Error ${response.status}: ${response.statusText}`)
+      }
 
       if (result.success) {
         const recipientText = recipients === 'client' ? 'al cliente' : 
@@ -146,7 +161,8 @@ export default function AdminOrderDetail() {
       }
     } catch (err) {
       console.error('Error resending email:', err)
-      alert('Error al reenviar el correo')
+      const errorMessage = err instanceof Error ? err.message : 'Error desconocido al reenviar el correo'
+      alert(`Error al reenviar el correo: ${errorMessage}`)
     } finally {
       setResendingEmail(false)
     }

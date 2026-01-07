@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
 import { supabase } from '@/lib/supabase'
 import ServerEmailService from '@/lib/emailService.server'
+import { cookies } from 'next/headers'
 
 export async function POST(
   request: NextRequest,
@@ -9,15 +10,54 @@ export async function POST(
 ) {
   const { id } = await params
   try {
-    // Leer body para obtener recipients
+    // Verificación de autenticación
+    const cookieStore = await cookies()
+    const authToken = cookieStore.get('sb-access-token')?.value
+
+    if (!authToken) {
+      console.error('❌ No authorization token provided')
+      return NextResponse.json(
+        { error: 'No autorizado - Token requerido' },
+        { status: 401 }
+      )
+    }
+
+    // Verificar que el usuario es admin
+    const { data: { user }, error: authError } = await supabase.auth.getUser(authToken)
+    if (authError || !user) {
+      console.error('❌ Invalid token or user not found:', authError)
+      return NextResponse.json(
+        { error: 'Token inválido o usuario no encontrado' },
+        { status: 401 }
+      )
+    }
+
+    // Verificar que el usuario tiene rol de admin
+    const { data: client } = await supabase
+      .from('clients')
+      .select('customer_role:customer_roles(name)')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = client?.customer_role?.name === 'admin'
+    if (!isAdmin) {
+      console.error('❌ User is not admin:', user.email)
+      return NextResponse.json(
+        { error: 'No tienes permisos para realizar esta acción' },
+        { status: 403 }
+      )
+    }
+
+    // Leer body para obtener recipients (después de verificar autenticación)
     let recipients: 'client' | 'admin' | 'both' = 'both'
     try {
       const body = await request.json()
-      if (body.recipients && ['client', 'admin', 'both'].includes(body.recipients)) {
+      if (body && body.recipients && ['client', 'admin', 'both'].includes(body.recipients)) {
         recipients = body.recipients
       }
-    } catch {
+    } catch (bodyError) {
       // Si no hay body o es inválido, usar 'both' por defecto
+      console.log('⚠️ No se pudo leer body o está vacío, usando recipients por defecto: both')
     }
     
     console.log('📧 Reenviando correo para pedido:', id, 'recipients:', recipients)
@@ -144,8 +184,17 @@ export async function POST(
 
   } catch (error) {
     console.error('Error en POST /api/admin/orders/[id]/resend-email:', error)
+    
+    // Asegurar que siempre devolvemos JSON válido
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorDetails = error instanceof Error ? error.stack : String(error)
+    
     return NextResponse.json(
-      { error: 'Error interno del servidor', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        success: false,
+        error: 'Error interno del servidor', 
+        details: errorMessage 
+      },
       { status: 500 }
     )
   }

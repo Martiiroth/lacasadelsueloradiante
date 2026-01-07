@@ -417,10 +417,26 @@ export default function EditProduct() {
       }
       console.log('✅ [GUARDAR] Todas las variantes actualizadas exitosamente')
 
+      // Validar imágenes del producto antes de actualizar
+      const uploadingProductImages = images.filter(img => img.uploading)
+      if (uploadingProductImages.length > 0) {
+        throw new Error('Espera a que todas las imágenes terminen de subirse antes de guardar')
+      }
+      
+      // Filtrar imágenes válidas
+      const validProductImages = images.filter(img => {
+        if (img.error) return false
+        if (img.file) return false
+        if (img.url && img.url.startsWith('blob:')) return false
+        return img.url && 
+               img.url.trim() !== '' && 
+               (img.url.startsWith('http://') || img.url.startsWith('https://'))
+      })
+
       // Update images
       console.log('🖼️ [GUARDAR] Actualizando imágenes del producto...')
       try {
-        await AdminService.updateProductImages(productId, images)
+        await AdminService.updateProductImages(productId, validProductImages)
         console.log('✅ [GUARDAR] Imágenes actualizadas exitosamente')
       } catch (imageError: any) {
         console.error('❌ [GUARDAR] Image update error:', imageError)
@@ -437,20 +453,57 @@ export default function EditProduct() {
         throw new Error(`Error al actualizar los recursos: ${resourceError.message}`)
       }
 
-      // Update variant images
-      console.log('🖼️ [GUARDAR] Actualizando imágenes de variantes...')
+      // Validar y actualizar imágenes de variantes
+      console.log('🖼️ [GUARDAR] Validando y actualizando imágenes de variantes...')
+      
+      // Primero validar que no haya imágenes subiendo
+      const variantImagesUploading = variants.some((variant) => {
+        if (!variant.images || variant.images.length === 0) return false
+        return variant.images.some((img: ImageData) => {
+          return img.uploading || img.error || img.file || (img.url && img.url.startsWith('blob:'))
+        })
+      })
+      
+      if (variantImagesUploading) {
+        throw new Error('Espera a que todas las imágenes de las variantes terminen de subirse antes de guardar')
+      }
+      
+      // Actualizar imágenes de variantes
       for (const variant of variants) {
         if (variant.id) {
           // Update variant images
-          if (variant.images) {
+          if (variant.images && variant.images.length > 0) {
             try {
-              console.log(`🖼️ [GUARDAR] Procesando imágenes para variante ${variant.id}...`)
-              const variantImageData = VariantImageService.convertFromImageData(variant.images, variant.id)
-              await VariantImageService.updateVariantImages(variant.id, variantImageData)
-              console.log(`✅ [GUARDAR] Imágenes de variante ${variant.id} actualizadas`)
+              // Filtrar solo imágenes válidas
+              const validVariantImages = variant.images.filter((img: ImageData) => {
+                if (img.error) return false
+                if (img.file) return false
+                if (img.url && img.url.startsWith('blob:')) return false
+                return img.url && 
+                       img.url.trim() !== '' && 
+                       (img.url.startsWith('http://') || img.url.startsWith('https://'))
+              })
+              
+              if (validVariantImages.length > 0) {
+                console.log(`🖼️ [GUARDAR] Procesando ${validVariantImages.length} imagen(es) válida(s) para variante ${variant.id}...`)
+                const variantImageData = VariantImageService.convertFromImageData(validVariantImages, variant.id)
+                await VariantImageService.updateVariantImages(variant.id, variantImageData)
+                console.log(`✅ [GUARDAR] Imágenes de variante ${variant.id} actualizadas`)
+              } else {
+                console.log(`⚠️ [GUARDAR] No hay imágenes válidas para variante ${variant.id}, limpiando imágenes...`)
+                // Si no hay imágenes válidas, limpiar todas las imágenes de la variante
+                await VariantImageService.updateVariantImages(variant.id, [])
+              }
             } catch (variantImageError: any) {
               console.error('❌ [GUARDAR] Variant image update error:', variantImageError)
               throw new Error(`Error al actualizar las imágenes de la variante: ${variantImageError.message}`)
+            }
+          } else {
+            // Si no hay imágenes, limpiar todas las imágenes de la variante
+            try {
+              await VariantImageService.updateVariantImages(variant.id, [])
+            } catch (error) {
+              console.warn(`No se pudieron limpiar las imágenes de la variante ${variant.id}`)
             }
           }
         }

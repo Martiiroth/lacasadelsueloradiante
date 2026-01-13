@@ -10,28 +10,37 @@ function getTransporter() {
     const emailUser = process.env.EMAIL_USER
     const emailPassword = process.env.EMAIL_PASSWORD
     
-    console.log('📧 Email config check:')
-    console.log('- EMAIL_USER:', emailUser ? 'SET' : 'MISSING')
+    console.log('📧 [EMAIL] Email config check:')
+    console.log('- EMAIL_USER:', emailUser ? `SET (${emailUser.substring(0, 3)}...)` : 'MISSING')
     console.log('- EMAIL_PASSWORD:', emailPassword ? 'SET' : 'MISSING')
+    console.log('- EMAIL_HOST: mail.lacasadelsueloradiante.es')
+    console.log('- EMAIL_PORT: 587')
     
     if (!emailUser || !emailPassword) {
-      console.error('❌ Email credentials missing!')
-      throw new Error('Email credentials not configured')
+      const errorMsg = 'Email credentials not configured. EMAIL_USER and EMAIL_PASSWORD are required.'
+      console.error('❌ [EMAIL]', errorMsg)
+      throw new Error(errorMsg)
     }
 
-    transporter = nodemailer.createTransport({
-      host: 'mail.lacasadelsueloradiante.es',
-      port: 587, // Puerto STARTTLS según configuración del servidor
-      secure: false, // STARTTLS (usa secure: false con puerto 587)
-      auth: {
-        user: emailUser,
-        pass: emailPassword,
-      },
-      // Configuración para servidor personalizado
-      tls: {
-        rejectUnauthorized: false
-      }
-    })
+    try {
+      transporter = nodemailer.createTransport({
+        host: 'mail.lacasadelsueloradiante.es',
+        port: 587, // Puerto STARTTLS según configuración del servidor
+        secure: false, // STARTTLS (usa secure: false con puerto 587)
+        auth: {
+          user: emailUser,
+          pass: emailPassword,
+        },
+        // Configuración para servidor personalizado
+        tls: {
+          rejectUnauthorized: false
+        }
+      })
+      console.log('✅ [EMAIL] Transporter creado exitosamente')
+    } catch (error) {
+      console.error('❌ [EMAIL] Error creando transporter:', error)
+      throw error
+    }
   }
   return transporter
 }
@@ -448,9 +457,29 @@ class ServerEmailService {
   // recipients: 'client' | 'admin' | 'both' - determina a quién enviar (default: 'both')
   static async sendOrderStatusNotification(orderData: OrderEmailData, recipients: 'client' | 'admin' | 'both' = 'both'): Promise<boolean> {
     try {
+      // Validar que hay email del cliente si se necesita enviar al cliente
+      if ((recipients === 'client' || recipients === 'both') && (!orderData.clientEmail || !orderData.clientEmail.trim())) {
+        console.error('❌ [EMAIL] No se puede enviar email al cliente: clientEmail está vacío o no definido')
+        // Si no hay email del cliente pero se necesita enviar al admin, continuar
+        if (recipients === 'client') {
+          return false
+        }
+        // Si es 'both' pero no hay email del cliente, cambiar a solo admin
+        if (recipients === 'both') {
+          recipients = 'admin'
+        }
+      }
+      
       const adminEmail = process.env.EMAIL_ADMIN_ADDRESS || 'consultas@lacasadelsueloradiante.es'
       const statusText = this.getStatusText(orderData.status)
-      const transporter = getTransporter()
+      
+      let transporter
+      try {
+        transporter = getTransporter()
+      } catch (transporterError) {
+        console.error('❌ [EMAIL] Error creando transporter:', transporterError)
+        throw transporterError
+      }
 
       // Adjuntar PDF según el estado del pedido
       let pdfAttachment = null
@@ -598,9 +627,17 @@ class ServerEmailService {
 
       // Retornar true si al menos uno se envió correctamente
       const success = results.some(result => result.status === 'fulfilled')
+      
+      if (!success) {
+        console.error('❌ [EMAIL] Ningún email se envió correctamente. Todos fallaron.')
+      }
+      
       return success
     } catch (error) {
-      console.error('Error in sendOrderStatusNotification:', error)
+      console.error('❌ [EMAIL] Error crítico en sendOrderStatusNotification:', error)
+      if (error instanceof Error) {
+        console.error('❌ [EMAIL] Error stack:', error.stack)
+      }
       return false
     }
   }

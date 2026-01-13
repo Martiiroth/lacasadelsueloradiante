@@ -24,7 +24,7 @@ export async function POST(
     }
 
     // Verificar que el usuario tiene rol de admin
-    const { data: client } = await supabase
+    const { data: client, error: clientError } = await supabase
       .from('clients')
       .select(`
         *,
@@ -33,9 +33,17 @@ export async function POST(
       .eq('auth_uid', user.id)
       .single()
 
-    const isAdmin = (client?.customer_role as any)?.name === 'admin'
+    if (clientError || !client) {
+      console.error('❌ Error obteniendo cliente o cliente no encontrado:', clientError)
+      return NextResponse.json(
+        { error: 'No se pudo verificar los permisos del usuario' },
+        { status: 403 }
+      )
+    }
+
+    const isAdmin = (client.customer_role as any)?.name === 'admin'
     if (!isAdmin) {
-      console.error('❌ User is not admin:', user.email)
+      console.error('❌ User is not admin:', user.email, 'Role:', (client.customer_role as any)?.name)
       return NextResponse.json(
         { error: 'No tienes permisos para realizar esta acción' },
         { status: 403 }

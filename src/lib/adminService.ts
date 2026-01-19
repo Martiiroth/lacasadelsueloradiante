@@ -722,6 +722,7 @@ export class AdminService {
         .from('orders')
         .select(`
           *,
+          guest_email,
           client:clients (
             id,
             first_name,
@@ -760,13 +761,21 @@ export class AdminService {
         return null
       }
 
+      // Incluir guest_email si existe (para pedidos de invitado)
+      const guestEmail = (data as any).guest_email || null
+      
       console.log('AdminService.getOrderById - Pedido obtenido:', {
         id: data.id,
         client_id: data.client_id,
         has_client: !!data.client,
-        guest_email: (data as any).guest_email
+        guest_email: guestEmail ? `${guestEmail.substring(0, 3)}...` : 'NO HAY'
       })
-      return data as AdminOrder
+      
+      // Añadir guest_email al objeto devuelto para que esté disponible
+      return {
+        ...data,
+        guest_email: guestEmail
+      } as AdminOrder
     } catch (error) {
       console.error('Error in getOrderById:', error)
       if (error instanceof Error) {
@@ -852,6 +861,18 @@ export class AdminService {
             `${orderDetails.client.first_name} ${orderDetails.client.last_name}`.trim() : 
             'Cliente'
           
+          // Obtener email del cliente: si tiene cliente asociado usar su email, si no usar guest_email
+          const clientEmail = orderDetails.client?.email || (orderDetails as any).guest_email || ''
+          
+          console.log('📧 Preparando email de cambio de estado:', {
+            orderId: orderDetails.id,
+            status: data.status,
+            hasClient: !!orderDetails.client,
+            clientEmail: clientEmail ? `${clientEmail.substring(0, 3)}...` : 'NO HAY EMAIL',
+            guestEmail: (orderDetails as any).guest_email ? `${(orderDetails as any).guest_email.substring(0, 3)}...` : 'NO HAY',
+            invoiceId: invoiceId || 'NO HAY'
+          })
+          
           // Construir dirección de envío
           let shippingAddress = undefined;
           if (orderDetails.shipping_address) {
@@ -890,14 +911,12 @@ export class AdminService {
             }
           }
 
-
-
           const emailData = {
             orderId: orderDetails.id,
             orderNumber: orderDetails.id, // Usar ID como número de pedido
             status: data.status,
             clientName,
-            clientEmail: orderDetails.client?.email || '',
+            clientEmail: clientEmail,
             items: orderDetails.order_items?.map((item: any) => ({
               // Usar nombres personalizados guardados en order_items (product_title, variant_title)
               title: item.product_title 
@@ -914,24 +933,31 @@ export class AdminService {
             invoiceId: invoiceId || undefined // Incluir ID de factura si existe
           }
 
-          console.log('📧 Datos para email:', {
+          console.log('📧 Datos para email preparados:', {
             status: emailData.status,
-            clientEmail: emailData.clientEmail,
-            invoiceId: emailData.invoiceId
+            clientEmail: emailData.clientEmail || 'NO HAY EMAIL - Solo se enviará al admin',
+            invoiceId: emailData.invoiceId || 'NO HAY'
           })
 
           // Enviar notificación usando ServerEmailService directamente
+          // Si no hay email del cliente, solo enviar al admin
+          const recipients = clientEmail ? 'both' : 'admin'
+          console.log(`📧 Intentando enviar emails. Destinatarios: ${recipients}`)
+          
           try {
             const ServerEmailService = (await import('./emailService.server')).default
-            const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData)
+            const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData, recipients)
             
             if (emailSent) {
-              console.log(`✅ Notificación enviada para pedido #${orderDetails.id}`)
+              console.log(`✅ Notificación enviada correctamente para pedido #${orderDetails.id} (${recipients})`)
             } else {
-              console.log(`⚠️ No se pudo enviar la notificación para pedido #${orderDetails.id}`)
+              console.error(`❌ No se pudo enviar la notificación para pedido #${orderDetails.id}. Ver logs anteriores para detalles.`)
             }
           } catch (emailError) {
-            console.error('Error al enviar notificación por email:', emailError)
+            console.error('❌ Error al enviar notificación por email:', emailError)
+            if (emailError instanceof Error) {
+              console.error('❌ Error stack:', emailError.stack)
+            }
             // Continuar sin fallar la operación
           }
         }

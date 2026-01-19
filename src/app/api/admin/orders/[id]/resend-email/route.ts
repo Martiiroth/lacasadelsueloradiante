@@ -9,11 +9,20 @@ export async function POST(
 ) {
   const { id } = await params
   try {
+    console.log('📧 [RESEND-EMAIL] Iniciando reenvío de correo para pedido:', id)
+    
     // Verificación de autenticación usando el cliente de Supabase del servidor
     const supabase = await createClient()
     
     // Verificar que el usuario está autenticado
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    console.log('📧 [RESEND-EMAIL] Autenticación verificada:', {
+      hasUser: !!user,
+      userId: user?.id,
+      userEmail: user?.email,
+      authError: authError ? authError.message : null
+    })
     
     if (authError) {
       console.error('❌ Error de autenticación:', {
@@ -68,6 +77,18 @@ export async function POST(
         userId: user.id,
         userEmail: user.email
       })
+      // Si el error es "no rows", significa que el cliente no existe, no necesariamente un error crítico
+      if (clientError.code === 'PGRST116') {
+        console.log('⚠️ Cliente no encontrado en base de datos para este usuario')
+        return NextResponse.json(
+          { 
+            success: false,
+            error: 'No tienes permisos para realizar esta acción. Tu cuenta no está registrada en el sistema.',
+            details: 'Por favor, contacta con el administrador para obtener acceso.'
+          },
+          { status: 403 }
+        )
+      }
       return NextResponse.json(
         { 
           success: false,
@@ -86,7 +107,8 @@ export async function POST(
       return NextResponse.json(
         { 
           success: false,
-          error: 'Cliente no encontrado. Por favor, contacta con el administrador.'
+          error: 'Cliente no encontrado. Por favor, contacta con el administrador.',
+          details: 'Tu cuenta de usuario no está asociada a un cliente en el sistema.'
         },
         { status: 403 }
       )
@@ -208,7 +230,7 @@ export async function POST(
       orderNumber: orderDetails.id,
       status: orderDetails.status,
       clientName,
-      clientEmail: orderDetails.client?.email || '',
+      clientEmail: orderDetails.client?.email || (orderDetails as any).guest_email || '',
       items,
       total: (orderDetails.total_cents || 0) / 100,
       createdAt: orderDetails.created_at,

@@ -142,7 +142,8 @@ export default function AdminOrderDetail() {
       const response = await fetch(`/api/admin/orders/${order.id}/resend-email`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({ recipients })
       })

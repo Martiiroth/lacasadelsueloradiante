@@ -119,6 +119,19 @@ export default function AdminOrderDetail() {
     }
   }
 
+  const handleGenerateProforma = async () => {
+    if (!order) return
+    
+    try {
+      // Abrir la proforma en una nueva ventana/descargarla
+      const proformaUrl = `/api/proforma/${order.id}?download=true`
+      window.open(proformaUrl, '_blank')
+    } catch (error) {
+      console.error('Error generating proforma:', error)
+      alert('Error al generar la proforma')
+    }
+  }
+
   const handleResendEmail = async (recipients: 'client' | 'admin' | 'both') => {
     if (!order) return
     
@@ -262,6 +275,13 @@ export default function AdminOrderDetail() {
               >
                 <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
                 Generar Albarán
+              </button>
+              <button
+                onClick={handleGenerateProforma}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <DocumentTextIcon className="h-4 w-4 mr-2" />
+                Generar Proforma
               </button>
               <DeliverOrderButton
                 orderId={order.id}

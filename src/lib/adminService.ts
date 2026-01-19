@@ -940,25 +940,58 @@ export class AdminService {
           })
 
           // Enviar notificación usando ServerEmailService directamente
-          // Si no hay email del cliente, solo enviar al admin
-          const recipients = clientEmail ? 'both' : 'admin'
-          console.log(`📧 Intentando enviar emails. Destinatarios: ${recipients}`)
-          
-          try {
-            const ServerEmailService = (await import('./emailService.server')).default
-            const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData, recipients)
+          // IMPORTANTE: Solo ejecutar en el servidor (no en el cliente/navegador)
+          if (typeof window === 'undefined') {
+            // Si no hay email del cliente, solo enviar al admin
+            const recipients = clientEmail ? 'both' : 'admin'
+            console.log(`📧 Intentando enviar emails. Destinatarios: ${recipients}`)
             
-            if (emailSent) {
-              console.log(`✅ Notificación enviada correctamente para pedido #${orderDetails.id} (${recipients})`)
-            } else {
-              console.error(`❌ No se pudo enviar la notificación para pedido #${orderDetails.id}. Ver logs anteriores para detalles.`)
+            try {
+              const ServerEmailService = (await import('./emailService.server')).default
+              const emailSent = await ServerEmailService.sendOrderStatusNotification(emailData, recipients)
+              
+              if (emailSent) {
+                console.log(`✅ Notificación enviada correctamente para pedido #${orderDetails.id} (${recipients})`)
+              } else {
+                console.error(`❌ No se pudo enviar la notificación para pedido #${orderDetails.id}. Ver logs anteriores para detalles.`)
+              }
+            } catch (emailError) {
+              console.error('❌ Error al enviar notificación por email:', emailError)
+              if (emailError instanceof Error) {
+                console.error('❌ Error stack:', emailError.stack)
+              }
+              // Continuar sin fallar la operación
             }
-          } catch (emailError) {
-            console.error('❌ Error al enviar notificación por email:', emailError)
-            if (emailError instanceof Error) {
-              console.error('❌ Error stack:', emailError.stack)
+          } else {
+            // Si estamos en el cliente, hacer una llamada a la API para que el servidor envíe el email
+            console.log('📧 Cliente detectado, enviando solicitud de email a API...')
+            try {
+              const response = await fetch(`/api/admin/orders/${orderDetails.id}/send-status-email`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  status: data.status,
+                  recipients: clientEmail ? 'both' : 'admin'
+                })
+              })
+              
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                console.error('❌ Error en API de envío de email:', errorData)
+              } else {
+                const result = await response.json()
+                if (result.success) {
+                  console.log(`✅ Notificación enviada correctamente vía API para pedido #${orderDetails.id}`)
+                } else {
+                  console.error(`❌ No se pudo enviar la notificación vía API: ${result.error || 'Error desconocido'}`)
+                }
+              }
+            } catch (apiError) {
+              console.error('❌ Error llamando a API de envío de email:', apiError)
+              // Continuar sin fallar la operación
             }
-            // Continuar sin fallar la operación
           }
         }
       } catch (emailError) {

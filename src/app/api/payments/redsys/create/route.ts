@@ -57,43 +57,69 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verificar autorización:
-    // - Si la orden es de un cliente invitado (client_id es null), permitir acceso
+    // Lógica de autorización mejorada:
+    // - Si la orden no tiene client_id (pedido invitado), SIEMPRE permitir acceso
+    // - Si no hay usuario autenticado, permitir acceso (checkout como invitado reciente)
     // - Si hay usuario autenticado y la orden tiene client_id, verificar que sea el dueño o admin
-    // - Si no hay usuario pero la orden tiene client_id, puede ser checkout como invitado reciente, permitir acceso
     
-    if (user && order.client_id) {
-      // Solo verificar si hay usuario autenticado Y la orden tiene cliente asociado
+    let isAuthorized = false
+    
+    // Caso 1: Orden sin cliente asociado (pedido invitado) - SIEMPRE permitir
+    if (!order.client_id) {
+      console.log('✅ Acceso permitido - Orden sin cliente (invitado)')
+      isAuthorized = true
+    }
+    // Caso 2: No hay usuario autenticado - Permitir acceso (puede ser checkout como invitado reciente)
+    else if (!user) {
+      console.log('✅ Acceso permitido - Usuario no autenticado (checkout invitado)')
+      isAuthorized = true
+    }
+    // Caso 3: Usuario autenticado con orden que tiene cliente - Verificar permisos
+    else {
       try {
-        const { data: client } = await supabase
+        const { data: client, error: clientError } = await supabase
           .from('clients')
           .select('id, auth_user_id, customer_role:customer_roles(name)')
           .eq('id', order.client_id)
           .single()
         
-        if (client) {
+        if (clientError) {
+          console.error('⚠️ Error obteniendo cliente, permitiendo acceso:', clientError.message)
+          // Si hay error obteniendo el cliente, permitir acceso para no bloquear pagos
+          isAuthorized = true
+        } else if (client) {
           const isOwner = client.auth_user_id === user.id
           const isAdmin = (client.customer_role as any)?.name === 'admin'
           
-          if (!isOwner && !isAdmin) {
+          if (isOwner || isAdmin) {
+            console.log('✅ Acceso permitido - Usuario autorizado:', { isOwner, isAdmin })
+            isAuthorized = true
+          } else {
             console.error('❌ Acceso denegado - Usuario no autorizado:', {
               userId: user.id,
               orderClientId: order.client_id,
               clientAuthUserId: client.auth_user_id
             })
-            return NextResponse.json(
-              { error: 'No autorizado para acceder a esta orden' },
-              { status: 403 }
-            )
+            isAuthorized = false
           }
+        } else {
+          // Cliente no encontrado - permitir acceso (puede ser un problema de datos)
+          console.warn('⚠️ Cliente no encontrado, permitiendo acceso')
+          isAuthorized = true
         }
       } catch (authError) {
-        console.error('Error verificando autorización:', authError)
+        console.error('⚠️ Error verificando autorización, permitiendo acceso:', authError)
         // En caso de error, permitir acceso para no bloquear pagos legítimos
+        isAuthorized = true
       }
     }
     
-    // Si no hay usuario autenticado O client_id es null, permitir acceso (checkout como invitado)
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: 'No autorizado para acceder a esta orden' },
+        { status: 403 }
+      )
+    }
 
     console.log('💰 Verificando totales para Redsys:', {
       orderId: order.id,
@@ -123,16 +149,21 @@ export async function POST(request: NextRequest) {
       consumerName
     )
 
-    // Registrar intento de pago en logs
-    await supabase.from('order_logs').insert({
-      order_id: orderId,
-      status: 'pending',
-      comment: 'Iniciando pago con Redsys',
-      details: {
-        amount: amountInCents,
-        paymentMethod: 'redsys'
-      }
-    })
+    // Registrar intento de pago en logs (no bloquear si falla)
+    try {
+      await supabase.from('order_logs').insert({
+        order_id: orderId,
+        status: 'pending',
+        comment: 'Iniciando pago con Redsys',
+        details: {
+          amount: amountInCents,
+          paymentMethod: 'redsys'
+        }
+      })
+    } catch (logError) {
+      console.warn('⚠️ Error registrando log de pago (no crítico):', logError)
+      // No bloquear el pago si falla el registro de logs
+    }
 
     return NextResponse.json({
       success: true,

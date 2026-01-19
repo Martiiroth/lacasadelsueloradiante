@@ -424,10 +424,7 @@ export default function AdminOrderDetail() {
                               } else if (item.variant?.product?.title) {
                                 // Fallback: usar del catálogo
                                 const catalogTitle = item.variant.product.title
-                                const catalogVariant = item.variant.title || 
-                                  [item.variant.option1, item.variant.option2, item.variant.option3]
-                                    .filter(Boolean)
-                                    .join(' / ')
+                                const catalogVariant = item.variant.title
                                 return catalogVariant ? `${catalogTitle} - ${catalogVariant}` : catalogTitle
                               } else {
                                 return 'Producto'

@@ -748,9 +748,6 @@ export class AdminService {
             variant:product_variants (
               title,
               sku,
-              option1,
-              option2,
-              option3,
               product:products (
                 title
               )

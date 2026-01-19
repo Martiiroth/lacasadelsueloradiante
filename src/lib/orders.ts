@@ -218,33 +218,11 @@ export class OrderService {
         price_cents: item.price_cents
       }))
 
+      // Insertar order_items con select simplificado para evitar errores 400
       const { data: orderItems, error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItemsData)
-        .select(`
-          *,
-          variant:product_variants (
-            id,
-            title,
-            sku,
-            variant_images (
-              id,
-              url,
-              alt,
-              position
-            ),
-            product:products (
-              id,
-              title,
-              slug,
-              images:product_images (
-                url,
-                alt,
-                position
-              )
-            )
-          )
-        `)
+        .select('*')
 
       if (itemsError || !orderItems) {
         console.error('Error creating order items:', itemsError)
@@ -482,24 +460,64 @@ export class OrderService {
         }
         
         // Obtener order_items con nombres personalizados desde la base de datos
-        const { data: savedOrderItems } = await supabase
+        // Simplificar la consulta para evitar errores 400 con joins anidados profundos
+        const { data: savedOrderItems, error: itemsFetchError } = await supabase
           .from('order_items')
-          .select(`
-            *,
-            variant:product_variants(
-              title,
-              option1,
-              option2,
-              option3,
-              product:products(title)
-            )
-          `)
+          .select('*')
           .eq('order_id', order.id)
         
-        const items = (savedOrderItems || []).map((item: any) => ({
+        if (itemsFetchError) {
+          console.error('Error fetching order items:', itemsFetchError)
+        }
+        
+        // Obtener información de variantes y productos por separado si es necesario
+        const itemsWithDetails = await Promise.all(
+          (savedOrderItems || []).map(async (item: any) => {
+            // Si ya tenemos product_title y variant_title en el item, usarlos
+            if (item.product_title) {
+              return item
+            }
+            
+            // Si no, obtener la información de la variante
+            try {
+              const { data: variant } = await supabase
+                .from('product_variants')
+                .select(`
+                  title,
+                  option1,
+                  option2,
+                  option3,
+                  product_id
+                `)
+                .eq('id', item.variant_id)
+                .single()
+              
+              if (variant?.product_id) {
+                const { data: product } = await supabase
+                  .from('products')
+                  .select('title')
+                  .eq('id', variant.product_id)
+                  .single()
+                
+                return {
+                  ...item,
+                  product_title: product?.title || 'Producto',
+                  variant_title: variant?.title || variant?.option1 || ''
+                }
+              }
+              
+              return item
+            } catch (error) {
+              console.error('Error fetching variant details:', error)
+              return item
+            }
+          })
+        )
+        
+        const items = itemsWithDetails.map((item: any) => ({
           title: item.product_title 
             ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
-            : (item.variant?.product?.title || item.variant?.title || 'Producto'),
+            : 'Producto',
           quantity: item.qty,
           price: (item.price_cents || 0) / 100
         }))

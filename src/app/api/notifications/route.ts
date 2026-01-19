@@ -5,6 +5,15 @@ export async function POST(request: NextRequest) {
   try {
     console.log('📧 Notifications API - Received request')
     
+    // Asegurar que siempre devolvemos JSON
+    const contentType = request.headers.get('content-type')
+    if (!contentType || !contentType.includes('application/json')) {
+      return NextResponse.json(
+        { success: false, message: 'Content-Type debe ser application/json' },
+        { status: 400 }
+      )
+    }
+    
     const body = await request.json()
     const { action, orderData, registrationData } = body
 

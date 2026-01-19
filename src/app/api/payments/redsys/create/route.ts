@@ -30,19 +30,70 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que la orden existe en la base de datos
+    // Usar createClient() que funciona con usuarios autenticados y anónimos
     const supabase = await createClient()
+    
+    // Obtener usuario actual (puede ser null para usuarios invitados)
+    const { data: { user } } = await supabase.auth.getUser()
+    
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, total_cents, status')
+      .select('id, total_cents, status, client_id')
       .eq('id', orderId)
       .single()
 
-    if (orderError || !order) {
+    if (orderError) {
+      console.error('❌ Error fetching order:', orderError)
+      return NextResponse.json(
+        { error: 'Error al verificar la orden: ' + orderError.message },
+        { status: 500 }
+      )
+    }
+
+    if (!order) {
       return NextResponse.json(
         { error: 'Orden no encontrada' },
         { status: 404 }
       )
     }
+
+    // Verificar autorización:
+    // - Si la orden es de un cliente invitado (client_id es null), permitir acceso
+    // - Si hay usuario autenticado y la orden tiene client_id, verificar que sea el dueño o admin
+    // - Si no hay usuario pero la orden tiene client_id, puede ser checkout como invitado reciente, permitir acceso
+    
+    if (user && order.client_id) {
+      // Solo verificar si hay usuario autenticado Y la orden tiene cliente asociado
+      try {
+        const { data: client } = await supabase
+          .from('clients')
+          .select('id, auth_user_id, customer_role:customer_roles(name)')
+          .eq('id', order.client_id)
+          .single()
+        
+        if (client) {
+          const isOwner = client.auth_user_id === user.id
+          const isAdmin = (client.customer_role as any)?.name === 'admin'
+          
+          if (!isOwner && !isAdmin) {
+            console.error('❌ Acceso denegado - Usuario no autorizado:', {
+              userId: user.id,
+              orderClientId: order.client_id,
+              clientAuthUserId: client.auth_user_id
+            })
+            return NextResponse.json(
+              { error: 'No autorizado para acceder a esta orden' },
+              { status: 403 }
+            )
+          }
+        }
+      } catch (authError) {
+        console.error('Error verificando autorización:', authError)
+        // En caso de error, permitir acceso para no bloquear pagos legítimos
+      }
+    }
+    
+    // Si no hay usuario autenticado O client_id es null, permitir acceso (checkout como invitado)
 
     console.log('💰 Verificando totales para Redsys:', {
       orderId: order.id,
@@ -89,9 +140,13 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Error creando transacción Redsys:', error)
+    console.error('❌ Error creando transacción Redsys:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Error interno del servidor'
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
       { status: 500 }
     )
   }

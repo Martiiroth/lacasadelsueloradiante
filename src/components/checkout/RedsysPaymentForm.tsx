@@ -41,7 +41,8 @@ export default function RedsysPaymentForm({
       const response = await fetch('/api/payments/redsys/create', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           orderId,

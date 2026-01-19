@@ -63,6 +63,7 @@ class EmailService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify({
           action: 'send_new_order_notification',

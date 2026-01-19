@@ -1501,13 +1501,30 @@ export class AdminService {
           })
         )
         
-        const items = itemsWithDetails.map((item: any) => ({
-          title: item.product_title 
-            ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
-            : 'Producto',
-          quantity: item.qty,
-          price: (item.price_cents || 0) / 100
-        }))
+        const items = itemsWithDetails.map((item: any) => {
+          // Construir título del producto: product_title + variant_title si existe
+          let productTitle = item.product_title || ''
+          let variantTitle = item.variant_title || ''
+          
+          let title = ''
+          if (productTitle && variantTitle) {
+            title = `${productTitle} - ${variantTitle}`
+          } else if (productTitle) {
+            title = productTitle
+          } else if (variantTitle) {
+            title = variantTitle
+          } else {
+            // Si no hay nombres personalizados, ya se obtuvieron del catálogo en itemsWithDetails
+            // pero si aún no hay, usar 'Producto' como fallback
+            title = 'Producto'
+          }
+          
+          return {
+            title,
+            quantity: item.qty,
+            price: (item.price_cents || 0) / 100
+          }
+        })
         
         const emailData = {
           orderId: order.id,

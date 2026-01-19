@@ -293,14 +293,33 @@ export async function POST(request: NextRequest) {
               ? `${orderData.clients.first_name} ${orderData.clients.last_name}`
               : orderData.guest_email || 'Cliente',
             clientEmail: orderData.clients?.email || orderData.guest_email || '',
-            items: orderData.order_items?.map((item: any) => ({
-              // Si es producto personalizado, usar nombres guardados; si no, usar de la relación
-              title: item.product_title 
-                ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
-                : item.product_variants?.products?.title || 'Producto',
-              quantity: item.qty,
-              price: item.price_cents / 100
-            })) || [],
+            items: orderData.order_items?.map((item: any) => {
+              // Construir título del producto: product_title + variant_title si existe
+              let productTitle = item.product_title || ''
+              let variantTitle = item.variant_title || ''
+              
+              let title = ''
+              if (productTitle && variantTitle) {
+                title = `${productTitle} - ${variantTitle}`
+              } else if (productTitle) {
+                title = productTitle
+              } else if (variantTitle) {
+                title = variantTitle
+              } else if (item.product_variants?.products?.title) {
+                // Fallback: usar del catálogo
+                const catalogTitle = item.product_variants.products.title
+                const catalogVariant = item.product_variants.title
+                title = catalogVariant ? `${catalogTitle} - ${catalogVariant}` : catalogTitle
+              } else {
+                title = 'Producto'
+              }
+              
+              return {
+                title,
+                quantity: item.qty,
+                price: item.price_cents / 100
+              }
+            }) || [],
             subtotal: orderData.subtotal_cents / 100,
             shipping: orderData.shipping_cost_cents / 100,
             tax: orderData.tax_cents / 100,

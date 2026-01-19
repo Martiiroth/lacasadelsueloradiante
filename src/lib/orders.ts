@@ -471,45 +471,97 @@ export class OrderService {
         }
         
         // Obtener información de variantes y productos por separado si es necesario
+        // SOLO si estamos en el servidor y realmente necesitamos los datos
         const itemsWithDetails = await Promise.all(
           (savedOrderItems || []).map(async (item: any) => {
-            // Si ya tenemos product_title y variant_title en el item, usarlos
+            // Si ya tenemos product_title y variant_title en el item, usarlos directamente
             if (item.product_title) {
-              return item
+              return {
+                ...item,
+                product_title: item.product_title,
+                variant_title: item.variant_title || ''
+              }
             }
             
-            // Si no, obtener la información de la variante
-            try {
-              const { data: variant } = await supabase
-                .from('product_variants')
-                .select(`
-                  title,
-                  option1,
-                  option2,
-                  option3,
-                  product_id
-                `)
-                .eq('id', item.variant_id)
-                .single()
-              
-              if (variant?.product_id) {
-                const { data: product } = await supabase
-                  .from('products')
-                  .select('title')
-                  .eq('id', variant.product_id)
+            // Si no tenemos variant_id, no podemos obtener más información
+            if (!item.variant_id) {
+              return {
+                ...item,
+                product_title: 'Producto',
+                variant_title: ''
+              }
+            }
+            
+            // Intentar obtener información de la variante SOLO si estamos en servidor
+            if (typeof window === 'undefined') {
+              try {
+                const { data: variant, error: variantError } = await supabase
+                  .from('product_variants')
+                  .select('title, option1, option2, option3, product_id')
+                  .eq('id', item.variant_id)
                   .single()
+                
+                if (variantError) {
+                  console.warn('⚠️ Error obteniendo variante (no crítico):', variantError.message)
+                  return {
+                    ...item,
+                    product_title: 'Producto',
+                    variant_title: ''
+                  }
+                }
+                
+                if (variant?.product_id) {
+                  try {
+                    const { data: product, error: productError } = await supabase
+                      .from('products')
+                      .select('title')
+                      .eq('id', variant.product_id)
+                      .single()
+                    
+                    if (productError) {
+                      console.warn('⚠️ Error obteniendo producto (no crítico):', productError.message)
+                      return {
+                        ...item,
+                        product_title: 'Producto',
+                        variant_title: variant?.title || variant?.option1 || ''
+                      }
+                    }
+                    
+                    return {
+                      ...item,
+                      product_title: product?.title || 'Producto',
+                      variant_title: variant?.title || variant?.option1 || ''
+                    }
+                  } catch (productError) {
+                    console.warn('⚠️ Excepción obteniendo producto (no crítico):', productError)
+                    return {
+                      ...item,
+                      product_title: 'Producto',
+                      variant_title: variant?.title || variant?.option1 || ''
+                    }
+                  }
+                }
                 
                 return {
                   ...item,
-                  product_title: product?.title || 'Producto',
+                  product_title: 'Producto',
                   variant_title: variant?.title || variant?.option1 || ''
                 }
+              } catch (error) {
+                console.warn('⚠️ Error obteniendo detalles de variante (no crítico):', error)
+                return {
+                  ...item,
+                  product_title: 'Producto',
+                  variant_title: ''
+                }
               }
-              
-              return item
-            } catch (error) {
-              console.error('Error fetching variant details:', error)
-              return item
+            } else {
+              // En cliente, usar datos básicos sin hacer consultas adicionales
+              return {
+                ...item,
+                product_title: 'Producto',
+                variant_title: ''
+              }
             }
           })
         )

@@ -3,18 +3,28 @@ import ServerEmailService from '@/lib/emailService.server'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('📧 Notifications API - Received request')
+    console.log('📧 Notifications API - Received request from:', request.url)
     
     // Asegurar que siempre devolvemos JSON
     const contentType = request.headers.get('content-type')
     if (!contentType || !contentType.includes('application/json')) {
+      console.warn('⚠️ Notifications API - Invalid Content-Type:', contentType)
       return NextResponse.json(
         { success: false, message: 'Content-Type debe ser application/json' },
         { status: 400 }
       )
     }
     
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch (jsonError) {
+      console.error('❌ Notifications API - Error parsing JSON:', jsonError)
+      return NextResponse.json(
+        { success: false, message: 'Error al parsear el cuerpo de la petición' },
+        { status: 400 }
+      )
+    }
     const { action, orderData, registrationData } = body
 
     console.log('📧 Notifications API - Action:', action)

@@ -77,34 +77,47 @@ export async function POST(request: NextRequest) {
     // Caso 3: Usuario autenticado con orden que tiene cliente - Verificar permisos
     else {
       try {
-        const { data: client, error: clientError } = await supabase
+        // Primero verificar si el usuario es admin (consulta más permisiva)
+        const { data: currentUserClient } = await supabase
           .from('clients')
-          .select('id, auth_user_id, customer_role:customer_roles(name)')
-          .eq('id', order.client_id)
+          .select('id, auth_uid, customer_role:customer_roles(name)')
+          .eq('auth_uid', user.id)
           .single()
         
-        if (clientError) {
-          console.error('⚠️ Error obteniendo cliente, permitiendo acceso:', clientError.message)
-          // Si hay error obteniendo el cliente, permitir acceso para no bloquear pagos
-          isAuthorized = true
-        } else if (client) {
-          const isOwner = client.auth_user_id === user.id
-          const isAdmin = (client.customer_role as any)?.name === 'admin'
-          
-          if (isOwner || isAdmin) {
-            console.log('✅ Acceso permitido - Usuario autorizado:', { isOwner, isAdmin })
+        if (currentUserClient) {
+          const isAdmin = (currentUserClient.customer_role as any)?.name === 'admin'
+          if (isAdmin) {
+            console.log('✅ Acceso permitido - Usuario es admin')
             isAuthorized = true
           } else {
-            console.error('❌ Acceso denegado - Usuario no autorizado:', {
-              userId: user.id,
-              orderClientId: order.client_id,
-              clientAuthUserId: client.auth_user_id
-            })
-            isAuthorized = false
+            // Si no es admin, verificar que es el dueño de la orden
+            const { data: orderClient, error: orderClientError } = await supabase
+              .from('clients')
+              .select('id, auth_uid')
+              .eq('id', order.client_id)
+              .single()
+            
+            if (orderClientError || !orderClient) {
+              console.warn('⚠️ Error obteniendo cliente de la orden, permitiendo acceso')
+              isAuthorized = true
+            } else {
+              const isOwner = orderClient.auth_uid === user.id
+              if (isOwner) {
+                console.log('✅ Acceso permitido - Usuario es dueño de la orden')
+                isAuthorized = true
+              } else {
+                console.error('❌ Acceso denegado - Usuario no autorizado:', {
+                  userId: user.id,
+                  orderClientId: order.client_id,
+                  orderClientAuthUid: orderClient.auth_uid
+                })
+                isAuthorized = false
+              }
+            }
           }
         } else {
-          // Cliente no encontrado - permitir acceso (puede ser un problema de datos)
-          console.warn('⚠️ Cliente no encontrado, permitiendo acceso')
+          // Usuario no tiene cliente asociado - permitir acceso (puede ser admin sin cliente)
+          console.warn('⚠️ Usuario autenticado sin cliente asociado, permitiendo acceso')
           isAuthorized = true
         }
       } catch (authError) {

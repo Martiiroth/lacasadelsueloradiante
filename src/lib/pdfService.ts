@@ -436,6 +436,7 @@ export class PDFService {
 
     // Items
     doc.setFont('helvetica', 'normal')
+    doc.setFontSize(9)
     let subtotal = 0
 
     items.forEach((item) => {
@@ -458,14 +459,32 @@ export class PDFService {
         currentY = margin
       }
 
-      doc.text(description, colPositions[0] + 2, currentY + 5)
-      doc.text(quantity, colPositions[1] + 2, currentY + 5)
-      doc.text(price, colPositions[2] + 2, currentY + 5)
-      doc.text(tax, colPositions[3] + 2, currentY + 5)
-      doc.text(totalFormatted, colPositions[4] + 2, currentY + 5)
+      // Ancho máximo para la descripción (colWidths[0] - 4 para padding)
+      const maxDescriptionWidth = colWidths[0] - 4
+      
+      // Dividir la descripción en múltiples líneas si es necesario
+      const descriptionLines = doc.splitTextToSize(description, maxDescriptionWidth)
+      const rowHeight = Math.max(8, descriptionLines.length * 4) // Altura mínima 8, o 4px por línea
+      
+      // Dibujar descripción en múltiples líneas
+      descriptionLines.forEach((line: string, lineIndex: number) => {
+        doc.text(line, colPositions[0] + 2, currentY + 5 + (lineIndex * 4))
+      })
+      
+      // Calcular la posición Y central para alinear el resto de columnas verticalmente
+      // Si hay múltiples líneas, centrar; si es una sola línea, usar posición estándar
+      const centerY = descriptionLines.length > 1 
+        ? currentY + (rowHeight / 2) + 2 
+        : currentY + 5
+      
+      // Dibujar el resto de columnas centradas verticalmente
+      doc.text(quantity, colPositions[1] + 2, centerY)
+      doc.text(price, colPositions[2] + 2, centerY)
+      doc.text(tax, colPositions[3] + 2, centerY)
+      doc.text(totalFormatted, colPositions[4] + 2, centerY)
 
       subtotal += itemTotal
-      currentY += 8
+      currentY += rowHeight
 
       // Línea separadora
       doc.setDrawColor(200, 200, 200)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
+import { createClient } from '@/utils/supabase/server'
 
 export async function POST(
   request: NextRequest,
@@ -9,24 +10,47 @@ export async function POST(
   try {
     console.log('🔐 Procesando solicitud de entrega para pedido:', id)
     
-    // Verificación de autenticación para producción
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('❌ No authorization header provided')
-      return NextResponse.json(
-        { error: 'No autorizado - Token requerido' },
-        { status: 401 }
-      )
-    }
+    // Verificación de autenticación usando Supabase
+    const supabase = await createClient()
     
-    const token = authHeader.replace('Bearer ', '')
-    if (!token || token.length < 10) {
-      console.error('❌ Invalid token provided')
+    // Verificar que el usuario está autenticado
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
+      console.error('❌ Usuario no autenticado:', authError?.message)
       return NextResponse.json(
-        { error: 'Token inválido' },
+        { error: 'No autorizado' },
         { status: 401 }
       )
     }
+
+    console.log('✅ Usuario autenticado:', user.email)
+
+    // Verificar que el usuario es admin
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('customer_role:customer_roles(*)')
+      .eq('auth_uid', user.id)
+      .single()
+
+    if (clientError || !client) {
+      console.error('❌ Error obteniendo cliente:', clientError?.message)
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 403 }
+      )
+    }
+
+    const isAdmin = (client?.customer_role as any)?.name === 'admin'
+    if (!isAdmin) {
+      console.error('❌ Usuario no es admin:', user.email)
+      return NextResponse.json(
+        { error: 'No tienes permisos para realizar esta acción' },
+        { status: 403 }
+      )
+    }
+
+    console.log('✅ Usuario es admin, procediendo con la entrega')
 
     console.log(`📦 Marcando pedido ${id} como entregado...`)
 

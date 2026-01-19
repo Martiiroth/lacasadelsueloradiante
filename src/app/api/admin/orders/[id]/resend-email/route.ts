@@ -58,6 +58,7 @@ export async function POST(
     })
 
     // Verificar que el usuario tiene rol de admin
+    console.log('📧 [RESEND-EMAIL] Buscando cliente con auth_uid:', user.id)
     const { data: client, error: clientError } = await supabase
       .from('clients')
       .select(`
@@ -66,6 +67,17 @@ export async function POST(
       `)
       .eq('auth_uid', user.id)
       .single()
+    
+    console.log('📧 [RESEND-EMAIL] Resultado de búsqueda de cliente:', {
+      hasClient: !!client,
+      clientId: client?.id,
+      roleName: (client?.customer_role as any)?.name,
+      clientError: clientError ? {
+        message: clientError.message,
+        code: clientError.code,
+        details: clientError.details
+      } : null
+    })
 
     if (clientError) {
       console.error('❌ Error obteniendo cliente:', {

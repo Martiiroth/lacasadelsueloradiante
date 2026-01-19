@@ -744,7 +744,17 @@ export class AdminService {
             qty,
             price_cents,
             product_title,
-            variant_title
+            variant_title,
+            variant:product_variants (
+              title,
+              sku,
+              option1,
+              option2,
+              option3,
+              product:products (
+                title
+              )
+            )
           )
         `)
         .eq('id', orderId)

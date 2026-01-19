@@ -917,14 +917,28 @@ export class AdminService {
             status: data.status,
             clientName,
             clientEmail: clientEmail,
-            items: orderDetails.order_items?.map((item: any) => ({
-              // Usar nombres personalizados guardados en order_items (product_title, variant_title)
-              title: item.product_title 
-                ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
-                : 'Producto',
-              quantity: item.qty,
-              price: (item.price_cents || 0) / 100
-            })) || [],
+            items: orderDetails.order_items?.map((item: any) => {
+              // Construir título del producto: product_title + variant_title si existe
+              let productTitle = item.product_title || ''
+              let variantTitle = item.variant_title || ''
+              
+              let title = ''
+              if (productTitle && variantTitle) {
+                title = `${productTitle} - ${variantTitle}`
+              } else if (productTitle) {
+                title = productTitle
+              } else if (variantTitle) {
+                title = variantTitle
+              } else {
+                title = 'Producto'
+              }
+              
+              return {
+                title,
+                quantity: item.qty,
+                price: (item.price_cents || 0) / 100
+              }
+            }) || [],
             total: (orderDetails.total_cents || 0) / 100,
             createdAt: orderDetails.created_at,
             shippingAddress,

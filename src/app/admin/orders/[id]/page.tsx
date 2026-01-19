@@ -410,37 +410,30 @@ export default function AdminOrderDetail() {
                       <div key={item.id} className="flex items-center justify-between border-b border-gray-100 pb-4">
                         <div className="flex-1">
                           <h4 className="text-sm font-medium text-gray-900">
-                            {/* Prioridad: nombres personalizados guardados en order_items */}
-                            {(item as any).variant_title 
-                              ? (item as any).variant_title 
-                              : (item as any).product_title 
-                                ? (item as any).product_title
-                                : item.variant 
-                                  ? (
-                                      // Título específico de la variante del catálogo
-                              item.variant.title ||
-                              // Fallback: opciones concatenadas
-                              [item.variant.option1, item.variant.option2, item.variant.option3]
-                                .filter(Boolean)
-                                .join(' / ') ||
-                              // Último recurso: mostrar el producto con indicación de variante
-                              `${item.variant.product?.title} - Variante` ||
-                              'Variante sin identificar'
-                                    )
-                                  : 'Producto sin variante'
-                            }
+                            {/* Construir título del producto: product_title + variant_title si existe */}
+                            {(() => {
+                              const productTitle = (item as any).product_title
+                              const variantTitle = (item as any).variant_title
+                              
+                              if (productTitle && variantTitle) {
+                                return `${productTitle} - ${variantTitle}`
+                              } else if (productTitle) {
+                                return productTitle
+                              } else if (variantTitle) {
+                                return variantTitle
+                              } else if (item.variant?.product?.title) {
+                                // Fallback: usar del catálogo
+                                const catalogTitle = item.variant.product.title
+                                const catalogVariant = item.variant.title || 
+                                  [item.variant.option1, item.variant.option2, item.variant.option3]
+                                    .filter(Boolean)
+                                    .join(' / ')
+                                return catalogVariant ? `${catalogTitle} - ${catalogVariant}` : catalogTitle
+                              } else {
+                                return 'Producto'
+                              }
+                            })()}
                           </h4>
-                          {/* Mostrar producto padre como contexto */}
-                            <p className="text-sm text-gray-500">
-                            {/* Si hay product_title personalizado, mostrarlo; si no, usar del catálogo */}
-                            {(item as any).product_title 
-                              ? (item as any).product_title 
-                              : item.variant?.product?.title || 'Producto sin nombre'}
-                            {/* Mostrar variant_title si es diferente del título principal */}
-                            {(item as any).variant_title && 
-                             (item as any).variant_title !== (item as any).product_title && 
-                             ` - ${(item as any).variant_title}`}
-                            </p>
                           <p className="text-sm text-gray-500">
                             Cantidad: {item.qty}
                           </p>

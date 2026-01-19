@@ -497,7 +497,7 @@ export class OrderService {
               try {
                 const { data: variant, error: variantError } = await supabase
                   .from('product_variants')
-                  .select('title, option1, option2, option3, product_id')
+                  .select('title, product_id')
                   .eq('id', item.variant_id)
                   .single()
                 
@@ -523,21 +523,21 @@ export class OrderService {
                       return {
                         ...item,
                         product_title: 'Producto',
-                        variant_title: variant?.title || variant?.option1 || ''
+                        variant_title: variant?.title || ''
                       }
                     }
                     
                     return {
                       ...item,
                       product_title: product?.title || 'Producto',
-                      variant_title: variant?.title || variant?.option1 || ''
+                      variant_title: variant?.title || ''
                     }
                   } catch (productError) {
                     console.warn('⚠️ Excepción obteniendo producto (no crítico):', productError)
                     return {
                       ...item,
                       product_title: 'Producto',
-                      variant_title: variant?.title || variant?.option1 || ''
+                      variant_title: variant?.title || ''
                     }
                   }
                 }
@@ -545,7 +545,7 @@ export class OrderService {
                 return {
                   ...item,
                   product_title: 'Producto',
-                  variant_title: variant?.title || variant?.option1 || ''
+                  variant_title: variant?.title || ''
                 }
               } catch (error) {
                 console.warn('⚠️ Error obteniendo detalles de variante (no crítico):', error)

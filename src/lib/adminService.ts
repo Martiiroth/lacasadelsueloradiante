@@ -1370,21 +1370,63 @@ export class AdminService {
         }
         
         // Obtener order_items con nombres personalizados
-        const { data: savedOrderItems } = await supabase
+        // Simplificar consulta para evitar errores 400 con joins anidados
+        const { data: savedOrderItems, error: itemsFetchError } = await supabase
           .from('order_items')
-          .select(`
-            *,
-            variant:product_variants(
-              title,
-              product:products(title)
-            )
-          `)
+          .select('*')
           .eq('order_id', order.id)
         
-        const items = (savedOrderItems || []).map((item: any) => ({
+        if (itemsFetchError) {
+          console.error('Error fetching order items for email:', itemsFetchError)
+        }
+        
+        // Obtener información de productos/variantes por separado si es necesario
+        const itemsWithDetails = await Promise.all(
+          (savedOrderItems || []).map(async (item: any) => {
+            // Si ya tenemos product_title, usarlo directamente
+            if (item.product_title) {
+              return {
+                ...item,
+                product_title: item.product_title,
+                variant_title: item.variant_title || ''
+              }
+            }
+            
+            // Si no, obtener información de la variante
+            if (item.variant_id) {
+              try {
+                const { data: variant } = await supabase
+                  .from('product_variants')
+                  .select('title, product_id')
+                  .eq('id', item.variant_id)
+                  .single()
+                
+                if (variant?.product_id) {
+                  const { data: product } = await supabase
+                    .from('products')
+                    .select('title')
+                    .eq('id', variant.product_id)
+                    .single()
+                  
+                  return {
+                    ...item,
+                    product_title: product?.title || 'Producto',
+                    variant_title: variant?.title || item.variant_title || ''
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching variant details for email:', error)
+              }
+            }
+            
+            return item
+          })
+        )
+        
+        const items = itemsWithDetails.map((item: any) => ({
           title: item.product_title 
             ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
-            : (item.variant?.product?.title || item.variant?.title || 'Producto'),
+            : 'Producto',
           quantity: item.qty,
           price: (item.price_cents || 0) / 100
         }))
@@ -1392,11 +1434,11 @@ export class AdminService {
         const emailData = {
           orderId: order.id,
           orderNumber: order.id, // Usar ID como número de pedido
-          status: 'pending', // Nuevo pedido siempre es pending
+          status: orderData.status || 'pending', // Usar el status del pedido
           clientName,
           clientEmail: clientData?.email || (clientInfo?.email) || '',
           items,
-          total: orderData.items.reduce((sum, item) => sum + (item.price_cents * item.qty), 0) / 100,
+          total: orderData.total_cents / 100, // Usar el total real de la orden (incluye envío)
           createdAt: order.created_at,
           shippingAddress: orderData.shipping_address ? 
             (typeof orderData.shipping_address === 'string' 

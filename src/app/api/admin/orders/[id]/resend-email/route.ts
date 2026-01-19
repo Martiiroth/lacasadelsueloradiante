@@ -240,6 +240,11 @@ export async function POST(
         title = productTitle
       } else if (variantTitle) {
         title = variantTitle
+      } else if (item.variant?.product?.title) {
+        // Fallback: usar del catálogo
+        const catalogTitle = item.variant.product.title
+        const catalogVariant = item.variant.title
+        title = catalogVariant ? `${catalogTitle} - ${catalogVariant}` : catalogTitle
       } else {
         title = 'Producto'
       }

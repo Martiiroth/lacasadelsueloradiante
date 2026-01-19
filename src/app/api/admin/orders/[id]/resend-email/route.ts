@@ -15,13 +15,38 @@ export async function POST(
     // Verificar que el usuario está autenticado
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    if (authError || !user) {
-      console.error('❌ Invalid token or user not found:', authError)
+    if (authError) {
+      console.error('❌ Error de autenticación:', {
+        error: authError,
+        message: authError.message,
+        status: authError.status
+      })
       return NextResponse.json(
-        { error: 'No autorizado - Token requerido' },
+        { 
+          success: false,
+          error: 'No autorizado - Error de autenticación',
+          details: authError.message || 'Token inválido o expirado'
+        },
         { status: 401 }
       )
     }
+    
+    if (!user) {
+      console.error('❌ Usuario no encontrado en la sesión')
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'No autorizado - Usuario no encontrado',
+          details: 'Por favor, inicia sesión nuevamente'
+        },
+        { status: 401 }
+      )
+    }
+    
+    console.log('✅ Usuario autenticado:', {
+      userId: user.id,
+      email: user.email
+    })
 
     // Verificar que el usuario tiene rol de admin
     const { data: client, error: clientError } = await supabase
@@ -33,22 +58,65 @@ export async function POST(
       .eq('auth_uid', user.id)
       .single()
 
-    if (clientError || !client) {
-      console.error('❌ Error obteniendo cliente o cliente no encontrado:', clientError)
+    if (clientError) {
+      console.error('❌ Error obteniendo cliente:', {
+        error: clientError,
+        message: clientError.message,
+        code: clientError.code,
+        details: clientError.details,
+        hint: clientError.hint,
+        userId: user.id,
+        userEmail: user.email
+      })
       return NextResponse.json(
-        { error: 'No se pudo verificar los permisos del usuario' },
+        { 
+          success: false,
+          error: 'No se pudo verificar los permisos del usuario',
+          details: clientError.message || 'Error al obtener información del cliente'
+        },
         { status: 403 }
       )
     }
 
-    const isAdmin = (client.customer_role as any)?.name === 'admin'
-    if (!isAdmin) {
-      console.error('❌ User is not admin:', user.email, 'Role:', (client.customer_role as any)?.name)
+    if (!client) {
+      console.error('❌ Cliente no encontrado para usuario:', {
+        userId: user.id,
+        userEmail: user.email
+      })
       return NextResponse.json(
-        { error: 'No tienes permisos para realizar esta acción' },
+        { 
+          success: false,
+          error: 'Cliente no encontrado. Por favor, contacta con el administrador.'
+        },
         { status: 403 }
       )
     }
+
+    const roleName = (client.customer_role as any)?.name
+    const isAdmin = roleName === 'admin'
+    
+    if (!isAdmin) {
+      console.error('❌ User is not admin:', {
+        userEmail: user.email,
+        userId: user.id,
+        roleName: roleName || 'sin rol',
+        clientId: client.id
+      })
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'No tienes permisos para realizar esta acción. Se requiere rol de administrador.',
+          details: `Tu rol actual: ${roleName || 'sin rol'}`
+        },
+        { status: 403 }
+      )
+    }
+    
+    console.log('✅ Usuario autenticado como admin:', {
+      userId: user.id,
+      userEmail: user.email,
+      clientId: client.id
+    })
 
     // Leer body para obtener recipients (después de verificar autenticación)
     let recipients: 'client' | 'admin' | 'both' = 'both'

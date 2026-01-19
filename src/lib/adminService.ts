@@ -743,14 +743,7 @@ export class AdminService {
             qty,
             price_cents,
             product_title,
-            variant_title,
-            variant:product_variants (
-              id,
-              title,
-              product:products (
-                title
-              )
-            )
+            variant_title
           )
         `)
         .eq('id', orderId)
@@ -906,10 +899,10 @@ export class AdminService {
             clientName,
             clientEmail: orderDetails.client?.email || '',
             items: orderDetails.order_items?.map((item: any) => ({
-              // Si es producto personalizado, usar nombres guardados; si no, usar de la relación
+              // Usar nombres personalizados guardados en order_items (product_title, variant_title)
               title: item.product_title 
                 ? `${item.product_title}${item.variant_title ? ` - ${item.variant_title}` : ''}`
-                : item.variant?.product?.title || 'Producto',
+                : 'Producto',
               quantity: item.qty,
               price: (item.price_cents || 0) / 100
             })) || [],

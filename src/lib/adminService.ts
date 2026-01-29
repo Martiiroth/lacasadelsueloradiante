@@ -458,6 +458,28 @@ export class AdminService {
     }
   }
 
+  /**
+   * Obtiene el nombre del rol del cliente por auth_uid usando service role (bypass RLS).
+   * Solo para uso en API routes del servidor; evita 403 cuando la sesión/cookies/RLS fallan.
+   */
+  static async getClientRoleByAuthUid(authUid: string): Promise<string | null> {
+    if (typeof window !== 'undefined') return null
+    const adminClient = getSupabaseAdmin()
+    if (!adminClient) return null
+    try {
+      const { data, error } = await adminClient
+        .from('clients')
+        .select('customer_role:customer_roles(name)')
+        .eq('auth_uid', authUid)
+        .single()
+      if (error || !data) return null
+      const role = (data as { customer_role?: { name?: string } | null })?.customer_role
+      return role?.name ?? null
+    } catch {
+      return null
+    }
+  }
+
   static async createClient(data: {
     first_name: string
     last_name: string

@@ -127,7 +127,7 @@ export default function AdminOrderCreate() {
       const { data: methods, error } = await supabase
         .from('shipping_methods')
         .select('id, name, price_cents')
-        .eq('active', true)
+        .order('price_cents')
       
       if (!error && methods) {
         setShippingMethods(methods)

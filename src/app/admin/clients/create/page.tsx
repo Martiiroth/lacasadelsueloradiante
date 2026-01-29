@@ -90,9 +90,10 @@ export default function AdminClientCreate() {
         return
       }
 
-      // Llamar a la API route para crear el cliente
+      // Llamar a la API route para crear el cliente (credentials para enviar cookies de sesión)
       const response = await fetch('/api/admin/clients', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -103,7 +104,10 @@ export default function AdminClientCreate() {
       const text = await response.text()
 
       if (!text || text.trim() === '') {
-        throw new Error(`El servidor devolvió una respuesta vacía (${response.status})`)
+        const statusMessage = response.status === 403
+          ? 'No autorizado (403). Comprueba que tu usuario tiene rol admin en Supabase: tabla clients, campo role_id = 4 (admin).'
+          : `El servidor devolvió una respuesta vacía (${response.status})`
+        throw new Error(statusMessage)
       }
 
       // Intentar parsear JSON

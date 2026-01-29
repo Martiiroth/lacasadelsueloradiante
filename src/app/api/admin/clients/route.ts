@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
 import { createClient } from '@/utils/supabase/server'
 
+const jsonOptions = { headers: { 'Content-Type': 'application/json' } }
+
 export async function POST(request: NextRequest) {
   try {
     console.log('🔐 Procesando solicitud de creación de cliente')
@@ -15,34 +17,41 @@ export async function POST(request: NextRequest) {
     if (authError || !user) {
       console.error('❌ Usuario no autenticado:', authError?.message)
       return NextResponse.json(
-        { success: false, message: 'No autorizado' },
-        { status: 401 }
+        { success: false, message: 'No autorizado. Inicia sesión para continuar.' },
+        { status: 401, ...jsonOptions }
       )
     }
 
     console.log('✅ Usuario autenticado:', user.email)
 
-    // Verificar que el usuario es admin
+    // Verificar que el usuario es admin (clients.role_id -> customer_roles donde name='admin')
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('customer_role:customer_roles(*)')
+      .select('id, role_id, customer_role:customer_roles(id, name)')
       .eq('auth_uid', user.id)
       .single()
 
     if (clientError || !client) {
-      console.error('❌ Error obteniendo cliente:', clientError?.message)
+      console.error('❌ Error obteniendo cliente:', clientError?.message, clientError?.code)
       return NextResponse.json(
-        { success: false, message: 'No autorizado' },
-        { status: 403 }
+        {
+          success: false,
+          message: 'No se pudo verificar tu rol. Debes tener un registro en la tabla "clients" con tu auth_uid y role_id apuntando al rol "admin" (customer_roles). Comprueba en Supabase que tu usuario tiene rol admin.',
+        },
+        { status: 403, ...jsonOptions }
       )
     }
 
-    const isAdmin = (client?.customer_role as any)?.name === 'admin'
+    const roleName = (client?.customer_role as { name?: string } | null)?.name
+    const isAdmin = roleName === 'admin'
     if (!isAdmin) {
-      console.error('❌ Usuario no es admin:', user.email)
+      console.error('❌ Usuario no es admin:', user.email, 'rol actual:', roleName)
       return NextResponse.json(
-        { success: false, message: 'No tienes permisos para realizar esta acción' },
-        { status: 403 }
+        {
+          success: false,
+          message: `No tienes permisos para crear clientes. Tu rol actual es "${roleName || 'sin asignar'}". En Supabase, actualiza clients.role_id a 4 (admin) para tu usuario.`,
+        },
+        { status: 403, ...jsonOptions }
       )
     }
 
@@ -57,7 +66,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: false, 
         message: 'Error al procesar los datos del formulario' 
-      }, { status: 400 })
+      }, { status: 400, ...jsonOptions })
     }
     
     console.log('🔧 API Route - Creating client:', body.email)
@@ -67,7 +76,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: false, 
         message: 'Faltan datos requeridos: email, nombre y apellidos' 
-      }, { status: 400 })
+      }, { status: 400, ...jsonOptions })
     }
     
     // Llamar al AdminService para crear el cliente
@@ -77,18 +86,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         message: 'Cliente creado exitosamente' 
-      }, { status: 201 })
+      }, { status: 201, ...jsonOptions })
     } else {
       return NextResponse.json({ 
         success: false, 
         message: 'Error al crear el cliente' 
-      }, { status: 500 })
+      }, { status: 500, ...jsonOptions })
     }
   } catch (error: any) {
     console.error('❌ API Route error creating client:', error)
     return NextResponse.json({ 
       success: false, 
       message: error?.message || 'Error interno del servidor' 
-    }, { status: 500 })
+    }, { status: 500, ...jsonOptions })
   }
 }

@@ -20,6 +20,7 @@ export function createClient() {
       sameSite: 'lax',
       secure: isHttps,
       maxAge: 400 * 24 * 60 * 60,
+      domain: '.lacasadelsueloradiante.es', // compartir entre www y sin www
     },
   })
 }

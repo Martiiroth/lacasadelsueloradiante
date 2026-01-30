@@ -34,25 +34,33 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Usuario autenticado:', user.email)
 
-    // 1) Verificar rol con service role (bypass RLS); 2) fallback con sesión
+    // 1) Verificar rol con service role (bypass RLS); 2) fallback con sesión (role_id + customer_roles)
     let roleName = await AdminService.getClientRoleByAuthUid(user.id)
     if (!roleName) {
       const { data: clientRow, error: clientError } = await supabase
         .from('clients')
-        .select('customer_role:customer_roles(name)')
+        .select('role_id')
         .eq('auth_uid', user.id)
         .single()
-      if (!clientError && clientRow) {
-        const role = (clientRow as { customer_role?: { name?: string } | null })?.customer_role
-        roleName = role?.name ?? null
+      if (!clientError && clientRow?.role_id) {
+        const { data: roleRow } = await supabase
+          .from('customer_roles')
+          .select('name')
+          .eq('id', clientRow.role_id)
+          .single()
+        roleName = roleRow?.name ?? null
       }
     }
     if (!roleName) {
-      console.error('❌ No se pudo obtener rol para:', user.email, '(¿SUPABASE_SERVICE_ROLE_KEY en producción? ¿Usuario en tabla clients con role_id=4?)')
+      const serviceRoleOk = AdminService.isServiceRoleAvailable()
+      console.error('❌ No se pudo obtener rol para:', user.email, 'serviceRoleOk:', serviceRoleOk)
+      const hint = !serviceRoleOk
+        ? 'En el VPS/servidor falta o falla SUPABASE_SERVICE_ROLE_KEY (mismo proyecto que NEXT_PUBLIC_SUPABASE_URL).'
+        : 'En Supabase: tabla "clients" debe tener una fila con tu auth_uid y role_id = 4 (admin). Revisa también RLS en clients.'
       return NextResponse.json(
         {
           success: false,
-          message: 'No se pudo verificar tu rol. En Supabase: 1) Asegura que tu usuario tiene una fila en la tabla "clients" con tu auth_uid y role_id = 4 (admin). 2) En el servidor de producción, configura la variable SUPABASE_SERVICE_ROLE_KEY.',
+          message: `No se pudo verificar tu rol. ${hint}`,
         },
         { status: 403, ...jsonOptions }
       )

@@ -458,23 +458,35 @@ export class AdminService {
     }
   }
 
+  /** Comprueba si el cliente con service role está disponible (SUPABASE_SERVICE_ROLE_KEY en servidor). */
+  static isServiceRoleAvailable(): boolean {
+    if (typeof window !== 'undefined') return false
+    return getSupabaseAdmin() !== null
+  }
+
   /**
    * Obtiene el nombre del rol del cliente por auth_uid usando service role (bypass RLS).
    * Solo para uso en API routes del servidor; evita 403 cuando la sesión/cookies/RLS fallan.
+   * Usa dos consultas simples (role_id + customer_roles.name) para evitar problemas con nombres de relación en PostgREST.
    */
   static async getClientRoleByAuthUid(authUid: string): Promise<string | null> {
     if (typeof window !== 'undefined') return null
     const adminClient = getSupabaseAdmin()
     if (!adminClient) return null
     try {
-      const { data, error } = await adminClient
+      const { data: clientRow, error: clientErr } = await adminClient
         .from('clients')
-        .select('customer_role:customer_roles(name)')
+        .select('role_id')
         .eq('auth_uid', authUid)
         .single()
-      if (error || !data) return null
-      const role = (data as { customer_role?: { name?: string } | null })?.customer_role
-      return role?.name ?? null
+      if (clientErr || !clientRow?.role_id) return null
+      const { data: roleRow, error: roleErr } = await adminClient
+        .from('customer_roles')
+        .select('name')
+        .eq('id', clientRow.role_id)
+        .single()
+      if (roleErr || !roleRow?.name) return null
+      return roleRow.name
     } catch {
       return null
     }

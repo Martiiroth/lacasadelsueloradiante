@@ -8,11 +8,21 @@ export async function POST(request: NextRequest) {
   try {
     console.log('🔐 Procesando solicitud de creación de cliente')
     
-    // Verificación de autenticación usando Supabase
     const supabase = await createClient()
     
-    // Verificar que el usuario está autenticado
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // 1) Usuario desde cookies (sesión SSR)
+    let { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    // 2) Fallback: si no hay sesión en cookies, usar token del header (sesión en navegador)
+    if ((authError || !user)) {
+      const authHeader = request.headers.get('authorization')
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
+      if (token) {
+        const result = await supabase.auth.getUser(token)
+        user = result.data.user
+        authError = result.error
+      }
+    }
     
     if (authError || !user) {
       console.error('❌ Usuario no autenticado:', authError?.message)
@@ -24,14 +34,25 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Usuario autenticado:', user.email)
 
-    // Verificar rol con service role (evita 403 por RLS/cookies en servidor)
-    const roleName = await AdminService.getClientRoleByAuthUid(user.id)
+    // 1) Verificar rol con service role (bypass RLS); 2) fallback con sesión
+    let roleName = await AdminService.getClientRoleByAuthUid(user.id)
     if (!roleName) {
-      console.error('❌ No se pudo obtener rol para:', user.email)
+      const { data: clientRow, error: clientError } = await supabase
+        .from('clients')
+        .select('customer_role:customer_roles(name)')
+        .eq('auth_uid', user.id)
+        .single()
+      if (!clientError && clientRow) {
+        const role = (clientRow as { customer_role?: { name?: string } | null })?.customer_role
+        roleName = role?.name ?? null
+      }
+    }
+    if (!roleName) {
+      console.error('❌ No se pudo obtener rol para:', user.email, '(¿SUPABASE_SERVICE_ROLE_KEY en producción? ¿Usuario en tabla clients con role_id=4?)')
       return NextResponse.json(
         {
           success: false,
-          message: 'No se pudo verificar tu rol. Debes tener un registro en la tabla "clients" con tu auth_uid y role_id = 4 (admin). Comprueba en Supabase.',
+          message: 'No se pudo verificar tu rol. En Supabase: 1) Asegura que tu usuario tiene una fila en la tabla "clients" con tu auth_uid y role_id = 4 (admin). 2) En el servidor de producción, configura la variable SUPABASE_SERVICE_ROLE_KEY.',
         },
         { status: 403, ...jsonOptions }
       )

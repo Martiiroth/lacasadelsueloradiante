@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   UserIcon,
   MapPinIcon,
@@ -35,6 +36,7 @@ interface ClientFormData {
 
 export default function AdminClientCreate() {
   const router = useRouter()
+  const { session } = useAuth()
   const [formData, setFormData] = useState<ClientFormData>({
     first_name: '',
     last_name: '',
@@ -90,13 +92,15 @@ export default function AdminClientCreate() {
         return
       }
 
-      // Llamar a la API route para crear el cliente (credentials para enviar cookies de sesión)
+      // Llamar a la API: cookies + token en header por si las cookies no llegan al servidor
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
       const response = await fetch('/api/admin/clients', {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(formData),
       })
 

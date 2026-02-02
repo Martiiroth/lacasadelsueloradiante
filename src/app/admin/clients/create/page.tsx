@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
-import { useAuth } from '@/contexts/AuthContext'
+import { createClient } from '@/utils/supabase/client'
 import {
   UserIcon,
   MapPinIcon,
@@ -36,7 +36,6 @@ interface ClientFormData {
 
 export default function AdminClientCreate() {
   const router = useRouter()
-  const { session } = useAuth()
   const [formData, setFormData] = useState<ClientFormData>({
     first_name: '',
     last_name: '',
@@ -92,7 +91,9 @@ export default function AdminClientCreate() {
         return
       }
 
-      // Llamar a la API: cookies + token en header por si las cookies no llegan al servidor
+      // Sesión fresca justo antes del fetch (evita sesión desactualizada del contexto)
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`

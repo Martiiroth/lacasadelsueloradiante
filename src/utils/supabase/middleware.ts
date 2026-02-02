@@ -1,10 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const COOKIE_DOMAIN = '.lacasadelsueloradiante.es'
+const isProd = process.env.NODE_ENV === 'production'
+
 /**
  * Cliente Supabase para Middleware
  * 
- * Actualiza la sesión del usuario y refresca tokens expirados
+ * Actualiza la sesión del usuario y refresca tokens expirados.
+ * Usa las mismas opciones de cookie que el cliente browser (dominio, secure) para evitar pérdida de sesión.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -20,6 +24,12 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
+          const baseOptions = {
+            path: '/',
+            sameSite: 'lax' as const,
+            secure: isProd,
+            domain: COOKIE_DOMAIN,
+          }
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
           })
@@ -27,9 +37,15 @@ export async function updateSession(request: NextRequest) {
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) => {
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, { ...baseOptions, ...options })
           })
         },
+      },
+      cookieOptions: {
+        path: '/',
+        sameSite: 'lax',
+        secure: isProd,
+        domain: COOKIE_DOMAIN,
       },
     }
   )

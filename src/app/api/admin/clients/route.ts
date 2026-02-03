@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
 import { createClient } from '@/utils/supabase/server'
 
-const jsonOptions = { headers: { 'Content-Type': 'application/json' } }
+const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-API-Route': 'admin-clients' }
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       console.error('❌ Usuario no autenticado:', authError?.message)
       return NextResponse.json(
         { success: false, message: 'No autorizado. Inicia sesión para continuar.' },
-        { status: 401, ...jsonOptions }
+        { status: 401, headers: JSON_HEADERS }
       )
     }
 
@@ -61,8 +61,9 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           message: `No se pudo verificar tu rol. ${hint}`,
+          debug: { serviceRoleOk: AdminService.isServiceRoleAvailable() },
         },
-        { status: 403, ...jsonOptions }
+        { status: 403, headers: JSON_HEADERS }
       )
     }
     if (roleName !== 'admin') {
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
           success: false,
           message: `No tienes permisos para crear clientes. Tu rol es "${roleName}". En Supabase, pon clients.role_id = 4 (admin) para tu usuario.`,
         },
-        { status: 403, ...jsonOptions }
+        { status: 403, headers: JSON_HEADERS }
       )
     }
 
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: false, 
         message: 'Error al procesar los datos del formulario' 
-      }, { status: 400, ...jsonOptions })
+      }, { status: 400, headers: JSON_HEADERS })
     }
     
     console.log('🔧 API Route - Creating client:', body.email)
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: false, 
         message: 'Faltan datos requeridos: email, nombre y apellidos' 
-      }, { status: 400, ...jsonOptions })
+      }, { status: 400, headers: JSON_HEADERS })
     }
     
     // Llamar al AdminService para crear el cliente
@@ -107,18 +108,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         message: 'Cliente creado exitosamente' 
-      }, { status: 201, ...jsonOptions })
+      }, { status: 201, headers: JSON_HEADERS })
     } else {
       return NextResponse.json({ 
         success: false, 
         message: 'Error al crear el cliente' 
-      }, { status: 500, ...jsonOptions })
+      }, { status: 500, headers: JSON_HEADERS })
     }
   } catch (error: any) {
     console.error('❌ API Route error creating client:', error)
     return NextResponse.json({ 
       success: false, 
       message: error?.message || 'Error interno del servidor' 
-    }, { status: 500, ...jsonOptions })
+    }, { status: 500, headers: JSON_HEADERS })
   }
 }

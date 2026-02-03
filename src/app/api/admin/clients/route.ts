@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { AdminService } from '@/lib/adminService'
 import { createClient } from '@/utils/supabase/server'
 
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
+
 function getBearerToken(req: NextRequest): string | null {
   const h = req.headers.get('authorization')
   return h?.toLowerCase().startsWith('bearer ') ? h.slice(7).trim() || null : null
@@ -26,22 +28,24 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, message: 'No autorizado. Inicia sesión.' },
-        { status: 401 }
+        { status: 401, headers: JSON_HEADERS }
       )
     }
 
     // Rol: service role (bypassa RLS) - clients.role_id → customer_roles.name
     const roleName = await AdminService.getClientRoleByAuthUid(user.id)
+    const serviceRoleOk = AdminService.isServiceRoleAvailable()
     if (roleName !== 'admin') {
-      return NextResponse.json(
-        {
-          success: false,
-          message: roleName
+      const payload = {
+        success: false,
+        message: !serviceRoleOk
+          ? 'Falta SUPABASE_SERVICE_ROLE_KEY en el servidor.'
+          : roleName
             ? `No tienes permisos. Tu rol es "${roleName}".`
-            : 'No tienes rol admin. Verifica SUPABASE_SERVICE_ROLE_KEY en el servidor.',
-        },
-        { status: 403 }
-      )
+            : 'No tienes rol admin. Verifica tu usuario en Supabase.',
+        debug: { serviceRoleOk, roleName },
+      }
+      return NextResponse.json(payload, { status: 403, headers: JSON_HEADERS })
     }
 
     // Leer el body con manejo de errores
@@ -53,7 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: false, 
         message: 'Error al procesar los datos del formulario' 
-      }, { status: 400 })
+      }, { status: 400, headers: JSON_HEADERS })
     }
 
     // Validar datos requeridos
@@ -61,7 +65,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: false, 
         message: 'Faltan datos requeridos: email, nombre y apellidos' 
-      }, { status: 400 })
+      }, { status: 400, headers: JSON_HEADERS })
     }
     
     // Llamar al AdminService para crear el cliente
@@ -71,18 +75,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         message: 'Cliente creado exitosamente' 
-      }, { status: 201 })
+      }, { status: 201, headers: JSON_HEADERS })
     } else {
       return NextResponse.json({ 
         success: false, 
         message: 'Error al crear el cliente' 
-      }, { status: 500 })
+      }, { status: 500, headers: JSON_HEADERS })
     }
   } catch (error: any) {
     console.error('❌ API Route error creating client:', error)
     return NextResponse.json({ 
       success: false, 
       message: error?.message || 'Error interno del servidor' 
-    }, { status: 500 })
+    }, { status: 500, headers: JSON_HEADERS })
   }
 }

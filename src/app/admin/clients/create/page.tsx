@@ -117,6 +117,14 @@ export default function AdminClientCreate() {
       const text = await response.text()
 
       if (!text || text.trim() === '') {
+        if (response.status === 403) {
+          setError('No autorizado (403). Verifica que tu usuario tenga rol admin y que SUPABASE_SERVICE_ROLE_KEY esté configurada en el servidor.')
+          return
+        }
+        if (response.status === 401) {
+          setError('Tu sesión ha expirado. Inicia sesión de nuevo.')
+          return
+        }
         throw new Error(`El servidor devolvió una respuesta vacía (${response.status})`)
       }
 

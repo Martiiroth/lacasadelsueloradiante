@@ -1,3 +1,7 @@
+/**
+ * Auth admin: usuario vía Bearer/cookies, rol vía clients.role_id → customer_roles (database).
+ * Fallback: si service role falla, consulta con token del usuario (RLS permite leer propia fila).
+ */
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient, type AuthError, type User } from '@supabase/supabase-js'
 import { AdminService } from '@/lib/adminService'
@@ -10,39 +14,28 @@ const COOKIE_DOMAIN =
 export type RoleCheckDebug = {
   serviceRole: { ok: boolean; error?: string | null }
   token: { ok: boolean; error?: string | null }
-  cookies: { ok: boolean; error?: string | null }
 }
 
 type AuthSource = 'bearer' | 'cookies' | 'none'
 
-type AdminAuthSuccess = {
+export type AdminAuthSuccess = {
   type: 'success'
   user: User
   authSource: AuthSource
   roleName: string
-  hasToken: boolean
-  roleDebug: RoleCheckDebug
-  serviceRoleOk: boolean
 }
 
-type AdminAuthUnauthorized = {
+export type AdminAuthUnauthorized = {
   type: 'unauthorized'
   message: string
   reason: 'invalid-token' | 'expired' | 'no-session'
-  authSourceTried: AuthSource
-  hasToken: boolean
   clearCookies: boolean
-  bearerError?: string | null
-  cookieError?: string | null
 }
 
-type AdminAuthForbidden = {
+export type AdminAuthForbidden = {
   type: 'forbidden'
   message: string
-  authSource: AuthSource
-  hasToken: boolean
   roleDebug: RoleCheckDebug
-  serviceRoleOk: boolean
   clearCookies: boolean
 }
 
@@ -52,45 +45,24 @@ const AUTH_COOKIE_PREFIX = 'sb-'
 
 function extractBearerToken(request: NextRequest): string | null {
   const authHeader = request.headers.get('authorization')
-  if (!authHeader) return null
-  if (!authHeader.toLowerCase().startsWith('bearer ')) return null
+  if (!authHeader?.toLowerCase().startsWith('bearer ')) return null
   return authHeader.slice(7).trim() || null
 }
 
-function shouldClearCookiesFromError(error?: AuthError | null): boolean {
+function shouldClearCookies(error?: AuthError | null): boolean {
   if (!error) return false
-  const message = error.message?.toLowerCase() ?? ''
-  return (
-    message.includes('refresh token') ||
-    message.includes('session not found') ||
-    message.includes('invalid') ||
-    message.includes('expired')
-  )
+  const m = (error.message ?? '').toLowerCase()
+  return m.includes('refresh token') || m.includes('invalid') || m.includes('expired')
 }
 
-function isTokenExpired(error?: AuthError | null): boolean {
-  if (!error) return false
-  const message = error.message?.toLowerCase() ?? ''
-  return message.includes('expired') || message.includes('invalid token') || error.status === 401
-}
-
-function roleDebugTemplate(): RoleCheckDebug {
-  return {
-    serviceRole: { ok: false },
-    token: { ok: false },
-    cookies: { ok: false },
-  }
-}
-
-async function getRoleByToken(
+/** Obtiene rol desde clients + customer_roles usando el JWT del usuario (RLS permite leer propia fila). */
+async function getRoleFromTablesByToken(
   authUid: string,
   accessToken: string
 ): Promise<{ roleName: string | null; error?: string | null }> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !anonKey) {
-    return { roleName: null, error: 'missing_supabase_env' }
-  }
+  if (!url || !anonKey) return { roleName: null, error: 'missing_env' }
   try {
     const client = createSupabaseClient(url, anonKey, {
       global: { headers: { Authorization: `Bearer ${accessToken}` } },
@@ -112,33 +84,29 @@ async function getRoleByToken(
       return { roleName: null, error: roleErr?.message ?? 'roles_query_failed' }
     }
     return { roleName: roleRow.name }
-  } catch (err: any) {
-    return { roleName: null, error: err?.message ?? 'token_role_exception' }
+  } catch (err: unknown) {
+    return { roleName: null, error: err instanceof Error ? err.message : 'token_query_error' }
   }
 }
 
 export function clearSupabaseAuthCookies(request: NextRequest, response: NextResponse) {
-  const authCookies = request
-    .cookies
+  request.cookies
     .getAll()
     .filter(({ name }) => name.startsWith(AUTH_COOKIE_PREFIX))
-    .map(({ name }) => name)
-
-  if (!authCookies.length) return
-
-  const options = {
-    path: '/',
-    sameSite: 'lax' as const,
-    secure: isProd,
-    maxAge: 0,
-    ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
-  }
-
-  authCookies.forEach(cookieName => {
-    response.cookies.set(cookieName, '', options)
-  })
+    .forEach(({ name }) => {
+      response.cookies.set(name, '', {
+        path: '/',
+        sameSite: 'lax',
+        secure: isProd,
+        maxAge: 0,
+        ...(COOKIE_DOMAIN ? { domain: COOKIE_DOMAIN } : {}),
+      })
+    })
 }
 
+/**
+ * Autentica admin: obtiene usuario (Bearer → cookies) y verifica rol (service role únicamente).
+ */
 export async function authenticateAdmin(request: NextRequest): Promise<AdminAuthOutcome> {
   const supabase = await createClient()
   const token = extractBearerToken(request)
@@ -149,108 +117,76 @@ export async function authenticateAdmin(request: NextRequest): Promise<AdminAuth
   let cookiesError: AuthError | null = null
   let clearCookies = false
 
+  // 1. Usuario: Bearer primero, cookies si no hay Bearer
   if (token) {
-    const bearerResult = await supabase.auth.getUser(token)
-    if (bearerResult.data.user) {
-      user = bearerResult.data.user
+    const res = await supabase.auth.getUser(token)
+    if (res.data.user) {
+      user = res.data.user
       authSource = 'bearer'
-    } else if (bearerResult.error) {
-      bearerError = bearerResult.error
-      if (shouldClearCookiesFromError(bearerResult.error)) {
-        clearCookies = true
-      }
+    } else {
+      bearerError = res.error ?? null
+      if (res.error && shouldClearCookies(res.error)) clearCookies = true
     }
   }
 
   if (!user) {
-    const cookieResult = await supabase.auth.getUser()
-    if (cookieResult.data.user) {
-      user = cookieResult.data.user
+    const res = await supabase.auth.getUser()
+    if (res.data.user) {
+      user = res.data.user
       authSource = 'cookies'
-    } else if (cookieResult.error) {
-      cookiesError = cookieResult.error
-      if (shouldClearCookiesFromError(cookieResult.error)) {
-        clearCookies = true
-      }
+    } else {
+      cookiesError = res.error ?? null
+      if (res.error && shouldClearCookies(res.error)) clearCookies = true
     }
   }
 
   if (!user) {
-    const reason: AdminAuthUnauthorized['reason'] =
-      bearerError && isTokenExpired(bearerError)
-        ? 'expired'
-        : bearerError || cookiesError
+    const isExpired =
+      bearerError?.message?.toLowerCase().includes('expired') ||
+      cookiesError?.message?.toLowerCase().includes('expired')
+    const hasTried = Boolean(token) || Boolean(cookiesError || bearerError)
+    const reason: AdminAuthUnauthorized['reason'] = isExpired
+      ? 'expired'
+      : hasTried
         ? 'invalid-token'
         : 'no-session'
-
-    const message =
-      reason === 'expired'
-        ? 'Tu sesión ha expirado. Inicia sesión para continuar.'
-        : 'No autorizado. Inicia sesión para continuar.'
-
     return {
       type: 'unauthorized',
-      message,
+      message: reason === 'expired' ? 'Tu sesión ha expirado. Inicia sesión.' : 'No autorizado. Inicia sesión.',
       reason,
-      authSourceTried: authSource,
-      hasToken: Boolean(token),
       clearCookies,
-      bearerError: bearerError?.message ?? null,
-      cookieError: cookiesError?.message ?? null,
     }
   }
 
-  const roleDebug = roleDebugTemplate()
+  // 2. Rol: clients.role_id → customer_roles.name (tablas DB)
+  // Primero service role; si falla y hay Bearer, fallback con token (RLS permite leer propia fila)
+  let roleName: string | null = null
+  let serviceRoleError: string | null = null
+  let tokenError: string | null = null
 
-  const serviceRoleResult = await AdminService.resolveClientRoleByAuthUid(user.id)
-  let roleName = serviceRoleResult.roleName
-  roleDebug.serviceRole.ok = Boolean(roleName)
-  roleDebug.serviceRole.error = serviceRoleResult.error ?? null
+  const sr = await AdminService.resolveClientRoleByAuthUid(user.id)
+  roleName = sr.roleName
+  serviceRoleError = sr.error ?? null
 
   if (!roleName && token) {
-    const tokenRole = await getRoleByToken(user.id, token)
-    roleName = tokenRole.roleName
-    roleDebug.token.ok = Boolean(roleName)
-    roleDebug.token.error = tokenRole.error ?? null
+    const tr = await getRoleFromTablesByToken(user.id, token)
+    roleName = tr.roleName
+    tokenError = tr.error ?? null
+  }
+
+  const roleDebug: RoleCheckDebug = {
+    serviceRole: { ok: Boolean(sr.roleName), error: serviceRoleError },
+    token: { ok: Boolean(roleName && !sr.roleName), error: tokenError },
   }
 
   if (!roleName) {
-    const { data: clientRow, error: clientError } = await supabase
-      .from('clients')
-      .select('role_id')
-      .eq('auth_uid', user.id)
-      .single()
-    if (!clientError && clientRow?.role_id) {
-      const { data: roleRow, error: roleErr } = await supabase
-        .from('customer_roles')
-        .select('name')
-        .eq('id', clientRow.role_id)
-        .single()
-      if (roleRow?.name) {
-        roleName = roleRow.name
-        roleDebug.cookies.ok = true
-      } else {
-        roleDebug.cookies.error = roleErr?.message ?? 'roles_query_failed'
-      }
-    } else {
-      roleDebug.cookies.error = clientError?.message ?? 'clients_query_failed'
-    }
-  }
-
-  const serviceRoleOk = AdminService.isServiceRoleAvailable()
-
-  if (!roleName) {
-    const message = !serviceRoleOk
-      ? 'No se pudo verificar tu rol porque falta SUPABASE_SERVICE_ROLE_KEY en el servidor.'
-      : 'No tienes permisos para acceder. Tu usuario no tiene rol admin en Supabase.'
-
+    const serviceRoleOk = AdminService.isServiceRoleAvailable()
     return {
       type: 'forbidden',
-      message,
-      authSource,
-      hasToken: Boolean(token),
+      message: !serviceRoleOk
+        ? 'Falta SUPABASE_SERVICE_ROLE_KEY en el servidor.'
+        : 'No tienes rol admin en Supabase.',
       roleDebug,
-      serviceRoleOk,
       clearCookies,
     }
   }
@@ -258,11 +194,8 @@ export async function authenticateAdmin(request: NextRequest): Promise<AdminAuth
   if (roleName !== 'admin') {
     return {
       type: 'forbidden',
-      message: `No tienes permisos para esta acción. Tu rol actual es "${roleName}".`,
-      authSource,
-      hasToken: Boolean(token),
+      message: `Tu rol es "${roleName}". Solo admin puede acceder.`,
       roleDebug,
-      serviceRoleOk,
       clearCookies,
     }
   }
@@ -272,8 +205,5 @@ export async function authenticateAdmin(request: NextRequest): Promise<AdminAuth
     user,
     authSource,
     roleName,
-    hasToken: Boolean(token),
-    roleDebug,
-    serviceRoleOk,
   }
 }

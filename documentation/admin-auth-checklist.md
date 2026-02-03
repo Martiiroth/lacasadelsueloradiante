@@ -1,3 +1,25 @@
+## Redirect www (evitar 403 por inconsistencia de dominio)
+
+**Importante:** Si entras por `lacasadelsueloradiante.es` (sin www) pero `NEXT_PUBLIC_APP_URL` usa `www`, las cookies pueden fallar y provocar 403.
+
+**Solución:** Redirigir siempre a `https://www.lacasadelsueloradiante.es`. El archivo `conf.d/redirect-non-www-to-www.conf` hace esto. Asegúrate de:
+1. Que nginx lo cargue (está en conf.d/ si usas docker-compose-nginx)
+2. Ajustar rutas SSL si tu certbot usa otras rutas
+3. Certificado que cubra ambos: `certbot -d lacasadelsueloradiante.es -d www.lacasadelsueloradiante.es`
+
+---
+
+## Auth admin simplificado (Opción A)
+
+Flujo actual:
+- **Usuario:** Bearer header primero, cookies si no hay Bearer
+- **Rol:** Siempre de `clients.role_id` → `customer_roles.name` (tablas DB)
+  - 1º Service role (SUPABASE_SERVICE_ROLE_KEY)
+  - 2º Fallback con token del usuario (RLS permite leer propia fila en clients)
+- **Frontend:** Refresca sesión antes de llamadas API y envía `Authorization: Bearer <token>`
+
+---
+
 ## Checklist de pruebas para autenticación admin
 
 1. **Preparar token válido**

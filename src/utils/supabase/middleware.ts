@@ -50,18 +50,8 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // CRITICAL: Esto refresca la sesión si está expirada
   try {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
-
-    if (user) {
-      console.log('✅ Middleware: User session valid', user.email)
-    } else {
-      console.log('ℹ️ Middleware: No user session')
-    }
+    const { error } = await supabase.auth.getUser()
 
     // Si el refresh token es inválido, borrar cookies y redirigir a login
     if (error?.message?.includes('Refresh Token') || error?.message?.includes('refresh_token_not_found')) {
@@ -77,7 +67,6 @@ export async function updateSession(request: NextRequest) {
 }
 
 function clearAuthAndRedirect(request: NextRequest) {
-  console.warn('⚠️ Middleware: Refresh token inválido, limpiando cookies')
   const isApiRequest = request.nextUrl.pathname.startsWith('/api')
   const response = isApiRequest
     ? NextResponse.next()

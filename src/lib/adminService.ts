@@ -29,21 +29,19 @@ if (typeof window === 'undefined') {
 
 // Cliente de Supabase con permisos de servicio para operaciones de admin
 let supabaseAdmin: any = null
+let supabaseAdminCreatedAt = 0
+const ADMIN_CLIENT_TTL_MS = 60_000 // Recrear cada 60s para evitar conexión envejecida
 
-/** Resetea el cliente admin para forzar recreación en la siguiente llamada (útil si la conexión falla tras un tiempo). */
+/** Resetea el cliente admin para forzar recreación en la siguiente llamada. */
 export function resetSupabaseAdmin() {
   supabaseAdmin = null
+  supabaseAdminCreatedAt = 0
 }
 
-// Función para obtener el cliente admin (inicialización perezosa)
 function getSupabaseAdmin() {
-  // Solo funciona en el servidor
-  if (typeof window !== 'undefined') {
-    console.warn('⚠️ Admin client not available on client side')
-    return null
-  }
-
-  if (supabaseAdmin) {
+  if (typeof window !== 'undefined') return null
+  const now = Date.now()
+  if (supabaseAdmin && now - supabaseAdminCreatedAt < ADMIN_CLIENT_TTL_MS) {
     return supabaseAdmin
   }
 
@@ -63,7 +61,7 @@ function getSupabaseAdmin() {
           }
         }
       )
-      console.log('✅ Admin Supabase client initialized successfully')
+      supabaseAdminCreatedAt = Date.now()
       return supabaseAdmin
     } catch (error) {
       console.error('❌ Error creating admin Supabase client:', error)

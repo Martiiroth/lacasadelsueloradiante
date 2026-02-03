@@ -51,17 +51,47 @@ export async function updateSession(request: NextRequest) {
   )
 
   // CRITICAL: Esto refresca la sesión si está expirada
-  // Siempre usar getUser() en lugar de getSession() en el servidor
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
 
-  // Logging para debug (remover en producción)
-  if (user) {
-    console.log('✅ Middleware: User session valid', user.email)
-  } else {
-    console.log('ℹ️ Middleware: No user session')
+    if (user) {
+      console.log('✅ Middleware: User session valid', user.email)
+    } else {
+      console.log('ℹ️ Middleware: No user session')
+    }
+
+    // Si el refresh token es inválido, borrar cookies y redirigir a login
+    if (error?.message?.includes('Refresh Token') || error?.message?.includes('refresh_token_not_found')) {
+      return clearAuthAndRedirect(request)
+    }
+  } catch (err: any) {
+    if (err?.code === 'refresh_token_not_found' || err?.message?.includes('Refresh Token')) {
+      return clearAuthAndRedirect(request)
+    }
   }
 
   return supabaseResponse
+}
+
+function clearAuthAndRedirect(request: NextRequest) {
+  console.warn('⚠️ Middleware: Refresh token inválido, limpiando cookies')
+  const isApiRequest = request.nextUrl.pathname.startsWith('/api')
+  const response = isApiRequest
+    ? NextResponse.next()
+    : NextResponse.redirect(new URL('/auth/login?session_expired=1', request.url))
+
+  const authCookies = request.cookies.getAll().filter((c) => c.name.startsWith('sb-'))
+  authCookies.forEach((c) => {
+    response.cookies.set(c.name, '', {
+      path: '/',
+      maxAge: 0,
+      sameSite: 'lax',
+      secure: isProd,
+      domain: isProd ? COOKIE_DOMAIN : undefined,
+    })
+  })
+  return response
 }

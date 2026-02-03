@@ -10,8 +10,17 @@ export async function POST(request: NextRequest) {
   try {
     const authResult = await authenticateAdmin(request)
     if (authResult.type !== 'success') {
+      const payload: Record<string, unknown> = { error: authResult.message }
+      if (authResult.type === 'forbidden') {
+        payload.debug = {
+          hasToken: authResult.hasToken,
+          authSource: authResult.authSource,
+          serviceRoleOk: authResult.serviceRoleOk,
+          roleDebug: authResult.roleDebug,
+        }
+      }
       const response = NextResponse.json(
-        { error: authResult.message },
+        payload,
         { status: authResult.type === 'unauthorized' ? 401 : 403, headers: JSON_HEADERS }
       )
       if ('clearCookies' in authResult && authResult.clearCookies) {

@@ -137,7 +137,7 @@ export default function AdminClientCreate() {
           return
         }
         if (response.status === 403) {
-          setError('No autorizado (403). Revisa que tu usuario tenga rol admin en Supabase.')
+          setError('No autorizado (403). Revisa que tu usuario tenga rol admin en Supabase. Abre la pestaña Red para ver debug.')
           return
         }
         throw new Error(`El servidor devolvió una respuesta vacía (${response.status})`)
@@ -162,9 +162,9 @@ export default function AdminClientCreate() {
           return
         }
         if (response.status === 403) {
+          const debugHint = result.debug ? ` (Debug: serviceRole=${result.debug?.roleDebug?.serviceRole?.ok}, token=${result.debug?.roleDebug?.token?.ok}, cookies=${result.debug?.roleDebug?.cookies?.ok})` : ''
           setError(
-            result.message ||
-              'No tienes permisos para crear clientes. Verifica que tu usuario tenga rol admin.'
+            (result.message || 'No tienes permisos para crear clientes. Verifica que tu usuario tenga rol admin.') + debugHint
           )
           return
         }

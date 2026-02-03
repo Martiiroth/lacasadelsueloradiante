@@ -26,10 +26,19 @@
    - Esperar 10 minutos sin recargar la pestaña.
    - Crear otro cliente; validar que el formulario invita a reautenticar si la sesión caducó (mensaje 401).
 
-4. **Logs en producción**
-   - Activar `DEBUG_ADMIN_AUTH=1`.
-   - Ante cualquier 401/403, revisar `docker logs --tail 200 nextjs-app-container`.
-   - Guardar fragmentos relevantes en la incidencia correspondiente.
+4. **Logs en producción (VPS/Docker)**
+   - Los logs solo aparecen cuando se hacen peticiones al API (crear cliente, crear pedido, etc.).
+   - **Ver logs en tiempo real:**
+     ```bash
+     cd lacasadelsueloradiante
+     docker compose logs -f nextjs-app
+     ```
+   - En otra ventana o navegador, ejecuta una acción admin (crear cliente). Verás líneas como:
+     - `🔐 Procesando solicitud de creación de cliente`
+     - `✅ Usuario autenticado: email@ejemplo.com`
+     - O en error: `⚠️ Admin auth unauthorized` / `❌ Admin auth forbidden` con roleDebug
+   - **Últimas 200 líneas:** `docker compose logs --tail=200 nextjs-app`
+   - **Buscar texto (evitar emojis en grep):** `docker compose logs nextjs-app 2>&1 | grep -E "Admin auth|Procesando|Usuario autenticado|forbidden|unauthorized"`
 
 5. **Checklist de regresión**
    - Crear cliente con rol admin válido.

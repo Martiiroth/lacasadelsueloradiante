@@ -54,14 +54,12 @@ export async function POST(request: NextRequest) {
       const payload: Record<string, unknown> = {
         success: false,
         message: authResult.message,
-      }
-      if (debugEnabled) {
-        payload.debug = {
+        debug: {
           hasToken: authResult.hasToken,
           authSource: authResult.authSource,
           serviceRoleOk: authResult.serviceRoleOk,
           roleDebug: authResult.roleDebug,
-        }
+        },
       }
       const response = NextResponse.json(payload, {
         status: 403,

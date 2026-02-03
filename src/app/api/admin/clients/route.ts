@@ -1,164 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { AdminService } from '@/lib/adminService'
-import { createClient } from '@/utils/supabase/server'
+import {
+  authenticateAdmin,
+  clearSupabaseAuthCookies,
+} from '@/lib/auth/adminAuth'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-API-Route': 'admin-clients' }
-
-type RoleCheckDebug = {
-  serviceRole: { ok: boolean; error?: string | null }
-  token: { ok: boolean; error?: string | null }
-  cookies: { ok: boolean; error?: string | null }
-}
-
-/** Obtiene el rol del usuario usando su JWT (sin depender de cookies). Evita 403 intermitente cuando las cookies se desincronizan. */
-async function getRoleByToken(
-  authUid: string,
-  accessToken: string
-): Promise<{ roleName: string | null; error?: string | null }> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!url || !anonKey) return { roleName: null, error: 'missing_supabase_env' }
-  try {
-    const client = createSupabaseClient(url, anonKey, {
-      global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    })
-    const { data: clientRow, error: clientErr } = await client
-      .from('clients')
-      .select('role_id')
-      .eq('auth_uid', authUid)
-      .single()
-    if (clientErr || !clientRow?.role_id) {
-      return { roleName: null, error: clientErr?.message ?? 'clients_query_failed' }
-    }
-    const { data: roleRow, error: roleErr } = await client
-      .from('customer_roles')
-      .select('name')
-      .eq('id', clientRow.role_id)
-      .single()
-    if (roleErr || !roleRow?.name) {
-      return { roleName: null, error: roleErr?.message ?? 'roles_query_failed' }
-    }
-    return { roleName: roleRow.name }
-  } catch (err: any) {
-    return { roleName: null, error: err?.message ?? 'token_role_exception' }
-  }
-}
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🔐 Procesando solicitud de creación de cliente')
-    
-    const supabase = await createClient()
+    const authResult = await authenticateAdmin(request)
+    const debugEnabled = process.env.DEBUG_ADMIN_AUTH === '1'
 
-    // Priorizar Bearer si viene en el request (evita depender de cookies que pueden desincronizarse tras reinicio/tiempo)
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
-
-    let user: { id: string; email?: string } | null = null
-    let authError: { message: string } | null = null
-    let authSource: 'bearer' | 'cookies' = 'cookies'
-
-    if (token) {
-      const result = await supabase.auth.getUser(token)
-      user = result.data.user
-      authError = result.error
-      if (user) authSource = 'bearer'
-    }
-    if (!user) {
-      const result = await supabase.auth.getUser()
-      user = result.data.user
-      authError = result.error
-      if (user) authSource = 'cookies'
-    }
-    
-    if (authError || !user) {
-      console.error('❌ Usuario no autenticado:', authError?.message)
-      return NextResponse.json(
-        { success: false, message: 'No autorizado. Inicia sesión para continuar.' },
-        { status: 401, headers: JSON_HEADERS }
-      )
-    }
-
-    console.log('✅ Usuario autenticado:', user.email)
-
-    // 1) Service role (bypass RLS); 2) Si hay Bearer, rol con ese token (sin cookies); 3) Fallback sesión cookies
-    const roleDebug: RoleCheckDebug = {
-      serviceRole: { ok: false },
-      token: { ok: false },
-      cookies: { ok: false },
-    }
-    let roleName = await AdminService.getClientRoleByAuthUid(user.id)
-    roleDebug.serviceRole.ok = Boolean(roleName)
-
-    if (!roleName && token) {
-      const tokenRole = await getRoleByToken(user.id, token)
-      roleName = tokenRole.roleName
-      roleDebug.token.ok = Boolean(roleName)
-      roleDebug.token.error = tokenRole.error ?? null
-    }
-    if (!roleName) {
-      const { data: clientRow, error: clientError } = await supabase
-        .from('clients')
-        .select('role_id')
-        .eq('auth_uid', user.id)
-        .single()
-      if (!clientError && clientRow?.role_id) {
-        const { data: roleRow, error: roleErr } = await supabase
-          .from('customer_roles')
-          .select('name')
-          .eq('id', clientRow.role_id)
-          .single()
-        roleName = roleRow?.name ?? null
-        if (roleErr) {
-          roleDebug.cookies.error = roleErr.message
-        }
-      } else if (clientError) {
-        roleDebug.cookies.error = clientError.message
-      }
-      roleDebug.cookies.ok = Boolean(roleName)
-    }
-    if (!roleName) {
-      const serviceRoleOk = AdminService.isServiceRoleAvailable()
-      console.error('❌ No se pudo obtener rol para:', user.email, {
-        serviceRoleOk,
-        authSource,
-        hasToken: Boolean(token),
-        roleDebug,
+    if (authResult.type === 'unauthorized') {
+      console.warn('⚠️ Admin auth unauthorized', {
+        reason: authResult.reason,
+        hasToken: authResult.hasToken,
+        authSource: authResult.authSourceTried,
+        bearerError: authResult.bearerError,
+        cookieError: authResult.cookieError,
       })
-      const hint = !serviceRoleOk
-        ? 'En el VPS/servidor falta o falla SUPABASE_SERVICE_ROLE_KEY (mismo proyecto que NEXT_PUBLIC_SUPABASE_URL).'
-        : 'En Supabase: tabla "clients" debe tener una fila con tu auth_uid y role_id = 4 (admin). Revisa también RLS en clients.'
-      const debugEnabled = process.env.DEBUG_ADMIN_AUTH === '1'
-      return NextResponse.json(
-        {
-          success: false,
-          message: `No se pudo verificar tu rol. ${hint}`,
-          ...(debugEnabled
-            ? {
-                debug: {
-                  serviceRoleOk,
-                  authSource,
-                  hasToken: Boolean(token),
-                  roleDebug,
-                },
-              }
-            : {}),
-        },
-        { status: 403, headers: JSON_HEADERS }
-      )
-    }
-    if (roleName !== 'admin') {
-      console.error('❌ Usuario no es admin:', user.email, 'rol actual:', roleName)
-      return NextResponse.json(
-        {
-          success: false,
-          message: `No tienes permisos para crear clientes. Tu rol es "${roleName}". En Supabase, pon clients.role_id = 4 (admin) para tu usuario.`,
-        },
-        { status: 403, headers: JSON_HEADERS }
-      )
+      const payload: Record<string, unknown> = {
+        success: false,
+        message: authResult.message,
+      }
+      if (debugEnabled) {
+        payload.debug = {
+          reason: authResult.reason,
+          hasToken: authResult.hasToken,
+          authSource: authResult.authSourceTried,
+          bearerError: authResult.bearerError,
+          cookieError: authResult.cookieError,
+        }
+      }
+      const response = NextResponse.json(payload, {
+        status: 401,
+        headers: JSON_HEADERS,
+      })
+      if (authResult.clearCookies) {
+        clearSupabaseAuthCookies(request, response)
+      }
+      return response
     }
 
+    if (authResult.type === 'forbidden') {
+      console.error('❌ Admin auth forbidden', {
+        hasToken: authResult.hasToken,
+        authSource: authResult.authSource,
+        roleDebug: authResult.roleDebug,
+        serviceRoleOk: authResult.serviceRoleOk,
+      })
+      const payload: Record<string, unknown> = {
+        success: false,
+        message: authResult.message,
+      }
+      if (debugEnabled) {
+        payload.debug = {
+          hasToken: authResult.hasToken,
+          authSource: authResult.authSource,
+          serviceRoleOk: authResult.serviceRoleOk,
+          roleDebug: authResult.roleDebug,
+        }
+      }
+      const response = NextResponse.json(payload, {
+        status: 403,
+        headers: JSON_HEADERS,
+      })
+      if (authResult.clearCookies) {
+        clearSupabaseAuthCookies(request, response)
+      }
+      return response
+    }
+
+    const { user } = authResult
+    console.log('✅ Usuario autenticado:', user.email)
     console.log('✅ Usuario es admin, procediendo con la creación del cliente')
 
     // Leer el body con manejo de errores

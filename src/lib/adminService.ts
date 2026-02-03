@@ -470,43 +470,67 @@ export class AdminService {
   }
 
   /**
-   * Obtiene el nombre del rol del cliente por auth_uid usando service role (bypass RLS).
-   * Solo para uso en API routes del servidor; evita 403 cuando la sesión/cookies/RLS fallan.
-   * Si falla por error de conexión/servidor, resetea el cliente admin y reintenta una vez.
+   * Obtiene el rol del cliente usando service role con información de error para debug.
+   * Devuelve { roleName, error } para saber por qué falló.
    */
-  static async getClientRoleByAuthUid(authUid: string): Promise<string | null> {
-    if (typeof window !== 'undefined') return null
-    const run = async (): Promise<string | null> => {
+  static async resolveClientRoleByAuthUid(
+    authUid: string
+  ): Promise<{ roleName: string | null; error?: string | null }> {
+    if (typeof window !== 'undefined') {
+      return { roleName: null, error: 'client_side' }
+    }
+    const run = async (): Promise<{ roleName: string | null; error?: string | null }> => {
       const adminClient = getSupabaseAdmin()
-      if (!adminClient) return null
+      if (!adminClient) {
+        return { roleName: null, error: 'service_role_unavailable' }
+      }
       const { data: clientRow, error: clientErr } = await adminClient
         .from('clients')
         .select('role_id')
         .eq('auth_uid', authUid)
         .single()
       // PGRST116 = no rows (usuario sin fila en clients)
-      if (clientErr && (clientErr as { code?: string }).code === 'PGRST116') return null
-      if (clientErr || !clientRow?.role_id) throw new Error(clientErr?.message ?? 'clients query failed')
+      if (clientErr && (clientErr as { code?: string }).code === 'PGRST116') {
+        return { roleName: null, error: 'client_not_found' }
+      }
+      if (clientErr || !clientRow?.role_id) {
+        throw new Error(clientErr?.message ?? 'clients query failed')
+      }
       const { data: roleRow, error: roleErr } = await adminClient
         .from('customer_roles')
         .select('name')
         .eq('id', clientRow.role_id)
         .single()
-      if (roleErr && (roleErr as { code?: string }).code === 'PGRST116') return null
-      if (roleErr || !roleRow?.name) throw new Error(roleErr?.message ?? 'customer_roles query failed')
-      return roleRow.name
+      if (roleErr && (roleErr as { code?: string }).code === 'PGRST116') {
+        return { roleName: null, error: 'role_not_found' }
+      }
+      if (roleErr || !roleRow?.name) {
+        throw new Error(roleErr?.message ?? 'customer_roles query failed')
+      }
+      return { roleName: roleRow.name, error: null }
     }
     try {
       return await run()
     } catch (e) {
-      console.warn('⚠️ getClientRoleByAuthUid failed, resetting admin client and retrying:', (e as Error).message)
+      console.warn(
+        '⚠️ resolveClientRoleByAuthUid failed, resetting admin client and retrying:',
+        (e as Error).message
+      )
       resetSupabaseAdmin()
       try {
         return await run()
-      } catch {
-        return null
+      } catch (err) {
+        return { roleName: null, error: (err as Error).message ?? 'service_role_error' }
       }
     }
+  }
+
+  /**
+   * Compatibilidad: mantiene la firma anterior devolviendo solo el nombre del rol.
+   */
+  static async getClientRoleByAuthUid(authUid: string): Promise<string | null> {
+    const result = await this.resolveClientRoleByAuthUid(authUid)
+    return result.roleName
   }
 
   static async createClient(data: {

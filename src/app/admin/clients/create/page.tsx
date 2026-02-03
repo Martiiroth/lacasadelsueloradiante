@@ -93,7 +93,29 @@ export default function AdminClientCreate() {
 
       // Sesión fresca justo antes del fetch (evita sesión desactualizada del contexto)
       const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
+      let {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        console.error('Error obteniendo sesión actual:', sessionError)
+        setError('No se pudo validar tu sesión. Vuelve a iniciar sesión.')
+        await supabase.auth.signOut()
+        return
+      }
+
+      if (!session?.access_token) {
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession()
+        if (refreshError || !refreshed.session?.access_token) {
+          console.warn('No se pudo refrescar la sesión antes del fetch:', refreshError)
+          setError('Tu sesión ha expirado. Vuelve a iniciar sesión.')
+          await supabase.auth.signOut()
+          return
+        }
+        session = refreshed.session
+      }
+
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (session?.access_token) {
         headers['Authorization'] = `Bearer ${session.access_token}`
@@ -109,10 +131,16 @@ export default function AdminClientCreate() {
       const text = await response.text()
 
       if (!text || text.trim() === '') {
-        const statusMessage = response.status === 403
-          ? 'No autorizado (403). Comprueba que tu usuario tiene rol admin en Supabase: tabla clients, campo role_id = 4 (admin).'
-          : `El servidor devolvió una respuesta vacía (${response.status})`
-        throw new Error(statusMessage)
+        if (response.status === 401) {
+          setError('Tu sesión ha expirado. Vuelve a iniciar sesión.')
+          await supabase.auth.signOut()
+          return
+        }
+        if (response.status === 403) {
+          setError('No autorizado (403). Revisa que tu usuario tenga rol admin en Supabase.')
+          return
+        }
+        throw new Error(`El servidor devolvió una respuesta vacía (${response.status})`)
       }
 
       // Intentar parsear JSON
@@ -128,6 +156,18 @@ export default function AdminClientCreate() {
       }
 
       if (!response.ok) {
+        if (response.status === 401) {
+          setError(result.message || 'Tu sesión ha expirado. Vuelve a iniciar sesión.')
+          await supabase.auth.signOut()
+          return
+        }
+        if (response.status === 403) {
+          setError(
+            result.message ||
+              'No tienes permisos para crear clientes. Verifica que tu usuario tenga rol admin.'
+          )
+          return
+        }
         throw new Error(result.message || `Error al crear el cliente (${response.status})`)
       }
 

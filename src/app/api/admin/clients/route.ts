@@ -9,19 +9,23 @@ export async function POST(request: NextRequest) {
     console.log('🔐 Procesando solicitud de creación de cliente')
     
     const supabase = await createClient()
-    
-    // 1) Usuario desde cookies (sesión SSR)
-    let { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    // 2) Fallback: si no hay sesión en cookies, usar token del header (sesión en navegador)
-    if ((authError || !user)) {
-      const authHeader = request.headers.get('authorization')
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
-      if (token) {
-        const result = await supabase.auth.getUser(token)
-        user = result.data.user
-        authError = result.error
-      }
+
+    // Priorizar Bearer si viene en el request (evita depender de cookies que pueden desincronizarse tras reinicio/tiempo)
+    const authHeader = request.headers.get('authorization')
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : null
+
+    let user: { id: string; email?: string } | null = null
+    let authError: { message: string } | null = null
+
+    if (token) {
+      const result = await supabase.auth.getUser(token)
+      user = result.data.user
+      authError = result.error
+    }
+    if (!user) {
+      const result = await supabase.auth.getUser()
+      user = result.data.user
+      authError = result.error
     }
     
     if (authError || !user) {

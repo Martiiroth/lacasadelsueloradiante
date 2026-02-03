@@ -11,6 +11,7 @@
 import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'
+import EmailService from './emailService'
 import { InvoiceService } from './invoiceService'
 import { ActivationCodesService } from './activationCodesService'
 import { config } from 'dotenv'
@@ -29,19 +30,16 @@ if (typeof window === 'undefined') {
 
 // Cliente de Supabase con permisos de servicio para operaciones de admin
 let supabaseAdmin: any = null
-let supabaseAdminCreatedAt = 0
-const ADMIN_CLIENT_TTL_MS = 60_000 // Recrear cada 60s para evitar conexión envejecida
 
-/** Resetea el cliente admin para forzar recreación en la siguiente llamada. */
-export function resetSupabaseAdmin() {
-  supabaseAdmin = null
-  supabaseAdminCreatedAt = 0
-}
-
+// Función para obtener el cliente admin (inicialización perezosa)
 function getSupabaseAdmin() {
-  if (typeof window !== 'undefined') return null
-  const now = Date.now()
-  if (supabaseAdmin && now - supabaseAdminCreatedAt < ADMIN_CLIENT_TTL_MS) {
+  // Solo funciona en el servidor
+  if (typeof window !== 'undefined') {
+    console.warn('⚠️ Admin client not available on client side')
+    return null
+  }
+
+  if (supabaseAdmin) {
     return supabaseAdmin
   }
 
@@ -61,7 +59,7 @@ function getSupabaseAdmin() {
           }
         }
       )
-      supabaseAdminCreatedAt = Date.now()
+      console.log('✅ Admin Supabase client initialized successfully')
       return supabaseAdmin
     } catch (error) {
       console.error('❌ Error creating admin Supabase client:', error)
@@ -460,74 +458,27 @@ export class AdminService {
     }
   }
 
-  /** Comprueba si el cliente con service role está disponible (SUPABASE_SERVICE_ROLE_KEY en servidor). */
-  static isServiceRoleAvailable(): boolean {
-    if (typeof window !== 'undefined') return false
-    return getSupabaseAdmin() !== null
-  }
-
   /**
-   * Obtiene el rol del cliente usando service role con información de error para debug.
-   * Devuelve { roleName, error } para saber por qué falló.
-   */
-  static async resolveClientRoleByAuthUid(
-    authUid: string
-  ): Promise<{ roleName: string | null; error?: string | null }> {
-    if (typeof window !== 'undefined') {
-      return { roleName: null, error: 'client_side' }
-    }
-    const run = async (): Promise<{ roleName: string | null; error?: string | null }> => {
-      const adminClient = getSupabaseAdmin()
-      if (!adminClient) {
-        return { roleName: null, error: 'service_role_unavailable' }
-      }
-      const { data: clientRow, error: clientErr } = await adminClient
-        .from('clients')
-        .select('role_id')
-        .eq('auth_uid', authUid)
-        .single()
-      // PGRST116 = no rows (usuario sin fila en clients)
-      if (clientErr && (clientErr as { code?: string }).code === 'PGRST116') {
-        return { roleName: null, error: 'client_not_found' }
-      }
-      if (clientErr || !clientRow?.role_id) {
-        throw new Error(clientErr?.message ?? 'clients query failed')
-      }
-      const { data: roleRow, error: roleErr } = await adminClient
-        .from('customer_roles')
-        .select('name')
-        .eq('id', clientRow.role_id)
-        .single()
-      if (roleErr && (roleErr as { code?: string }).code === 'PGRST116') {
-        return { roleName: null, error: 'role_not_found' }
-      }
-      if (roleErr || !roleRow?.name) {
-        throw new Error(roleErr?.message ?? 'customer_roles query failed')
-      }
-      return { roleName: roleRow.name, error: null }
-    }
-    try {
-      return await run()
-    } catch (e) {
-      console.warn(
-        '⚠️ resolveClientRoleByAuthUid failed, resetting admin client and retrying:',
-        (e as Error).message
-      )
-      resetSupabaseAdmin()
-      try {
-        return await run()
-      } catch (err) {
-        return { roleName: null, error: (err as Error).message ?? 'service_role_error' }
-      }
-    }
-  }
-
-  /**
-   * Compatibilidad: mantiene la firma anterior devolviendo solo el nombre del rol.
+   * Obtiene el nombre del rol del cliente por auth_uid usando service role (bypassa RLS).
+   * Útil para verificar admin en API routes.
    */
   static async getClientRoleByAuthUid(authUid: string): Promise<string | null> {
-    const result = await this.resolveClientRoleByAuthUid(authUid)
-    return result.roleName
+    if (typeof window !== 'undefined') return null
+    const admin = getSupabaseAdmin()
+    if (!admin) return null
+    const { data: client, error: clientErr } = await admin
+      .from('clients')
+      .select('role_id')
+      .eq('auth_uid', authUid)
+      .single()
+    if (clientErr || !client?.role_id) return null
+    const { data: role, error: roleErr } = await admin
+      .from('customer_roles')
+      .select('name')
+      .eq('id', client.role_id)
+      .single()
+    if (roleErr || !role?.name) return null
+    return role.name
   }
 
   static async createClient(data: {
@@ -636,7 +587,7 @@ export class AdminService {
 
       console.log('Client record created successfully with role:', defaultRole?.id || 'none')
 
-      // Enviar notificación de nuevo registro al admin (ServerEmailService: corre desde API route)
+      // Enviar notificación de nuevo registro al admin
       try {
         const registrationData = {
           clientName: `${data.first_name} ${data.last_name}`,
@@ -653,8 +604,8 @@ export class AdminService {
           registrationDate: new Date().toISOString(),
           registrationSource: 'admin' as const
         }
-        const ServerEmailService = (await import('./emailService.server')).default
-        const emailSent = await ServerEmailService.sendNewRegistrationNotification(registrationData)
+        
+        const emailSent = await EmailService.sendNewRegistrationNotification(registrationData)
         
         if (emailSent) {
           console.log('✅ Notificación de nuevo cliente enviada al admin')
@@ -1598,29 +1549,22 @@ export class AdminService {
           }
         })
         
-        const clientEmail = clientData?.email || (clientInfo?.email) || ''
         const emailData = {
           orderId: order.id,
           orderNumber: order.id, // Usar ID como número de pedido
           status: orderData.status || 'pending', // Usar el status del pedido
           clientName,
-          clientEmail,
+          clientEmail: clientData?.email || (clientInfo?.email) || '',
           items,
           total: orderData.total_cents / 100, // Usar el total real de la orden (incluye envío)
           createdAt: order.created_at,
-          shippingAddress: orderData.shipping_address ?
-            (typeof orderData.shipping_address === 'string'
-              ? orderData.shipping_address
+          shippingAddress: orderData.shipping_address ? 
+            (typeof orderData.shipping_address === 'string' 
+              ? orderData.shipping_address 
               : JSON.stringify(orderData.shipping_address, null, 2)
             ) : undefined,
           clientInfo: clientInfo // Agregar información completa del cliente
         }
-
-        console.log('📧 [EMAIL] Preparando envío de notificación pedido #' + order.id, {
-          clientEmail: clientEmail || '(vacío - solo admin)',
-          adminEmail: process.env.EMAIL_ADMIN_ADDRESS || 'consultas@lacasadelsueloradiante.es',
-          itemsCount: items.length,
-        })
 
         // Enviar notificación de nuevo pedido usando ServerEmailService directamente
         const ServerEmailService = (await import('./emailService.server')).default

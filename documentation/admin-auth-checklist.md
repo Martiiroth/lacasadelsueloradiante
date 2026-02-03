@@ -37,3 +37,27 @@
    - Session expirada: forzar `signOut` y repetir → el front muestra mensaje para re-login.
 
 > Anotar resultados reales en la incidencia o documentación interna tras ejecutar las pruebas.
+
+---
+
+## Correos al crear pedido desde admin
+
+La creación de pedidos se hace mediante POST `/api/admin/orders` (servidor), de modo que el envío de emails corre en el backend con nodemailer.
+
+1. **Verificar SMTP**: `GET /api/test-email` comprueba credenciales y conexión.
+2. **Crear pedido**: Panel Admin → Pedidos → Crear. Se envían correos a cliente (si tiene email) y a admin.
+3. **Logs**: Buscar `📧 [EMAIL]` en `docker logs nextjs-app-container` para diagnosticar fallos.
+4. **Variables**: `EMAIL_USER`, `EMAIL_PASSWORD`, `EMAIL_ADMIN_ADDRESS` deben estar en el contenedor.
+
+---
+
+## Mapa de flujos de correo
+
+| Flujo | Origen | Servicio de envío | Estado |
+|-------|--------|-------------------|--------|
+| **Pedido desde admin** | POST /api/admin/orders | ServerEmailService (servidor) | ✅ Corregido |
+| **Crear cliente desde admin** | POST /api/admin/clients | ServerEmailService (servidor) | ✅ Corregido |
+| **Pedido desde tienda (checkout)** | OrderService.createOrder (cliente) | EmailService → POST /api/notifications → ServerEmailService | ✅ OK |
+| **Registro público** | AuthService.signUp (cliente) | EmailService → POST /api/notifications → ServerEmailService | ✅ OK |
+| **Pago Redsys confirmado** | API process-result / callback | ServerEmailService (servidor) | ✅ OK |
+| **Reenviar / cambiar estado pedido** | API send-status-email, resend-email | ServerEmailService (servidor) | ✅ OK |

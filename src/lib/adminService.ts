@@ -11,7 +11,6 @@
 import { supabase } from './supabase'
 import { createClient } from '@supabase/supabase-js'
 import { StorageService } from './storageService'
-import EmailService from './emailService'
 import { InvoiceService } from './invoiceService'
 import { ActivationCodesService } from './activationCodesService'
 import { config } from 'dotenv'
@@ -639,7 +638,7 @@ export class AdminService {
 
       console.log('Client record created successfully with role:', defaultRole?.id || 'none')
 
-      // Enviar notificación de nuevo registro al admin
+      // Enviar notificación de nuevo registro al admin (ServerEmailService: corre desde API route)
       try {
         const registrationData = {
           clientName: `${data.first_name} ${data.last_name}`,
@@ -656,8 +655,8 @@ export class AdminService {
           registrationDate: new Date().toISOString(),
           registrationSource: 'admin' as const
         }
-        
-        const emailSent = await EmailService.sendNewRegistrationNotification(registrationData)
+        const ServerEmailService = (await import('./emailService.server')).default
+        const emailSent = await ServerEmailService.sendNewRegistrationNotification(registrationData)
         
         if (emailSent) {
           console.log('✅ Notificación de nuevo cliente enviada al admin')
@@ -1601,22 +1600,29 @@ export class AdminService {
           }
         })
         
+        const clientEmail = clientData?.email || (clientInfo?.email) || ''
         const emailData = {
           orderId: order.id,
           orderNumber: order.id, // Usar ID como número de pedido
           status: orderData.status || 'pending', // Usar el status del pedido
           clientName,
-          clientEmail: clientData?.email || (clientInfo?.email) || '',
+          clientEmail,
           items,
           total: orderData.total_cents / 100, // Usar el total real de la orden (incluye envío)
           createdAt: order.created_at,
-          shippingAddress: orderData.shipping_address ? 
-            (typeof orderData.shipping_address === 'string' 
-              ? orderData.shipping_address 
+          shippingAddress: orderData.shipping_address ?
+            (typeof orderData.shipping_address === 'string'
+              ? orderData.shipping_address
               : JSON.stringify(orderData.shipping_address, null, 2)
             ) : undefined,
           clientInfo: clientInfo // Agregar información completa del cliente
         }
+
+        console.log('📧 [EMAIL] Preparando envío de notificación pedido #' + order.id, {
+          clientEmail: clientEmail || '(vacío - solo admin)',
+          adminEmail: process.env.EMAIL_ADMIN_ADDRESS || 'consultas@lacasadelsueloradiante.es',
+          itemsCount: items.length,
+        })
 
         // Enviar notificación de nuevo pedido usando ServerEmailService directamente
         const ServerEmailService = (await import('./emailService.server')).default

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminClient } from '@/types/admin'
 import { AdminService } from '@/lib/adminService'
+import { createClient } from '@/utils/supabase/client'
 import { supabase } from '@/lib/supabase'
 import AdminLayout from '@/components/admin/AdminLayout'
 import {
@@ -416,17 +417,48 @@ export default function AdminOrderCreate() {
         items_count: orderData.items.length,
         combined_address: combinedAddress
       })
-      
-      const newOrderId = await AdminService.createOrder({
-        client_id: orderData.client_id,
-        status: orderData.status,
-        subtotal_cents: subtotalCents,
-        shipping_cost_cents: shippingCostCents,
-        total_cents: totalCents,
-        shipping_address: combinedAddress,
-        items: cleanedItems
+
+      const supabaseClient = createClient()
+      let { data: { session } } = await supabaseClient.auth.getSession()
+      if (!session?.access_token) {
+        const { data: refreshed } = await supabaseClient.auth.refreshSession()
+        if (!refreshed.session?.access_token) {
+          alert('Tu sesión ha expirado. Vuelve a iniciar sesión.')
+          await supabaseClient.auth.signOut()
+          return
+        }
+        session = refreshed.session
+      }
+
+      const res = await fetch('/api/admin/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          client_id: orderData.client_id,
+          status: orderData.status,
+          subtotal_cents: subtotalCents,
+          shipping_cost_cents: shippingCostCents,
+          total_cents: totalCents,
+          shipping_address: combinedAddress,
+          items: cleanedItems,
+        }),
       })
-      
+
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        if (res.status === 401) {
+          alert('Tu sesión ha expirado. Vuelve a iniciar sesión.')
+          await supabaseClient.auth.signOut()
+          return
+        }
+        throw new Error(json.error || `Error ${res.status}`)
+      }
+
+      const newOrderId = json.orderId
       if (newOrderId) {
         alert('Pedido creado correctamente')
         router.push(`/admin/orders/${newOrderId}`)

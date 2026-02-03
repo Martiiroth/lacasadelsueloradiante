@@ -1,8 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { AdminService } from '@/lib/adminService'
 import { createClient } from '@/utils/supabase/server'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-API-Route': 'admin-clients' }
+
+/** Obtiene el rol del usuario usando su JWT (sin depender de cookies). Evita 403 intermitente cuando las cookies se desincronizan. */
+async function getRoleByToken(authUid: string, accessToken: string): Promise<string | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !anonKey) return null
+  try {
+    const client = createSupabaseClient(url, anonKey, {
+      global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    })
+    const { data: clientRow, error: clientErr } = await client
+      .from('clients')
+      .select('role_id')
+      .eq('auth_uid', authUid)
+      .single()
+    if (clientErr || !clientRow?.role_id) return null
+    const { data: roleRow, error: roleErr } = await client
+      .from('customer_roles')
+      .select('name')
+      .eq('id', clientRow.role_id)
+      .single()
+    if (roleErr || !roleRow?.name) return null
+    return roleRow.name
+  } catch {
+    return null
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,8 +66,11 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Usuario autenticado:', user.email)
 
-    // 1) Verificar rol con service role (bypass RLS); 2) fallback con sesión (role_id + customer_roles)
+    // 1) Service role (bypass RLS); 2) Si hay Bearer, rol con ese token (sin cookies); 3) Fallback sesión cookies
     let roleName = await AdminService.getClientRoleByAuthUid(user.id)
+    if (!roleName && token) {
+      roleName = await getRoleByToken(user.id, token)
+    }
     if (!roleName) {
       const { data: clientRow, error: clientError } = await supabase
         .from('clients')

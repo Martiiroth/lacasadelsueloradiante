@@ -31,6 +31,11 @@ if (typeof window === 'undefined') {
 // Cliente de Supabase con permisos de servicio para operaciones de admin
 let supabaseAdmin: any = null
 
+/** Resetea el cliente admin para forzar recreación en la siguiente llamada (útil si la conexión falla tras un tiempo). */
+export function resetSupabaseAdmin() {
+  supabaseAdmin = null
+}
+
 // Función para obtener el cliente admin (inicialización perezosa)
 function getSupabaseAdmin() {
   // Solo funciona en el servidor
@@ -467,28 +472,40 @@ export class AdminService {
   /**
    * Obtiene el nombre del rol del cliente por auth_uid usando service role (bypass RLS).
    * Solo para uso en API routes del servidor; evita 403 cuando la sesión/cookies/RLS fallan.
-   * Usa dos consultas simples (role_id + customer_roles.name) para evitar problemas con nombres de relación en PostgREST.
+   * Si falla por error de conexión/servidor, resetea el cliente admin y reintenta una vez.
    */
   static async getClientRoleByAuthUid(authUid: string): Promise<string | null> {
     if (typeof window !== 'undefined') return null
-    const adminClient = getSupabaseAdmin()
-    if (!adminClient) return null
-    try {
+    const run = async (): Promise<string | null> => {
+      const adminClient = getSupabaseAdmin()
+      if (!adminClient) return null
       const { data: clientRow, error: clientErr } = await adminClient
         .from('clients')
         .select('role_id')
         .eq('auth_uid', authUid)
         .single()
-      if (clientErr || !clientRow?.role_id) return null
+      // PGRST116 = no rows (usuario sin fila en clients)
+      if (clientErr && (clientErr as { code?: string }).code === 'PGRST116') return null
+      if (clientErr || !clientRow?.role_id) throw new Error(clientErr?.message ?? 'clients query failed')
       const { data: roleRow, error: roleErr } = await adminClient
         .from('customer_roles')
         .select('name')
         .eq('id', clientRow.role_id)
         .single()
-      if (roleErr || !roleRow?.name) return null
+      if (roleErr && (roleErr as { code?: string }).code === 'PGRST116') return null
+      if (roleErr || !roleRow?.name) throw new Error(roleErr?.message ?? 'customer_roles query failed')
       return roleRow.name
-    } catch {
-      return null
+    }
+    try {
+      return await run()
+    } catch (e) {
+      console.warn('⚠️ getClientRoleByAuthUid failed, resetting admin client and retrying:', (e as Error).message)
+      resetSupabaseAdmin()
+      try {
+        return await run()
+      } catch {
+        return null
+      }
     }
   }
 

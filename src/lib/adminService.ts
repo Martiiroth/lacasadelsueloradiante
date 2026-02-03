@@ -96,6 +96,11 @@ import type {
 } from '../types/admin'
 
 export class AdminService {
+  /** Indica si el cliente con service role está disponible. */
+  static isServiceRoleAvailable(): boolean {
+    return typeof window === 'undefined' && getSupabaseAdmin() !== null
+  }
+
   /**
    * Actualiza las direcciones de envío y facturación de un pedido
    */

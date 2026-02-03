@@ -463,22 +463,35 @@ export class AdminService {
    * Útil para verificar admin en API routes.
    */
   static async getClientRoleByAuthUid(authUid: string): Promise<string | null> {
-    if (typeof window !== 'undefined') return null
+    const r = await this.resolveClientRoleByAuthUid(authUid)
+    return r.roleName
+  }
+
+  /** Devuelve { roleName, error } para compatibilidad con adminAuth. */
+  static async resolveClientRoleByAuthUid(
+    authUid: string
+  ): Promise<{ roleName: string | null; error?: string | null }> {
+    if (typeof window !== 'undefined') return { roleName: null, error: 'client_side' }
     const admin = getSupabaseAdmin()
-    if (!admin) return null
+    if (!admin) return { roleName: null, error: 'service_role_unavailable' }
     const { data: client, error: clientErr } = await admin
       .from('clients')
       .select('role_id')
       .eq('auth_uid', authUid)
       .single()
-    if (clientErr || !client?.role_id) return null
+    if (clientErr) {
+      const code = (clientErr as { code?: string }).code
+      if (code === 'PGRST116') return { roleName: null, error: 'client_not_found' }
+      return { roleName: null, error: clientErr.message }
+    }
+    if (!client?.role_id) return { roleName: null, error: 'no_role_id' }
     const { data: role, error: roleErr } = await admin
       .from('customer_roles')
       .select('name')
       .eq('id', client.role_id)
       .single()
-    if (roleErr || !role?.name) return null
-    return role.name
+    if (roleErr || !role?.name) return { roleName: null, error: roleErr?.message ?? 'role_not_found' }
+    return { roleName: role.name, error: null }
   }
 
   static async createClient(data: {

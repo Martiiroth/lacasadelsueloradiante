@@ -10,10 +10,11 @@ export default function FeaturedCarousel() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [scrollX, setScrollX] = useState(0)
+  const [cardWidthPx, setCardWidthPx] = useState<number | null>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const viewportRef = useRef<HTMLDivElement>(null)
   const halfWidthRef = useRef(1)
-  const stepRef = useRef(400) // ancho de un "bloque" (viewport), se mide después
+  const stepRef = useRef(400)
 
   useEffect(() => {
     let cancelled = false
@@ -42,19 +43,21 @@ export default function FeaturedCarousel() {
     return () => { cancelled = true }
   }, [])
 
-  // Medir ancho de un producto (tarjeta + gap) para salto de flechas, y mitad del track (bucle infinito)
+  // Medir viewport y calcular ancho de tarjeta para que quepan N enteras (sin cortar el último bloque)
   useEffect(() => {
     if (!products.length) return
     const viewport = viewportRef.current
     const track = trackRef.current
     if (!viewport || !track) return
+    const gap = 24 // lg:gap-6
     const measure = () => {
-      const firstCard = track.firstElementChild as HTMLElement | null
-      if (firstCard) {
-        const trackStyle = getComputedStyle(track)
-        const gap = parseFloat(trackStyle.gap) || 16
-        stepRef.current = firstCard.getBoundingClientRect().width + gap
-      }
+      const vw = viewport.offsetWidth
+      if (vw <= 0) return
+      // N visible: 1 (< 640), 2 (640–1023), 4 (≥ 1024)
+      const n = vw >= 1024 ? 4 : vw >= 640 ? 2 : 1
+      const w = (vw - (n - 1) * gap) / n
+      setCardWidthPx(w)
+      stepRef.current = w + gap
       const tw = track.offsetWidth
       if (tw > 0) halfWidthRef.current = tw / 2
     }
@@ -146,16 +149,21 @@ export default function FeaturedCarousel() {
           <div ref={viewportRef} className="overflow-x-hidden">
             <div
               ref={trackRef}
-              className="flex flex-nowrap gap-4 lg:gap-6 py-2 w-max will-change-transform transition-transform duration-300 ease-out"
-              style={{ transform: `translateX(${scrollX}px)` }}
+              className="flex flex-nowrap gap-6 py-2 w-max will-change-transform transition-transform duration-300 ease-out"
+              style={{
+                transform: `translateX(${scrollX}px)`,
+                gap: 24
+              }}
             >
               {(() => {
                 const copies = products.length <= 3 ? 4 : 2
                 const duplicated = Array.from({ length: copies }, () => [...products]).flat()
+                const w = cardWidthPx ?? 290
                 return duplicated.map((product, index) => (
                   <div
                     key={`${product.id}-${index}`}
-                    className="flex-shrink-0 w-[calc(100vw-2rem)] sm:w-[calc((100vw-2rem)/2-0.5rem)] lg:w-[290px]"
+                    className="flex-shrink-0"
+                    style={{ width: w }}
                   >
                     <ProductCard product={product} priority={index < 6} />
                   </div>

@@ -42,15 +42,19 @@ export default function FeaturedCarousel() {
     return () => { cancelled = true }
   }, [])
 
-  // Medir ancho del viewport (un bloque = lo visible) y mitad del track (bucle infinito)
+  // Medir ancho de un producto (tarjeta + gap) para salto de flechas, y mitad del track (bucle infinito)
   useEffect(() => {
     if (!products.length) return
     const viewport = viewportRef.current
     const track = trackRef.current
     if (!viewport || !track) return
     const measure = () => {
-      const vw = viewport.offsetWidth
-      if (vw > 0) stepRef.current = vw
+      const firstCard = track.firstElementChild as HTMLElement | null
+      if (firstCard) {
+        const trackStyle = getComputedStyle(track)
+        const gap = parseFloat(trackStyle.gap) || 16
+        stepRef.current = firstCard.getBoundingClientRect().width + gap
+      }
       const tw = track.offsetWidth
       if (tw > 0) halfWidthRef.current = tw / 2
     }

@@ -29,7 +29,7 @@ export default function FeaturedCarousel() {
 
   if (loading) {
     return (
-      <section className="py-10 bg-gray-50 overflow-hidden">
+      <section className="py-10 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Productos destacados</h2>
           <div className="flex gap-4 overflow-hidden">
@@ -53,13 +53,13 @@ export default function FeaturedCarousel() {
   const duplicated = Array.from({ length: copies }, () => [...products]).flat()
 
   return (
-    <section className="py-10 bg-gray-50 overflow-hidden" aria-label="Carrusel de productos destacados">
+    <section className="py-10 bg-gray-50" aria-label="Carrusel de productos destacados">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Productos destacados</h2>
         <p className="text-gray-600 mt-1">Una selección de nuestros productos más populares</p>
       </div>
-      {/* Contenedor que recorta la pista (viewport del carrusel) */}
-      <div className="w-full overflow-x-hidden">
+      {/* Contenedor que recorta la pista (viewport del carrusel); solo ocultar overflow horizontal */}
+      <div className="w-full overflow-x-hidden min-h-[320px]">
         <div className="flex flex-nowrap gap-6 py-2 w-max animate-featured-carousel">
           {duplicated.map((product, index) => (
             <div

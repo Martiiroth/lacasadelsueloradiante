@@ -17,20 +17,7 @@ export default function HomePage() {
       {/* Popup de Registro */}
       <RegisterPopup delaySeconds={5} />
 
-      {/* Carrusel infinito de productos destacados */}
-      <FeaturedCarousel />
-
-      {/* Sección de Productos en Oferta */}
-      <SaleProducts limit={6} />
-
-      {/* Sección de Productos Destacados con Filtros */}
-      <FeaturedProducts 
-        title="Explora Nuestros Productos"
-        showFilters={true}
-        limit={8}
-      />
-      
-      {/* Hero Section */}
+      {/* Hero Section - primero para que el mensaje principal sea visible de entrada */}
       <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white overflow-hidden">
         {/* Decoración de fondo */}
         <div className="absolute inset-0 overflow-hidden">
@@ -119,6 +106,19 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Carrusel infinito de productos destacados */}
+      <FeaturedCarousel />
+
+      {/* Sección de Productos en Oferta */}
+      <SaleProducts limit={6} />
+
+      {/* Sección de Productos Destacados con Filtros */}
+      <FeaturedProducts 
+        title="Explora Nuestros Productos"
+        showFilters={true}
+        limit={8}
+      />
 
       {/* Sección de Servicios */}
       <section className="py-16 bg-gray-50">

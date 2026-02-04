@@ -53,10 +53,28 @@ export class PDFService {
   }
 
   /**
+   * Obtiene o asigna el número de proforma para un pedido (formato PR-00001)
+   */
+  static async getProformaNumberForOrder(orderId: string): Promise<string> {
+    const { data: num, error } = await supabase.rpc('get_or_assign_proforma_number', {
+      p_order_id: orderId
+    })
+    if (error || num == null) {
+      console.error('Error obteniendo número de proforma:', error)
+      return `PR-${orderId.slice(0, 8)}` // fallback
+    }
+    return `PR-${String(num).padStart(5, '0')}`
+  }
+
+  /**
    * Genera un PDF de proforma desde un pedido
    */
-  static async generateProformaFromOrder(orderId: string): Promise<Buffer> {
+  static async generateProformaFromOrder(orderId: string): Promise<{ buffer: Buffer; proformaNumber: string }> {
     try {
+      // Obtener o asignar número de proforma (PR-00001, PR-00002...)
+      const proformaNumber = await this.getProformaNumberForOrder(orderId)
+      const proformaNumberRaw = parseInt(proformaNumber.replace('PR-', ''), 10) || 0
+
       // Obtener datos del pedido
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -122,14 +140,14 @@ export class PDFService {
       const subtotal = Math.round(totalWithTax / (1 + TAX_RATE / 100))
       const taxAmount = totalWithTax - subtotal
 
-      // Crear datos de proforma
+      // Crear datos de proforma (con numeración PR-00001)
       const proformaData: InvoicePDFData = {
         invoice: {
           id: orderId,
           client_id: order.client_id,
           order_id: orderId,
-          invoice_number: 0, // Las proformas no tienen número
-          prefix: 'PRO-',
+          invoice_number: proformaNumberRaw,
+          prefix: 'PR-',
           suffix: '',
           subtotal_cents: subtotal,
           tax_rate: TAX_RATE,
@@ -167,8 +185,7 @@ export class PDFService {
 
       // Convertir a Buffer
       const pdfArrayBuffer = doc.output('arraybuffer')
-      return Buffer.from(pdfArrayBuffer)
-
+      return { buffer: Buffer.from(pdfArrayBuffer), proformaNumber }
     } catch (error) {
       console.error('Error generando PDF de proforma:', error)
       throw new Error(`Error al generar PDF: ${error instanceof Error ? error.message : 'Error desconocido'}`)
@@ -317,16 +334,15 @@ export class PDFService {
       doc.text(invoiceTitle, pageWidth - margin - titleWidth, currentY + 10)
     }
 
-    // Número de factura (solo para facturas, no para proformas)
+    // Número de factura o proforma (PR-00001, FAC-123...)
     doc.setFontSize(11)
     doc.setFont('helvetica', 'normal')
     doc.setTextColor(0, 0, 0)
-    
-    if (!isProforma) {
-      const invoiceNumber = `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`
-      const numberWidth = doc.getTextWidth(`Nº: ${invoiceNumber}`)
-      doc.text(`Nº: ${invoiceNumber}`, pageWidth - margin - numberWidth, currentY + 20)
-    }
+    const displayNumber = isProforma
+      ? `${invoice.prefix}${String(invoice.invoice_number).padStart(5, '0')}${invoice.suffix}`
+      : `${invoice.prefix}${invoice.invoice_number}${invoice.suffix}`
+    const numberWidth = doc.getTextWidth(`Nº: ${displayNumber}`)
+    doc.text(`Nº: ${displayNumber}`, pageWidth - margin - numberWidth, currentY + 20)
 
     // Fecha
     const invoiceDate = new Date(invoice.created_at).toLocaleDateString('es-ES')

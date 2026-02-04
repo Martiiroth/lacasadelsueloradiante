@@ -25,19 +25,17 @@ export async function GET(
       )
     }
 
-    // Generar PDF de proforma
-    const pdfBuffer = await PDFService.generateProformaFromOrder(orderId)
+    // Generar PDF de proforma (numeración PR-00001, PR-00002...)
+    const { buffer: pdfBuffer, proformaNumber } = await PDFService.generateProformaFromOrder(orderId)
 
     // Determinar si es descarga o inline
     const { searchParams } = new URL(request.url)
     const download = searchParams.get('download') === 'true'
-    
-    const proformaNumber = `proforma-${orderId.slice(0, 8)}`
-    
+
     return new NextResponse(pdfBuffer as any, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': download 
+        'Content-Disposition': download
           ? `attachment; filename="${proformaNumber}.pdf"`
           : `inline; filename="${proformaNumber}.pdf"`
       }

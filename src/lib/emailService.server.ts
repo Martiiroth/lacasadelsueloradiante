@@ -489,11 +489,11 @@ class ServerEmailService {
         try {
           console.log('📄 Generando PROFORMA para pedido pending:', orderData.orderId)
           const { PDFService } = await import('./pdfService')
-          const pdfBuffer = await PDFService.generateProformaFromOrder(orderData.orderId)
+          const { buffer: pdfBuffer, proformaNumber } = await PDFService.generateProformaFromOrder(orderData.orderId)
           
           if (pdfBuffer) {
             pdfAttachment = {
-              filename: `proforma-${orderData.orderNumber}.pdf`,
+              filename: `${proformaNumber}.pdf`,
               content: pdfBuffer,
               contentType: 'application/pdf'
             }

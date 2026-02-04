@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import FeaturedProducts from '../components/home/FeaturedProducts'
+import FeaturedCarousel from '../components/home/FeaturedCarousel'
 import SaleProducts from '../components/home/SaleProducts'
 
 // Lazy load RegisterPopup ya que aparece después de 5 segundos
@@ -15,6 +16,9 @@ export default function HomePage() {
     <div className="min-h-screen">
       {/* Popup de Registro */}
       <RegisterPopup delaySeconds={5} />
+
+      {/* Carrusel infinito de productos destacados */}
+      <FeaturedCarousel />
 
       {/* Sección de Productos en Oferta */}
       <SaleProducts limit={6} />

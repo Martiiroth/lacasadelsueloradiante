@@ -13,13 +13,14 @@ import {
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
   PlusIcon,
-  BuildingStorefrontIcon
+  BuildingStorefrontIcon,
+  PhotoIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../contexts/AuthContext'
 
 interface AdminLayoutProps {
   children: ReactNode
-  activeSection?: 'overview' | 'clients' | 'orders' | 'invoices' | 'products' | 'categories' | 'brands' | 'coupons' | 'settings'
+  activeSection?: 'overview' | 'clients' | 'orders' | 'invoices' | 'products' | 'categories' | 'brands' | 'coupons' | 'carousel' | 'settings'
 }
 
 interface NavItem {
@@ -83,6 +84,12 @@ const navItems: NavItem[] = [
     label: 'Cupones',
     href: '/admin/coupons',
     icon: TicketIcon
+  },
+  {
+    id: 'carousel',
+    label: 'Carrusel Home',
+    href: '/admin/carousel',
+    icon: PhotoIcon
   },
 
 ]

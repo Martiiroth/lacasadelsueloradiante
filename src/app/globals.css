@@ -146,6 +146,19 @@
     }
   }
   
+  /* Carrusel infinito homepage */
+  @keyframes featured-carousel-scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+  .animate-featured-carousel {
+    animation: featured-carousel-scroll 50s linear infinite;
+  }
+
   /* Line clamp utilities for text truncation */
   .line-clamp-1 {
     overflow: hidden;

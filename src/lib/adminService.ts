@@ -3454,4 +3454,49 @@ export class AdminService {
     
     return statusColors[status] || 'text-gray-600 bg-gray-50'
   }
+
+  /** Obtener IDs de productos del carrusel de la homepage (orden por position) */
+  static async getCarouselProductIds(): Promise<string[]> {
+    if (typeof window !== 'undefined') return []
+    const admin = getSupabaseAdmin()
+    if (!admin) return []
+    const { data, error } = await admin
+      .from('home_carousel_products')
+      .select('product_id, position')
+      .order('position', { ascending: true })
+    if (error) {
+      console.error('[AdminService] getCarouselProductIds:', error)
+      return []
+    }
+    return (data || []).map((r: { product_id: string }) => r.product_id)
+  }
+
+  /** Actualizar productos del carrusel (reemplaza la lista; orden = índice del array) */
+  static async setCarouselProductIds(productIds: string[]): Promise<boolean> {
+    if (typeof window !== 'undefined') return false
+    const admin = getSupabaseAdmin()
+    if (!admin) return false
+    try {
+      const { data: existing } = await admin.from('home_carousel_products').select('id')
+      if (existing?.length) {
+        const idsToDelete = existing.map((r: { id: string }) => r.id)
+        const { error: delError } = await admin.from('home_carousel_products').delete().in('id', idsToDelete)
+        if (delError) {
+          console.error('[AdminService] setCarouselProductIds delete:', delError)
+          return false
+        }
+      }
+      if (productIds.length === 0) return true
+      const rows = productIds.map((product_id, index) => ({ product_id, position: index }))
+      const { error: insError } = await admin.from('home_carousel_products').insert(rows)
+      if (insError) {
+        console.error('[AdminService] setCarouselProductIds insert:', insError)
+        return false
+      }
+      return true
+    } catch (e) {
+      console.error('[AdminService] setCarouselProductIds:', e)
+      return false
+    }
+  }
 }

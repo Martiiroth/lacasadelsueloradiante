@@ -313,6 +313,97 @@ export class ProductService {
     }
   }
 
+  // Obtener productos por lista de IDs (respeta el orden de ids)
+  static async getProductsByIds(
+    ids: string[],
+    userRole?: string
+  ): Promise<ProductCardData[]> {
+    if (!ids.length) return []
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          id,
+          slug,
+          title,
+          short_description,
+          is_new,
+          is_on_sale,
+          brand_id,
+          brands (
+            id,
+            name,
+            slug,
+            logo_url
+          ),
+          product_images (
+            url,
+            alt,
+            position
+          ),
+          product_variants (
+            id,
+            price_public_cents,
+            stock,
+            role_prices (
+              *,
+              customer_roles (*)
+            )
+          ),
+          product_categories (
+            category_id
+          )
+        `)
+        .in('id', ids)
+        .eq('is_active', true)
+
+      if (error) {
+        console.error('❌ ProductService getProductsByIds error:', error)
+        return []
+      }
+
+      const byId = new Map<string, any>()
+      ;(data || []).forEach((p: any) => byId.set(p.id, p))
+
+      const ordered: ProductCardData[] = ids
+        .map((id) => byId.get(id))
+        .filter(Boolean)
+        .map((product: any) => {
+          const minPublicPrice = Math.min(...product.product_variants.map((v: any) => v.price_public_cents))
+          const cheapestVariant = product.product_variants.find((v: any) => v.price_public_cents === minPublicPrice)
+          let rolePrice = null
+          if (userRole && cheapestVariant?.role_prices) {
+            const rp = cheapestVariant.role_prices.find((rp: any) => rp.customer_roles?.name === userRole)
+            rolePrice = rp?.price_cents
+          }
+          return {
+            id: product.id,
+            slug: product.slug,
+            title: product.title,
+            short_description: product.short_description,
+            is_new: product.is_new,
+            is_on_sale: product.is_on_sale,
+            image: product.product_images?.[0],
+            price_cents: minPublicPrice,
+            role_price_cents: rolePrice,
+            in_stock: product.product_variants.some((v: any) => v.stock > 0),
+            brand_id: product.brand_id,
+            brand: product.brands ? {
+              id: product.brands.id,
+              name: product.brands.name,
+              slug: product.brands.slug,
+              logo_url: product.brands.logo_url
+            } : undefined
+          }
+        })
+
+      return ordered
+    } catch (error) {
+      console.error('❌ [ProductService] Error in getProductsByIds:', error)
+      return []
+    }
+  }
+
   // Obtener producto individual con todas sus relaciones
   static async getProductBySlug(slug: string, userRole?: string): Promise<ProductWithVariants | null> {
     try {

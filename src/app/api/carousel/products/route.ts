@@ -103,7 +103,7 @@ export async function GET() {
             : undefined
         }
       })
-    const products = mapped.filter((p): p is ProductCardData => p != null) as ProductCardData[]
+    const products = mapped.filter((p) => p != null) as ProductCardData[]
 
     return NextResponse.json({ products })
   } catch (e) {

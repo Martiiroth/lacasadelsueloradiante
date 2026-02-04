@@ -124,26 +124,6 @@ export default function FeaturedCarousel() {
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Productos destacados</h2>
           <p className="text-gray-600">Una selección de nuestros productos más populares.</p>
-          {products.length > 0 && (
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <button
-                type="button"
-                onClick={goLeft}
-                aria-label="Anterior"
-                className="p-2.5 rounded-full bg-white border border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-colors"
-              >
-                <ChevronLeftIcon className="w-6 h-6" />
-              </button>
-              <button
-                type="button"
-                onClick={goRight}
-                aria-label="Siguiente"
-                className="p-2.5 rounded-full bg-white border border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-colors"
-              >
-                <ChevronRightIcon className="w-6 h-6" />
-              </button>
-            </div>
-          )}
         </div>
 
         {error && (
@@ -155,7 +135,16 @@ export default function FeaturedCarousel() {
             Aún no hay productos en el carrusel. Configúralos en <strong>Admin → Carrusel Home</strong>.
           </p>
         ) : (
-          <div ref={viewportRef} className="overflow-x-hidden">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button
+              type="button"
+              onClick={goLeft}
+              aria-label="Anterior"
+              className="flex-shrink-0 p-2.5 rounded-full bg-white border border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-colors"
+            >
+              <ChevronLeftIcon className="w-6 h-6" />
+            </button>
+            <div ref={viewportRef} className="flex-1 min-w-0 overflow-x-hidden">
             <div
               ref={trackRef}
               className="flex flex-nowrap gap-6 py-2 w-max will-change-transform transition-transform duration-300 ease-out"
@@ -179,6 +168,15 @@ export default function FeaturedCarousel() {
                 ))
               })()}
             </div>
+            </div>
+            <button
+              type="button"
+              onClick={goRight}
+              aria-label="Siguiente"
+              className="flex-shrink-0 p-2.5 rounded-full bg-white border border-gray-200 text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition-colors"
+            >
+              <ChevronRightIcon className="w-6 h-6" />
+            </button>
           </div>
         )}
       </div>

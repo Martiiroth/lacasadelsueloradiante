@@ -74,11 +74,11 @@ export default function FeaturedCarousel() {
   }, [])
 
   const goLeft = useCallback(() => {
-    setScrollX((prev) => normalize(prev + stepRef.current))
+    setScrollX((prev) => normalize(prev - stepRef.current))
   }, [normalize])
 
   const goRight = useCallback(() => {
-    setScrollX((prev) => normalize(prev - stepRef.current))
+    setScrollX((prev) => normalize(prev + stepRef.current))
   }, [normalize])
 
   // Mismo contenedor que "Explora Nuestros Productos": max-w-7xl, mismo padding

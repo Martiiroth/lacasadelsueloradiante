@@ -43,37 +43,40 @@ export default function FeaturedCarousel() {
     return () => { cancelled = true }
   }, [])
 
-  // Medir viewport y calcular ancho de tarjeta para que quepan N enteras (sin cortar el último bloque)
+  const gap = 24
+  const numProducts = products.length
+
+  // Medir viewport y calcular ancho de tarjeta; medio bucle = exactamente una copia (evita desfase)
   useEffect(() => {
-    if (!products.length) return
+    if (!numProducts) return
     const viewport = viewportRef.current
     const track = trackRef.current
     if (!viewport || !track) return
-    const gap = 24 // lg:gap-6
     const measure = () => {
       const vw = viewport.offsetWidth
       if (vw <= 0) return
-      // N visible: 1 (< 640), 2 (640–1023), 4 (≥ 1024)
       const n = vw >= 1024 ? 4 : vw >= 640 ? 2 : 1
       const w = (vw - (n - 1) * gap) / n
       setCardWidthPx(w)
-      stepRef.current = w + gap
-      const tw = track.offsetWidth
-      if (tw > 0) halfWidthRef.current = tw / 2
+      const step = w + gap
+      stepRef.current = step
+      // Medio bucle = una copia exacta (múltiplo del paso) para que la normalización no desplace
+      halfWidthRef.current = numProducts * step
     }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(viewport)
     ro.observe(track)
     return () => ro.disconnect()
-  }, [products.length])
+  }, [numProducts])
 
   const normalize = useCallback((x: number) => {
     const half = halfWidthRef.current
+    if (half <= 0) return x
     let n = x
     while (n > 0) n -= half
     while (n <= -half) n += half
-    return n
+    return Math.round(n) // evita deriva por decimales
   }, [])
 
   const goLeft = useCallback(() => {
@@ -83,6 +86,12 @@ export default function FeaturedCarousel() {
   const goRight = useCallback(() => {
     setScrollX((prev) => normalize(prev + stepRef.current))
   }, [normalize])
+
+  // Re-normalizar scroll cuando cambia el layout (ancho de tarjeta / copias) para evitar cajas cortadas
+  useEffect(() => {
+    if (!numProducts || halfWidthRef.current <= 0) return
+    setScrollX((prev) => normalize(prev))
+  }, [cardWidthPx, numProducts, normalize])
 
   // Mismo contenedor que "Explora Nuestros Productos": max-w-7xl, mismo padding
   const containerClass = 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'

@@ -103,7 +103,7 @@ export async function GET() {
             : undefined
         }
       })
-      .filter(Boolean)
+      .filter((p): p is ProductCardData => p != null)
 
     return NextResponse.json({ products })
   } catch (e) {

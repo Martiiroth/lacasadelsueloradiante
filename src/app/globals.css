@@ -156,7 +156,13 @@
     }
   }
   .animate-featured-carousel {
-    animation: featured-carousel-scroll 50s linear infinite;
+    animation: featured-carousel-scroll 60s linear infinite;
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-featured-carousel {
+      animation-duration: 120s;
+    }
   }
 
   /* Line clamp utilities for text truncation */

@@ -48,7 +48,9 @@ export default function FeaturedCarousel() {
 
   if (!products.length) return null
 
-  const duplicated = [...products, ...products]
+  // Duplicar suficientes veces para que el bucle infinito se vea fluido (al menos 2 copias; si hay pocos productos, más copias)
+  const copies = products.length <= 3 ? 4 : 2
+  const duplicated = Array.from({ length: copies }, () => [...products]).flat()
 
   return (
     <section className="py-10 bg-gray-50 overflow-hidden" aria-label="Carrusel de productos destacados">
@@ -56,14 +58,15 @@ export default function FeaturedCarousel() {
         <h2 className="text-2xl font-bold text-gray-900">Productos destacados</h2>
         <p className="text-gray-600 mt-1">Una selección de nuestros productos más populares</p>
       </div>
-      <div className="relative w-full overflow-hidden">
-        <div className="flex gap-6 py-2 w-max animate-featured-carousel">
+      {/* Contenedor que recorta la pista (viewport del carrusel) */}
+      <div className="w-full overflow-x-hidden">
+        <div className="flex flex-nowrap gap-6 py-2 w-max animate-featured-carousel">
           {duplicated.map((product, index) => (
             <div
               key={`${product.id}-${index}`}
-              className="flex-shrink-0 w-[280px] sm:w-[300px]"
+              className="flex-shrink-0 w-[260px] sm:w-[280px] md:w-[300px]"
             >
-              <ProductCard product={product} priority={index < 4} />
+              <ProductCard product={product} priority={index < 6} />
             </div>
           ))}
         </div>

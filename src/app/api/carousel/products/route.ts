@@ -67,7 +67,7 @@ export async function GET() {
     }
 
     const byId = new Map(productsData.map((p: any) => [p.id, p]))
-    const products: ProductCardData[] = ids
+    const mapped = ids
       .map((id) => byId.get(id))
       .filter(Boolean)
       .map((product: any) => {
@@ -103,7 +103,7 @@ export async function GET() {
             : undefined
         }
       })
-      .filter((p): p is ProductCardData => p != null)
+    const products: ProductCardData[] = mapped.filter((p): p is ProductCardData => p != null)
 
     return NextResponse.json({ products })
   } catch (e) {

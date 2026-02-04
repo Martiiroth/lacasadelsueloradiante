@@ -27,7 +27,7 @@ export async function GET() {
 
     const ids = carouselRows.map((r: { product_id: string }) => r.product_id)
 
-    const { data: productsData, error: productsError } = await supabase
+    let query = supabase
       .from('products')
       .select(`
         id,
@@ -59,7 +59,8 @@ export async function GET() {
         )
       `)
       .in('id', ids)
-      .eq('is_active', true)
+
+    const { data: productsData, error: productsError } = await query
 
     if (productsError || !productsData?.length) {
       return NextResponse.json({ products: [] }, { status: 200 })
@@ -71,6 +72,7 @@ export async function GET() {
       .filter(Boolean)
       .map((product: any) => {
         const variants = product.product_variants || []
+        if (!variants.length) return null
         const minPublicPrice = Math.min(...variants.map((v: any) => v.price_public_cents))
         const cheapestVariant = variants.find((v: any) => v.price_public_cents === minPublicPrice)
         let rolePrice: number | undefined
@@ -101,6 +103,7 @@ export async function GET() {
             : undefined
         }
       })
+      .filter(Boolean)
 
     return NextResponse.json({ products })
   } catch (e) {

@@ -1,13 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ProductCardData } from '../../types/products'
 import ProductCard from '../products/ProductCard'
+
+const AUTO_SPEED = 0.4 // píxeles por frame (~24px/s a 60fps)
 
 export default function FeaturedCarousel() {
   const [products, setProducts] = useState<ProductCardData[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [scrollX, setScrollX] = useState(0)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const halfWidthRef = useRef(1)
+  const rafRef = useRef<number>(0)
+  const isDraggingRef = useRef(false)
+  const hasCapturedRef = useRef(false)
+  const dragStartXRef = useRef(0)
+  const dragStartScrollRef = useRef(0)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const DRAG_THRESHOLD = 8 // px: solo capturar después de este movimiento para no bloquear clics
 
   useEffect(() => {
     let cancelled = false
@@ -34,6 +46,89 @@ export default function FeaturedCarousel() {
     }
     fetchCarousel()
     return () => { cancelled = true }
+  }, [])
+
+  // Medir ancho del track (mitad = una vuelta del bucle infinito)
+  useEffect(() => {
+    if (!products.length || !trackRef.current) return
+    const el = trackRef.current
+    const measure = () => {
+      const w = el.offsetWidth
+      if (w > 0) halfWidthRef.current = w / 2
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [products.length])
+
+  // Bucle automático (solo cuando no se arrastra)
+  useEffect(() => {
+    if (!products.length) return
+    function tick() {
+      if (isDraggingRef.current) {
+        rafRef.current = requestAnimationFrame(tick)
+        return
+      }
+      setScrollX((prev) => {
+        const half = halfWidthRef.current
+        let next = prev - AUTO_SPEED
+        if (next <= -half) next += half
+        return next
+      })
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [products.length])
+
+  const normalize = useCallback((x: number) => {
+    const half = halfWidthRef.current
+    let n = x
+    while (n > 0) n -= half
+    while (n <= -half) n += half
+    return n
+  }, [])
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      dragStartXRef.current = e.clientX
+      dragStartScrollRef.current = scrollX
+      hasCapturedRef.current = false
+    },
+    [scrollX]
+  )
+
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const dx = e.clientX - dragStartXRef.current
+      if (!hasCapturedRef.current) {
+        if (Math.abs(dx) >= DRAG_THRESHOLD && viewportRef.current) {
+          hasCapturedRef.current = true
+          isDraggingRef.current = true
+          viewportRef.current.setPointerCapture(e.pointerId)
+          setScrollX((prev) => normalize(prev + dx))
+          dragStartXRef.current = e.clientX
+        }
+        return
+      }
+      const delta = e.clientX - dragStartXRef.current
+      dragStartXRef.current = e.clientX
+      setScrollX((prev) => normalize(prev + delta))
+    },
+    [scrollX, normalize]
+  )
+
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    if (viewportRef.current && hasCapturedRef.current) {
+      viewportRef.current.releasePointerCapture(e.pointerId)
+    }
+    isDraggingRef.current = false
+    hasCapturedRef.current = false
+  }, [])
+
+  const onPointerLeave = useCallback(() => {
+    isDraggingRef.current = false
   }, [])
 
   // Mismo contenedor que "Explora Nuestros Productos": max-w-7xl, mismo padding
@@ -66,7 +161,7 @@ export default function FeaturedCarousel() {
     <section className="py-10 bg-gray-50" aria-label="Carrusel de productos destacados">
       <div className={containerClass}>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Productos destacados</h2>
-        <p className="text-gray-600 mb-6">Una selección de nuestros productos más populares</p>
+        <p className="text-gray-600 mb-6">Una selección de nuestros productos más populares. Arrastra para mover el carrusel.</p>
 
         {error && (
           <p className="text-red-600 text-sm mb-4">{error}</p>
@@ -78,9 +173,21 @@ export default function FeaturedCarousel() {
           </p>
         ) : (
           <>
-            {/* Viewport: mismo ancho que el grid de productos (max-w-7xl), overflow horizontal oculto */}
-            <div className="overflow-x-hidden">
-              <div className="flex flex-nowrap gap-4 lg:gap-6 py-2 w-max animate-featured-carousel">
+            <div
+              ref={viewportRef}
+              className="overflow-x-hidden select-none cursor-grab active:cursor-grabbing touch-pan-x"
+              style={{ userSelect: 'none' }}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerLeave={onPointerLeave}
+              onPointerCancel={onPointerUp}
+            >
+              <div
+                ref={trackRef}
+                className="flex flex-nowrap gap-4 lg:gap-6 py-2 w-max will-change-transform"
+                style={{ transform: `translateX(${scrollX}px)` }}
+              >
                 {(() => {
                   const copies = products.length <= 3 ? 4 : 2
                   const duplicated = Array.from({ length: copies }, () => [...products]).flat()

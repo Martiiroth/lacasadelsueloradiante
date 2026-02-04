@@ -11,55 +11,27 @@ cd ~/lacasadelsueloradiante
 git pull origin main
 ```
 
-## Paso 3: Cargar variables de entorno en el VPS (IMPORTANTE)
-
-Docker Compose lee el archivo **`.env`** que está en la misma carpeta del proyecto. Sin ese archivo (o sin las variables correctas), la app no tendrá `SUPABASE_SERVICE_ROLE_KEY` ni el resto de configuración.
-
-### Opción A – Ya tienes `.env.production` en el repo (o lo subes una vez)
-
+## Paso 3: Crear archivo .env (IMPORTANTE)
 ```bash
-# En el VPS, dentro de la carpeta del proyecto:
-cp .env.production .env
+# Copia el archivo .env.production.final como .env
+cp .env.production.final .env
 
-# Comprueba que SUPABASE_SERVICE_ROLE_KEY está definida (no se mostrará el valor si usas set -a):
-grep -q "SUPABASE_SERVICE_ROLE_KEY=" .env && echo "✅ Variable presente" || echo "❌ Falta SUPABASE_SERVICE_ROLE_KEY"
+# Verifica que se copió correctamente
+cat .env
 ```
-
-### Opción B – Crear `.env` a mano en el VPS
-
-```bash
-nano .env
-```
-
-Pega todas las variables que necesites (las mismas que en tu `.env` local), por ejemplo:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- **`SUPABASE_SERVICE_ROLE_KEY`** ← imprescindible para crear clientes desde admin
-- Variables de email, `NEXT_PUBLIC_APP_URL`, etc.
-
-Guarda (Ctrl+O, Enter) y cierra (Ctrl+X).
-
-### Opción C – Copiar `.env` desde tu PC al VPS (sin subirlo a Git)
-
-Desde tu máquina local (en la carpeta del proyecto):
-
-```bash
-scp .env root@TU_IP_VPS:~/lacasadelsueloradiante/.env
-```
-
-Sustituye `TU_IP_VPS` por la IP o hostname del servidor.
-
-### Importante
-
-- El archivo **`.env` no se sube a Git** (está en `.gitignore`). Tienes que crearlo o copiarlo en el VPS como en los pasos anteriores.
-- Después de tocar `.env` hay que **reconstruir y levantar** los contenedores para que cojan las nuevas variables (ver Paso 4).
 
 ## Paso 4: Deployment completo
+```bash
+# Opción A - Usando el script automático (RECOMENDADO)
+chmod +x deploy-vps-with-env.sh
+./deploy-vps-with-env.sh
+```
 
-**Después de tener el `.env` en el VPS**, construye y levanta los contenedores:
+**O si prefieres manual:**
 
 ```bash
+# Opción B - Comandos manuales paso a paso
+
 # 1. Parar contenedores
 docker-compose stop
 
@@ -70,7 +42,7 @@ docker-compose down --remove-orphans 2>/dev/null || true
 docker stop nginx-container 2>/dev/null || true
 docker-compose down --remove-orphans
 
-# 4. Build con las variables de .env (Docker Compose las lee del .env)
+# 4. Build con las variables de .env
 docker-compose build --no-cache
 
 # 5. Levantar servicios
@@ -78,13 +50,6 @@ docker-compose up -d
 
 # 6. Ver logs en tiempo real
 docker-compose logs -f nextjs-app
-```
-
-O usa el script de deploy si lo tienes:
-
-```bash
-chmod +x deploy.sh
-./deploy.sh
 ```
 
 ## Verificación

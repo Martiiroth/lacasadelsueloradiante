@@ -17,22 +17,38 @@ const PROBLEMATIC_COOKIES = [
 ]
 
 export async function middleware(request: NextRequest) {
+  console.log('🔍 Middleware executing for:', request.nextUrl.pathname)
+  
   try {
+    // Primero, verificar versión y limpiar cookies si es necesario
     const storedVersion = request.cookies.get(VERSION_COOKIE_NAME)?.value
-
+    
+    // Si no hay versión o es diferente, limpiar cookies problemáticas
     if (!storedVersion || storedVersion !== APP_VERSION) {
+      console.log('🧹 Cleaning cookies due to version mismatch:', {
+        stored: storedVersion,
+        current: APP_VERSION
+      })
+      
       const response = NextResponse.next()
+      
+      // Limpiar cookies problemáticas
       PROBLEMATIC_COOKIES.forEach(cookieName => {
         if (request.cookies.has(cookieName)) {
+          console.log('🗑️ Removing cookie:', cookieName)
           response.cookies.delete(cookieName)
         }
       })
+      
+      // Actualizar versión
       response.cookies.set(VERSION_COOKIE_NAME, APP_VERSION, {
-        maxAge: 60 * 60 * 24 * 365,
+        maxAge: 60 * 60 * 24 * 365, // 1 año
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'lax'
       })
+      
+      console.log('✅ Cookies cleaned, proceeding with Supabase middleware')
     }
     
     // Luego, ejecutar el middleware de Supabase

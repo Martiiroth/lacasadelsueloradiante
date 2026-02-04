@@ -9,23 +9,44 @@ function getBearerToken(req: NextRequest): string | null {
   return h?.toLowerCase().startsWith('bearer ') ? h.slice(7).trim() || null : null
 }
 
-export async function POST(request: NextRequest) {
+async function getAuthUser(req: NextRequest) {
+  const supabase = await createClient()
+  const token = getBearerToken(req)
+  if (token) {
+    const res = await supabase.auth.getUser(token)
+    if (res.data.user) return res.data.user
+  }
+  const res = await supabase.auth.getUser()
+  return res.data.user ?? null
+}
+
+/** GET: diagnóstico de auth (Bearer o cookies) - devuelve roleName y serviceRoleOk */
+export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const token = getBearerToken(request)
-
-    // Usuario: Bearer primero, luego cookies
-    let user: { id: string; email?: string } | null = null
-    if (token) {
-      const res = await supabase.auth.getUser(token)
-      if (res.data.user) user = res.data.user
-    }
+    const user = await getAuthUser(request)
     if (!user) {
-      const res = await supabase.auth.getUser()
-      if (res.data.user) user = res.data.user
+      return NextResponse.json({ ok: false, error: 'no_user' }, { status: 401, headers: JSON_HEADERS })
     }
+    const roleName = await AdminService.getClientRoleByAuthUid(user.id)
+    const serviceRoleOk = AdminService.isServiceRoleAvailable()
+    return NextResponse.json(
+      { ok: true, userId: user.id, roleName, serviceRoleOk, isAdmin: roleName === 'admin' },
+      { headers: JSON_HEADERS }
+    )
+  } catch (e) {
+    return NextResponse.json(
+      { ok: false, error: String(e) },
+      { status: 500, headers: JSON_HEADERS }
+    )
+  }
+}
 
+export async function POST(request: NextRequest) {
+  console.log('[admin/clients] POST received')
+  try {
+    const user = await getAuthUser(request)
     if (!user) {
+      console.log('[admin/clients] 401: no user')
       return NextResponse.json(
         { success: false, message: 'No autorizado. Inicia sesión.' },
         { status: 401, headers: JSON_HEADERS }
@@ -35,6 +56,8 @@ export async function POST(request: NextRequest) {
     // Rol: service role (bypassa RLS) - clients.role_id → customer_roles.name
     const roleName = await AdminService.getClientRoleByAuthUid(user.id)
     const serviceRoleOk = AdminService.isServiceRoleAvailable()
+    console.log('[admin/clients] auth check:', { userId: user.id, roleName, serviceRoleOk })
+
     if (roleName !== 'admin') {
       const payload = {
         success: false,

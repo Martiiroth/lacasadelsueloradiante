@@ -127,11 +127,13 @@ export default function AdminOrderCreate() {
       const { data: methods, error } = await supabase
         .from('shipping_methods')
         .select('id, name, price_cents')
-        .eq('active', true)
-      
-      if (!error && methods) {
-        setShippingMethods(methods)
+        .order('price_cents', { ascending: true })
+
+      if (error) {
+        console.error('Error loading shipping methods:', error)
+        return
       }
+      setShippingMethods(methods ?? [])
     } catch (err) {
       console.error('Error loading shipping methods:', err)
     }
@@ -1149,7 +1151,9 @@ export default function AdminOrderCreate() {
                       }}
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     >
-                      <option value="">Seleccionar método</option>
+                      <option value="">
+                        {shippingMethods.length === 0 ? 'Sin métodos (añade en Supabase → shipping_methods)' : 'Seleccionar método'}
+                      </option>
                       {shippingMethods.map(method => (
                         <option key={method.id} value={method.id}>
                           {method.name} - €{(method.price_cents / 100).toFixed(2)}

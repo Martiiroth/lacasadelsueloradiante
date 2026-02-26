@@ -192,7 +192,7 @@ export class RedsysService {
     }
 
     // Validar que el amount sea un número entero positivo (en céntimos)
-    const amountInt = Math.floor(amount)
+    const amountInt = Math.floor(Number(amount))
     if (isNaN(amountInt) || amountInt <= 0) {
       throw new Error(`Importe inválido para Redsys: ${amount}. Debe ser un número entero positivo.`)
     }
@@ -200,6 +200,12 @@ export class RedsysService {
     // Parámetros del comercio
     // Redsys exige DS_MERCHANT_AMOUNT con exactamente 12 dígitos (ceros a la izquierda)
     const amountPadded = amountInt.toString().padStart(12, '0')
+    console.log('💰 Redsys DS_MERCHANT_AMOUNT:', {
+      amountCents: amountInt,
+      amountEuros: (amountInt / 100).toFixed(2),
+      amountPadded,
+      length: amountPadded.length
+    })
 
     const params: RedsysPaymentParams = {
       DS_MERCHANT_MERCHANTCODE: MERCHANT_CODE,

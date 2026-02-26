@@ -38,6 +38,11 @@ export default function RedsysPaymentForm({
     setError(null)
 
     try {
+      // Enviar amount siempre como entero (céntimos) para evitar floats o strings
+      const amountCents = Math.floor(Number(amount))
+      if (amountCents <= 0) {
+        throw new Error('El importe del pedido no es válido para pago')
+      }
       const response = await fetch('/api/payments/redsys/create', {
         method: 'POST',
         headers: {
@@ -46,7 +51,7 @@ export default function RedsysPaymentForm({
         },
         body: JSON.stringify({
           orderId,
-          amount,
+          amount: amountCents,
           description: description || `Pedido #${orderId}`,
           consumerName
         })

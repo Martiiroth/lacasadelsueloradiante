@@ -138,6 +138,7 @@ export async function POST(request: NextRequest) {
       orderId: order.id,
       orderTotalCents: order.total_cents,
       requestedAmountCents: amountInCents,
+      amountForRedsys: Math.floor(Number(order.total_cents)),
       match: order.total_cents === amountInCents
     })
 
@@ -154,9 +155,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Usar SIEMPRE el total de la orden en DB (valor autoritativo) para Redsys
+    const amountForRedsys = Math.floor(Number(order.total_cents))
+    if (amountForRedsys <= 0) {
+      return NextResponse.json(
+        { error: 'El importe de la orden no es válido para pago' },
+        { status: 400 }
+      )
+    }
+
     // Generar parámetros de pago de Redsys
     const paymentForm = RedsysService.createPaymentForm(
-      amountInCents,
+      amountForRedsys,
       orderId,
       description || 'Pedido en La Casa del Suelo Radiante',
       consumerName
@@ -169,7 +179,7 @@ export async function POST(request: NextRequest) {
         status: 'pending',
         comment: 'Iniciando pago con Redsys',
         details: {
-          amount: amountInCents,
+          amount: amountForRedsys,
           paymentMethod: 'redsys'
         }
       })

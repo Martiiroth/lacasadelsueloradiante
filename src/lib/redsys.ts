@@ -78,25 +78,19 @@ export interface RedsysDecodedResponse {
 export class RedsysService {
   
   /**
-   * Genera un número de pedido único para Redsys (exactamente 12 caracteres numéricos)
-   * Redsys requiere que DS_MERCHANT_ORDER sea exactamente 12 dígitos numéricos
+   * Genera un número de pedido único para Redsys (exactamente 12 dígitos numéricos).
+   * Redsys exige DS_MERCHANT_ORDER máximo 12 posiciones, solo numéricos para evitar errores.
    */
-  static generateOrderNumber(): string {
-    // Usar timestamp para garantizar unicidad
-    const timestamp = Date.now().toString()
-    // Generar un número aleatorio de 4 dígitos para asegurar unicidad
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
-    
-    // Combinar: últimos 8 dígitos del timestamp + 4 dígitos aleatorios = 12 dígitos
-    const orderNumber = (timestamp.slice(-8) + random).padStart(12, '0').slice(0, 12)
-    
-    // Validar que tenga exactamente 12 dígitos numéricos
-    if (!/^\d{12}$/.test(orderNumber)) {
-      console.error('Error generando número de orden para Redsys:', orderNumber)
-      // Fallback: usar solo números
-      return Date.now().toString().slice(-12).padStart(12, '0')
+  static generateOrderNumber(orderId?: string): string {
+    const now = Date.now()
+    const ts = now.toString().slice(-8)
+    const rnd = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+    let orderNumber = (ts + rnd).replace(/\D/g, '')
+    orderNumber = orderNumber.padStart(12, '0').slice(-12)
+    if (orderNumber.length !== 12 || !/^\d{12}$/.test(orderNumber)) {
+      orderNumber = now.toString().slice(-12).padStart(12, '0').slice(-12)
     }
-    
+    console.log('🔢 Redsys DS_MERCHANT_ORDER:', { orderNumber, length: orderNumber.length, orderId: orderId?.slice(0, 8) })
     return orderNumber
   }
 
@@ -118,11 +112,18 @@ export class RedsysService {
    * Crea la firma HMAC SHA256 para Redsys
    */
   private static createSignature(merchantParameters: string): string {
-    // Decodificar parámetros para obtener el número de pedido
     const decodedParams = JSON.parse(this.decodeBase64(merchantParameters))
-    const orderNumber = decodedParams.DS_MERCHANT_ORDER
+    let orderNumber = decodedParams.DS_MERCHANT_ORDER
+    if (typeof orderNumber !== 'string' || !/^\d{1,12}$/.test(orderNumber.replace(/\s/g, ''))) {
+      orderNumber = String(orderNumber ?? '').replace(/\D/g, '').padStart(12, '0').slice(-12)
+    } else {
+      orderNumber = orderNumber.replace(/\D/g, '').padStart(12, '0').slice(-12)
+    }
+    if (orderNumber.length !== 12) {
+      throw new Error(`DS_MERCHANT_ORDER inválido para firma: longitud ${orderNumber.length}, debe ser 12`)
+    }
 
-    // Crear clave derivada del número de pedido
+    // Crear clave derivada del número de pedido (16 bytes para 3DES)
     const secretKeyBytes = Buffer.from(SECRET_KEY, 'base64')
     const cipher = crypto.createCipheriv('des-ede3-cbc', secretKeyBytes, Buffer.alloc(8, 0))
     cipher.setAutoPadding(false)
@@ -176,14 +177,7 @@ export class RedsysService {
   ): RedsysFormData {
     
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    const orderNumber = this.generateOrderNumber()
-
-    console.log('🔢 Generando número de orden para Redsys:', {
-      orderNumber,
-      length: orderNumber.length,
-      isValid: /^\d{12}$/.test(orderNumber),
-      orderId
-    })
+    const orderNumber = this.generateOrderNumber(orderId)
 
     // Validar que el número de orden tenga exactamente 12 dígitos numéricos
     if (!/^\d{12}$/.test(orderNumber)) {

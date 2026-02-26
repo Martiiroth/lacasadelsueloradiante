@@ -312,24 +312,33 @@ export default function CheckoutPage() {
                   Tu pedido ha sido registrado. Por favor, completa el pago con tarjeta para confirmar tu compra.
                 </p>
               </div>
-              
-              <RedsysPaymentForm
-                orderId={pendingOrderId}
-                amount={orderConfirmation.order.total_cents}
-                description={`Pedido #${orderConfirmation.confirmation_number}`}
-                consumerName={billingAddress?.first_name && billingAddress?.last_name 
-                  ? `${billingAddress.first_name} ${billingAddress.last_name}` 
-                  : undefined
-                }
-                autoSubmit={false}
-                onSuccess={() => {
-                  console.log('Redirigiendo a Redsys...')
-                }}
-                onError={(error) => {
-                  setError(error)
-                  setIsLoading(false)
-                }}
-              />
+
+              {orderConfirmation.order.total_cents > 0 ? (
+                <RedsysPaymentForm
+                  orderId={pendingOrderId}
+                  amount={orderConfirmation.order.total_cents}
+                  description={`Pedido #${orderConfirmation.confirmation_number}`}
+                  consumerName={billingAddress?.first_name && billingAddress?.last_name 
+                    ? `${billingAddress.first_name} ${billingAddress.last_name}` 
+                    : undefined
+                  }
+                  autoSubmit={false}
+                  onSuccess={() => {
+                    console.log('Redirigiendo a Redsys...')
+                  }}
+                  onError={(error) => {
+                    setError(error)
+                    setIsLoading(false)
+                  }}
+                />
+              ) : (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-amber-800 font-medium">No se puede procesar el pago</p>
+                  <p className="text-sm text-amber-700 mt-1">
+                    El importe del pedido es 0 €. Si has usado un cupón o hay un error, contacta con nosotros.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

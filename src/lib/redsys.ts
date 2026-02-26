@@ -198,13 +198,16 @@ export class RedsysService {
     }
 
     // Parámetros del comercio
+    // Redsys exige DS_MERCHANT_AMOUNT con exactamente 12 dígitos (ceros a la izquierda)
+    const amountPadded = amountInt.toString().padStart(12, '0')
+
     const params: RedsysPaymentParams = {
       DS_MERCHANT_MERCHANTCODE: MERCHANT_CODE,
       DS_MERCHANT_TERMINAL: TERMINAL,
       DS_MERCHANT_TRANSACTIONTYPE: '0', // 0 = Autorización
       DS_MERCHANT_CURRENCY: CURRENCY,
       DS_MERCHANT_ORDER: orderNumber,
-      DS_MERCHANT_AMOUNT: amountInt.toString(),
+      DS_MERCHANT_AMOUNT: amountPadded,
       DS_MERCHANT_PRODUCTDESCRIPTION: description,
       DS_MERCHANT_MERCHANTURL: `${appUrl}/api/payments/redsys/callback`,
       DS_MERCHANT_URLOK: `${appUrl}/checkout/payment-result?status=success&order=${orderId}`,

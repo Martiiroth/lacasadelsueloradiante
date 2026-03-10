@@ -1,8 +1,12 @@
 // Email service que solo se ejecuta en el servidor
 import nodemailer from 'nodemailer'
 
-// Configuración del transporter usando la configuración de Zoho
 let transporter: nodemailer.Transporter | null = null
+
+/** Reinvalida el transporter (p. ej. tras error de conexión para que use la config actual) */
+export function resetEmailTransporter() {
+  transporter = null
+}
 
 function getTransporter() {
   if (!transporter) {
@@ -10,7 +14,10 @@ function getTransporter() {
     const emailPassword = process.env.EMAIL_PASSWORD
     const host = process.env.EMAIL_HOST || 'lacasadelsueloradiante.es'
     const port = parseInt(process.env.EMAIL_PORT || '465', 10)
-    const secure = process.env.EMAIL_SECURE === 'true'
+    // Puerto 465 = SMTPS (SSL). Si no se indica EMAIL_SECURE, usar true para 465 y false para 587
+    const secure = process.env.EMAIL_SECURE !== undefined
+      ? process.env.EMAIL_SECURE === 'true'
+      : port === 465
 
     console.log('📧 [EMAIL] Email config check:')
     console.log('- EMAIL_USER:', emailUser ? `SET (${emailUser.substring(0, 3)}...)` : 'MISSING')
@@ -626,20 +633,25 @@ class ServerEmailService {
         }
       }
 
-      // Retornar true si al menos uno se envió correctamente
       const success = results.some(result => result.status === 'fulfilled')
-      
-      if (!success) {
-        console.error('❌ [EMAIL] Ningún email se envió correctamente. Todos fallaron.')
+      if (success) return true
+
+      // Ninguno enviado: obtener mensaje del primer fallo para devolverlo
+      const failed = results.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined
+      const errMsg = failed?.reason instanceof Error ? failed.reason.message : String(failed?.reason ?? 'Envío fallido')
+      console.error('❌ [EMAIL] Ningún email enviado. Primer error:', errMsg)
+      // Reinvalidar transporter ante fallo (auth/connection) para que la próxima petición reintente con la config actual
+      if (typeof globalThis !== 'undefined' && (errMsg.includes('auth') || errMsg.includes('ECONNREFUSED') || errMsg.includes('ETIMEDOUT') || errMsg.includes('connection'))) {
+        resetEmailTransporter()
       }
-      
-      return success
+      throw new Error(errMsg)
     } catch (error) {
-      console.error('❌ [EMAIL] Error crítico en sendOrderStatusNotification:', error)
+      console.error('❌ [EMAIL] Error en sendOrderStatusNotification:', error)
       if (error instanceof Error) {
-        console.error('❌ [EMAIL] Error stack:', error.stack)
+        console.error('❌ [EMAIL] Stack:', error.stack)
+        throw error
       }
-      return false
+      throw new Error(String(error))
     }
   }
 

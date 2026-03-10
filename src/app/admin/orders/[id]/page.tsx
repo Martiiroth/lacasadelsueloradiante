@@ -162,7 +162,8 @@ export default function AdminOrderDetail() {
       }
 
       if (!response.ok) {
-        throw new Error(result.error || result.message || `Error ${response.status}: ${response.statusText}`)
+        const msg = result.details || result.error || result.message || `Error ${response.status}: ${response.statusText}`
+        throw new Error(msg)
       }
 
       if (result.success) {

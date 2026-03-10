@@ -11,6 +11,8 @@ const TERMINAL = process.env.REDSYS_TERMINAL || '001'
 const SECRET_KEY = process.env.REDSYS_SECRET_KEY || ''
 const CURRENCY = process.env.REDSYS_CURRENCY || '978' // EUR
 const ENVIRONMENT = process.env.REDSYS_ENVIRONMENT || 'test'
+// URL que Redsys tiene registrada (callback, OK, KO). Si en el panel tienes lacasadelsueloradiante.es sin www, ponla aquí.
+const REDSYS_BASE_URL = process.env.REDSYS_MERCHANT_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
 // URLs de Redsys
 const REDSYS_URLS = {
@@ -175,9 +177,22 @@ export class RedsysService {
     description: string,
     consumerName?: string
   ): RedsysFormData {
-    
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    if (!SECRET_KEY || SECRET_KEY.length < 10) {
+      throw new Error(
+        'REDSYS_SECRET_KEY no está configurada o es inválida. Configura la clave en .env (clave que te proporciona Redsys para el terminal). Error SIS0042 suele deberse a esto.'
+      )
+    }
+
+    const baseUrl = REDSYS_BASE_URL.replace(/\/$/, '')
     const orderNumber = this.generateOrderNumber(orderId)
+
+    console.log('🔢 Generando número de orden para Redsys:', {
+      orderNumber,
+      length: orderNumber.length,
+      isValid: /^\d{12}$/.test(orderNumber),
+      orderId,
+      redsysBaseUrl: baseUrl
+    })
 
     // Validar que el número de orden tenga exactamente 12 dígitos numéricos
     if (!/^\d{12}$/.test(orderNumber)) {
@@ -209,9 +224,9 @@ export class RedsysService {
       DS_MERCHANT_ORDER: orderNumber,
       DS_MERCHANT_AMOUNT: amountPadded,
       DS_MERCHANT_PRODUCTDESCRIPTION: description,
-      DS_MERCHANT_MERCHANTURL: `${appUrl}/api/payments/redsys/callback`,
-      DS_MERCHANT_URLOK: `${appUrl}/checkout/payment-result?status=success&order=${orderId}`,
-      DS_MERCHANT_URLKO: `${appUrl}/checkout/payment-result?status=error&order=${orderId}`,
+      DS_MERCHANT_MERCHANTURL: `${baseUrl}/api/payments/redsys/callback`,
+      DS_MERCHANT_URLOK: `${baseUrl}/checkout/payment-result?status=success&order=${orderId}`,
+      DS_MERCHANT_URLKO: `${baseUrl}/checkout/payment-result?status=error&order=${orderId}`,
       DS_MERCHANT_CONSUMERLANGUAGE: '001', // Español
       DS_MERCHANT_MERCHANTNAME: 'La Casa del Suelo Radiante',
       DS_MERCHANT_TITULAR: consumerName

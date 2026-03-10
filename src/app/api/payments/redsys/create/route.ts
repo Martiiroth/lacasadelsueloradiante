@@ -12,22 +12,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { orderId, amount, description, consumerName } = body
 
-    // Validar parámetros requeridos
-    if (!orderId || !amount) {
+    if (!orderId) {
       return NextResponse.json(
-        { error: 'Faltan parámetros requeridos: orderId y amount' },
+        { error: 'Falta el identificador del pedido (orderId)' },
         { status: 400 }
       )
     }
 
-    // Validar que el amount sea un número positivo
-    const amountInCents = parseInt(amount)
-    if (isNaN(amountInCents) || amountInCents <= 0) {
-      return NextResponse.json(
-        { error: 'El importe debe ser un número positivo' },
-        { status: 400 }
-      )
-    }
+    const amountInCents = amount != null ? parseInt(String(amount), 10) : null
 
     // Verificar que la orden existe en la base de datos
     // Usar createClient() que funciona con usuarios autenticados y anónimos
@@ -134,39 +126,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('💰 Verificando totales para Redsys:', {
+    const orderTotalCents = order.total_cents ?? 0
+    if (orderTotalCents <= 0) {
+      console.error('❌ Orden con total 0 o no calculado:', order.id)
+      return NextResponse.json(
+        { error: 'El total del pedido no está calculado. Vuelve a intentar en unos segundos.' },
+        { status: 400 }
+      )
+    }
+
+    if (amountInCents != null && amountInCents > 0 && orderTotalCents !== amountInCents) {
+      console.warn('⚠️ Mismatch de importe, usando total de la BD:', {
+        orderTotalCents,
+        requestedAmountCents: amountInCents
+      })
+    }
+
+    console.log('💰 Creando pago Redsys:', {
       orderId: order.id,
-      orderTotalCents: order.total_cents,
-      requestedAmountCents: amountInCents,
-      amountForRedsys: Math.floor(Number(order.total_cents)),
-      match: order.total_cents === amountInCents
+      orderTotalCents,
+      requestedAmountCents: amountInCents
     })
 
-    // Verificar que el importe coincide con el de la orden
-    if (order.total_cents !== amountInCents) {
-      console.error('❌ Mismatch de importe:', {
-        expected: order.total_cents,
-        received: amountInCents,
-        difference: order.total_cents - amountInCents
-      })
-      return NextResponse.json(
-        { error: 'El importe no coincide con el de la orden' },
-        { status: 400 }
-      )
-    }
-
-    // Usar SIEMPRE el total de la orden en DB (valor autoritativo) para Redsys
-    const amountForRedsys = Math.floor(Number(order.total_cents))
-    if (amountForRedsys <= 0) {
-      return NextResponse.json(
-        { error: 'El importe de la orden no es válido para pago' },
-        { status: 400 }
-      )
-    }
-
-    // Generar parámetros de pago de Redsys
     const paymentForm = RedsysService.createPaymentForm(
-      amountForRedsys,
+      orderTotalCents,
       orderId,
       description || 'Pedido en La Casa del Suelo Radiante',
       consumerName
@@ -179,7 +162,7 @@ export async function POST(request: NextRequest) {
         status: 'pending',
         comment: 'Iniciando pago con Redsys',
         details: {
-          amount: amountForRedsys,
+          amount: orderTotalCents,
           paymentMethod: 'redsys'
         }
       })

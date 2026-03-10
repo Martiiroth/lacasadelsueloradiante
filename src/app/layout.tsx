@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'es_ES',
-    url: 'https://lacasadelsueloradiante.es',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://www.lacasadelsueloradiante.es',
     siteName: 'La Casa del Suelo Radiante',
     title: 'La Casa del Suelo Radiante - Sistemas de Calefacción',
     description: 'Tu tienda especializada en suelo radiante y sistemas de calefacción profesionales.',

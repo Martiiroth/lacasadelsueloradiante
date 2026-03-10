@@ -34,6 +34,14 @@ export default function RedsysPaymentForm({
 
   // Preparar transacción de pago
   const preparePayment = async () => {
+    if (!orderId || !amount || amount <= 0) {
+      const msg = !orderId
+        ? 'Falta el identificador del pedido.'
+        : 'El importe del pedido no es válido. Vuelve al carrito y confirma de nuevo.'
+      setError(msg)
+      return null
+    }
+
     setIsLoading(true)
     setError(null)
 

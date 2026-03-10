@@ -6,16 +6,18 @@ let transporter: nodemailer.Transporter | null = null
 
 function getTransporter() {
   if (!transporter) {
-    // Verificar variables de entorno
     const emailUser = process.env.EMAIL_USER
     const emailPassword = process.env.EMAIL_PASSWORD
-    
+    const host = process.env.EMAIL_HOST || 'lacasadelsueloradiante.es'
+    const port = parseInt(process.env.EMAIL_PORT || '465', 10)
+    const secure = process.env.EMAIL_SECURE === 'true'
+
     console.log('📧 [EMAIL] Email config check:')
     console.log('- EMAIL_USER:', emailUser ? `SET (${emailUser.substring(0, 3)}...)` : 'MISSING')
     console.log('- EMAIL_PASSWORD:', emailPassword ? 'SET' : 'MISSING')
-    console.log('- EMAIL_HOST: mail.lacasadelsueloradiante.es')
-    console.log('- EMAIL_PORT: 587')
-    
+    console.log('- EMAIL_HOST:', host)
+    console.log('- EMAIL_PORT:', port, '| secure:', secure)
+
     if (!emailUser || !emailPassword) {
       const errorMsg = 'Email credentials not configured. EMAIL_USER and EMAIL_PASSWORD are required.'
       console.error('❌ [EMAIL]', errorMsg)
@@ -24,19 +26,18 @@ function getTransporter() {
 
     try {
       transporter = nodemailer.createTransport({
-        host: 'mail.lacasadelsueloradiante.es',
-        port: 587, // Puerto STARTTLS según configuración del servidor
-        secure: false, // STARTTLS (usa secure: false con puerto 587)
+        host,
+        port,
+        secure,
         auth: {
           user: emailUser,
           pass: emailPassword,
         },
-        // Configuración para servidor personalizado
         tls: {
-          rejectUnauthorized: false
-        }
+          rejectUnauthorized: false,
+        },
       })
-      console.log('✅ [EMAIL] Transporter creado exitosamente')
+      console.log('✅ [EMAIL] Transporter creado:', host, port, secure ? 'SSL' : 'STARTTLS')
     } catch (error) {
       console.error('❌ [EMAIL] Error creando transporter:', error)
       throw error

@@ -131,8 +131,9 @@ const nextConfig = {
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Permitir imágenes externas sin optimización en caso de error
-    unoptimized: process.env.NODE_ENV === 'development' ? true : false,
+    // Desactivar optimizador de Next/Image: en este despliegue _next/image responde 500
+    // y rompe la carga de imágenes en home/producto.
+    unoptimized: true,
   },
 
   // Compresión

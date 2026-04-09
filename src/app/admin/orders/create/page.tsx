@@ -369,11 +369,11 @@ export default function AdminOrderCreate() {
         const isCustomProduct = !item.product_id && item.product_title
         const isCatalogProduct = item.variant_id || (item.product_id && item.product_title)
         const hasProduct = isCustomProduct || isCatalogProduct
-        return !hasProduct || item.qty <= 0 || item.price_cents <= 0
+        return !hasProduct || item.qty <= 0 || item.price_cents < 0
       })
       
       if (invalidItems.length > 0) {
-        alert('Todos los artículos deben tener:\n- Producto seleccionado del catálogo con variante O\n- Nombre de producto personalizado\n- Cantidad válida (mayor a 0)\n- Precio válido (mayor a 0)')
+        alert('Todos los artículos deben tener:\n- Producto seleccionado del catálogo con variante O\n- Nombre de producto personalizado\n- Cantidad válida (mayor a 0)\n- Precio válido (mayor o igual a 0)')
         return
       }
       

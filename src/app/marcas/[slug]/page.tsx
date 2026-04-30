@@ -30,7 +30,6 @@ async function getBrand(slug: string) {
       product_images (url, alt)
     `, { count: 'exact' })
     .eq('brand_id', brand.id)
-    .eq('is_active', true)
     .order('created_at', { ascending: false })
 
   const mappedProducts = (products || []).map((p: any) => ({

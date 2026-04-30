@@ -26,7 +26,6 @@ export default async function MarcasPage() {
         .from('products')
         .select('id', { count: 'exact', head: true })
         .eq('brand_id', brand.id)
-        .eq('is_active', true)
       return { ...brand, product_count: count || 0 }
     })
   )

@@ -20,7 +20,6 @@ export default async function ProductsPage() {
       product_variants (id, price_public_cents, stock),
       product_images (url, alt, position)
     `)
-    .eq('is_active', true)
     .order('created_at', { ascending: false })
 
   const mappedProducts = (products || []).map((p: any) => ({

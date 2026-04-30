@@ -8,52 +8,6 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
-  // Configurar headers para servir archivos HTML en /templates/
-  async headers() {
-    return [
-      {
-        source: '/templates/:path*.html',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'text/html; charset=utf-8',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=3600, s-maxage=3600',
-          },
-        ],
-      },
-    ]
-  },
-
-  // Configuración del webpack para manejar módulos de servidor
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      // Evitar que los módulos de Node.js se incluyan en el bundle del cliente
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        crypto: false,
-        path: false,
-        os: false,
-        stream: false,
-        util: false,
-        dns: false,
-        child_process: false,
-      }
-      
-      // Excluir nodemailer y sus dependencias del bundle del cliente
-      config.externals = config.externals || []
-      config.externals.push({
-        'nodemailer': 'commonjs nodemailer',
-      })
-    }
-    return config
-  },
-
   // Configuración de compilación para reducir transpilación innecesaria
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {

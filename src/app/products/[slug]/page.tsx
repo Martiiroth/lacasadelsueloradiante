@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { createClient } from '../../../utils/supabase/server'
+import { createBuildClient } from '../../../utils/supabase/build'
 import ProductClient from './ProductClient'
 import Reviews from '../../../components/products/Reviews'
 import ResourcesList from '../../../components/products/ResourcesList'
@@ -58,12 +59,16 @@ async function getProduct(slug: string) {
 }
 
 export async function generateStaticParams() {
-  const supabase = await createClient()
-  const { data: products } = await supabase
-    .from('products')
-    .select('slug')
-    .eq('is_active', true)
-  return (products || []).map((p: { slug: string }) => ({ slug: p.slug }))
+  try {
+    const supabase = createBuildClient()
+    const { data: products } = await supabase
+      .from('products')
+      .select('slug')
+      .eq('is_active', true)
+    return (products || []).map((p: { slug: string }) => ({ slug: p.slug }))
+  } catch {
+    return []
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

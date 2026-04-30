@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { createClient } from '../../../utils/supabase/server'
 import { createBuildClient } from '../../../utils/supabase/build'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -11,7 +10,8 @@ export const revalidate = 3600
 type Props = { params: Promise<{ slug: string }> }
 
 async function getBrand(slug: string) {
-  const supabase = await createClient()
+  try {
+  const supabase = createBuildClient()
 
   const { data: brand, error } = await supabase
     .from('brands')
@@ -48,6 +48,9 @@ async function getBrand(slug: string) {
   }))
 
   return { ...brand, product_count: count || 0, products: mappedProducts }
+  } catch {
+    return null
+  }
 }
 
 export async function generateStaticParams() {
@@ -65,7 +68,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const supabase = await createClient()
+  const supabase = createBuildClient()
   const { data } = await supabase
     .from('brands')
     .select('name, logo_url')

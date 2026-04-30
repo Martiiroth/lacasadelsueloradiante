@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { createClient } from '../../../utils/supabase/server'
 import { createBuildClient } from '../../../utils/supabase/build'
 import ProductClient from './ProductClient'
 import Reviews from '../../../components/products/Reviews'
@@ -14,47 +13,50 @@ export const revalidate = 3600
 type Props = { params: Promise<{ slug: string }> }
 
 async function getProduct(slug: string) {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('products')
-    .select(`
-      *,
-      brands (id, name, slug),
-      product_variants (
+  try {
+    const supabase = createBuildClient()
+    const { data, error } = await supabase
+      .from('products')
+      .select(`
         *,
-        role_prices (*, customer_roles (*)),
-        variant_images (*)
-      ),
-      product_images (*),
-      product_categories (categories (*)),
-      product_resources (*),
-      product_reviews (*, clients (first_name, last_name))
-    `)
-    .eq('slug', slug)
-    .order('position', { foreignTable: 'product_images', ascending: true })
-    .order('created_at', { foreignTable: 'product_variants', ascending: true })
-    .single()
+        brands (id, name, slug),
+        product_variants (*, role_prices (*, customer_roles (*)), variant_images (*)),
+        product_images (*),
+        product_categories (categories (*)),
+        product_resources (*),
+        product_reviews (*, clients (first_name, last_name))
+      `)
+      .eq('slug', slug)
+      .single()
 
-  if (error || !data) return null
+    if (error || !data) return null
 
-  const variants = (data.product_variants || []).map((variant: any) => {
-    const rolePrices = (variant.role_prices || []).map((rp: any) => ({
-      id: rp.id,
-      variant_id: rp.variant_id,
-      role_id: rp.role_id,
-      price_cents: rp.price_cents,
-      role: rp.customer_roles,
-    }))
-    return { ...variant, role_prices: rolePrices, images: variant.variant_images || [] }
-  })
+    const variants = (data.product_variants || [])
+      .sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+      .map((variant: any) => {
+        const rolePrices = (variant.role_prices || []).map((rp: any) => ({
+          id: rp.id,
+          variant_id: rp.variant_id,
+          role_id: rp.role_id,
+          price_cents: rp.price_cents,
+          role: rp.customer_roles,
+        }))
+        return { ...variant, role_prices: rolePrices, images: variant.variant_images || [] }
+      })
 
-  return {
-    ...data,
-    variants,
-    images: data.product_images || [],
-    categories: (data.product_categories || []).map((pc: any) => pc.categories),
-    resources: data.product_resources || [],
-    reviews: data.product_reviews || [],
+    const images = (data.product_images || [])
+      .sort((a: any, b: any) => a.position - b.position)
+
+    return {
+      ...data,
+      variants,
+      images,
+      categories: (data.product_categories || []).map((pc: any) => pc.categories),
+      resources: data.product_resources || [],
+      reviews: data.product_reviews || [],
+    }
+  } catch {
+    return null
   }
 }
 
@@ -73,7 +75,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const supabase = await createClient()
+  const supabase = createBuildClient()
   const { data } = await supabase
     .from('products')
     .select('title, short_description, meta_title, meta_description, product_images (url, alt)')

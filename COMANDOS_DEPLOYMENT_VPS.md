@@ -84,6 +84,19 @@ docker-compose build --no-cache
 docker-compose up -d
 ```
 
+### Ver qué variables de entorno carga el contenedor
+```bash
+# Listar todas las variables (¡contiene secretos! no compartas la salida)
+docker exec nextjs-app-container env | sort
+
+# Solo nombres (sin valores) para comprobar que existen
+docker exec nextjs-app-container env | sort | cut -d= -f1
+
+# Comprobar variables de email (valores visibles)
+docker exec nextjs-app-container env | grep -E '^EMAIL_|^NEXT_PUBLIC_'
+```
+Si falta alguna variable, revisa que esté en el `.env` del servidor y que no uses `$` sin escapar: en .env escribe `$$` para un dólar literal (ej. `EMAIL_PASSWORD=W$$G^3`).
+
 ### Si necesitas ver logs de error:
 ```bash
 # Logs completos

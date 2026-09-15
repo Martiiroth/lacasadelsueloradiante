@@ -1584,14 +1584,27 @@ export class AdminService {
           clientInfo: clientInfo // Agregar información completa del cliente
         }
 
-        // Enviar notificación de nuevo pedido usando ServerEmailService directamente
-        const ServerEmailService = (await import('./emailService.server')).default
-        const emailSent = await ServerEmailService.sendNewOrderNotification(emailData)
-        
-        if (emailSent) {
-          console.log(`✅ Notificación de nuevo pedido enviada para #${order.id}`)
+        // Enviar email solo en servidor; en el cliente llamar a la API (nodemailer no funciona en el navegador)
+        if (typeof window === 'undefined') {
+          const ServerEmailService = (await import('./emailService.server')).default
+          const emailSent = await ServerEmailService.sendNewOrderNotification(emailData)
+          if (emailSent) {
+            console.log(`✅ Notificación de nuevo pedido enviada para #${order.id}`)
+          } else {
+            console.log(`⚠️ No se pudo enviar la notificación de nuevo pedido #${order.id}`)
+          }
         } else {
-          console.log(`⚠️ No se pudo enviar la notificación de nuevo pedido #${order.id}`)
+          const response = await fetch(`/api/admin/orders/${order.id}/resend-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ recipients: 'both' }),
+          })
+          if (response.ok) {
+            console.log(`✅ Notificación de nuevo pedido enviada vía API para #${order.id}`)
+          } else {
+            const err = await response.json().catch(() => ({}))
+            console.error(`⚠️ No se pudo enviar la notificación de nuevo pedido #${order.id}:`, err)
+          }
         }
       } catch (emailError) {
         console.error('Error enviando notificación de nuevo pedido por email:', emailError)

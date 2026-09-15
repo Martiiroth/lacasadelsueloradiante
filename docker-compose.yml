@@ -1,9 +1,6 @@
-version: '3.9'
-
-# Cargar variables de entorno desde archivo .env
-# Docker Compose carga automáticamente .env si existe
-# Este docker-compose es solo para la aplicación web
-# Para nginx con SSL usar: docker-compose -f docker-compose-nginx.yml
+# Cargar variables de entorno desde archivo .env (en la misma carpeta)
+# Si en .env un valor contiene $ (ej. W$G o $VPS), escríbelo como $$ (W$$G, $$VPS)
+# Para nginx con SSL: docker-compose -f docker-compose-nginx.yml
 
 services:
   # Aplicación Next.js - Solo con Supabase
@@ -24,7 +21,7 @@ services:
         - NODE_ENV=${NODE_ENV}
         - NEXTAUTH_URL=${NEXTAUTH_URL}
         - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-        - DATABASE_URL=${DATABASE_URL}
+        - DATABASE_URL=${DATABASE_URL:-}
         - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
         - BUSINESS_NAME=${BUSINESS_NAME}
@@ -44,7 +41,10 @@ services:
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:-}
+      - EMAIL_HOST=${EMAIL_HOST:-lacasadelsueloradiante.es}
+      - EMAIL_PORT=${EMAIL_PORT:-465}
+      - EMAIL_SECURE=${EMAIL_SECURE:-true}
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
       - EMAIL_FROM_NAME=${EMAIL_FROM_NAME}
@@ -59,6 +59,7 @@ services:
       - REDSYS_SECRET_KEY=${REDSYS_SECRET_KEY}
       - REDSYS_CURRENCY=${REDSYS_CURRENCY}
       - REDSYS_ENVIRONMENT=${REDSYS_ENVIRONMENT}
+      - REDSYS_MERCHANT_URL=${REDSYS_MERCHANT_URL}
     ports:
       - "3000:3000"
     networks:

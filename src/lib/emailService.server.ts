@@ -53,6 +53,19 @@ function getTransporter() {
   return transporter
 }
 
+/** Verifica la conexión SMTP (útil para diagnosticar credenciales). No envía correo. */
+export async function verifySmtpConnection(): Promise<{ ok: boolean; message: string }> {
+  try {
+    resetEmailTransporter()
+    const t = getTransporter()
+    await t.verify()
+    return { ok: true, message: 'Conexión SMTP correcta' }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return { ok: false, message: msg }
+  }
+}
+
 // Tipos para los datos del pedido
 interface OrderEmailData {
   orderId: string

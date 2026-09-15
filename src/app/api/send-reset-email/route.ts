@@ -2,6 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { getPasswordResetService } from '@/lib/passwordResetService'
 
+function appBaseUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL || 'https://www.lacasadelsueloradiante.es').replace(/\/$/, '')
+}
+
+/** Fuerza redirect_to del action_link de Supabase hacia nuestra app (www + callback). */
+function withAppRedirect(actionLink: string, redirectTo: string): string {
+  try {
+    const url = new URL(actionLink)
+    url.searchParams.set('redirect_to', redirectTo)
+    return url.toString()
+  } catch {
+    return actionLink
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json()
@@ -27,10 +42,9 @@ export async function POST(request: NextRequest) {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.lacasadelsueloradiante.es').replace(/\/$/, '')
+    const appUrl = appBaseUrl()
     const redirectTo = `${appUrl}/auth/callback`
 
-    // Generar enlace de recovery con Supabase (sin que Supabase envíe el correo)
     const { data, error: linkError } = await admin.auth.admin.generateLink({
       type: 'recovery',
       email: email.trim().toLowerCase(),
@@ -39,32 +53,39 @@ export async function POST(request: NextRequest) {
 
     if (linkError) {
       console.error('❌ [RESET] generateLink:', linkError.message)
-      // Por seguridad no revelamos si el email existe
       return NextResponse.json(
         { message: 'Si el email existe, recibirás un enlace de recuperación' },
         { status: 200 }
       )
     }
 
+    const hashedToken = data?.properties?.hashed_token
     const actionLink =
       data?.properties?.action_link ||
       (data as { action_link?: string } | null)?.action_link
 
-    if (!actionLink) {
-      console.error('❌ [RESET] generateLink sin action_link:', JSON.stringify(data))
+    // Preferir enlace a NUESTRA app con token_hash (evita redirect_to a la home de Supabase)
+    let resetUrl: string
+    if (hashedToken) {
+      resetUrl = `${appUrl}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}&type=recovery`
+    } else if (actionLink) {
+      resetUrl = withAppRedirect(actionLink, redirectTo)
+    } else {
+      console.error('❌ [RESET] generateLink sin token ni action_link:', JSON.stringify(data))
       return NextResponse.json(
         { message: 'Si el email existe, recibirás un enlace de recuperación' },
         { status: 200 }
       )
     }
 
-    // Enviar con el SMTP de la app (mismo que pedidos), no el de GoTrue/Supabase
+    console.log('🔗 [RESET] Enlace de recuperación:', resetUrl.replace(hashedToken || 'x', '[token]'))
+
     try {
       const mailer = getPasswordResetService()
       await mailer.sendPasswordResetEmail({
         email: email.trim().toLowerCase(),
-        token: data?.properties?.hashed_token || 'recovery',
-        resetUrl: actionLink,
+        token: hashedToken || 'recovery',
+        resetUrl,
         companyName: process.env.EMAIL_FROM_NAME || 'La Casa del Suelo Radiante',
       })
       console.log(`✅ [RESET] Email de recuperación enviado a: ${email}`)

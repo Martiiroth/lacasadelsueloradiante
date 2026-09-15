@@ -34,19 +34,30 @@ export async function POST(request: NextRequest) {
 
     if (linkError) {
       console.error('❌ [CONFIRM] generateLink:', linkError.message)
-      // No revelar si el email existe
       return NextResponse.json(
         { message: 'Si el email existe, recibirás un enlace de confirmación' },
         { status: 200 }
       )
     }
 
+    const hashedToken = data?.properties?.hashed_token
     const actionLink =
       data?.properties?.action_link ||
       (data as { action_link?: string } | null)?.action_link
 
-    if (!actionLink) {
-      console.error('❌ [CONFIRM] sin action_link')
+    let confirmUrl: string
+    if (hashedToken) {
+      confirmUrl = `${appUrl}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink`
+    } else if (actionLink) {
+      try {
+        const u = new URL(actionLink)
+        u.searchParams.set('redirect_to', redirectTo)
+        confirmUrl = u.toString()
+      } catch {
+        confirmUrl = actionLink
+      }
+    } else {
+      console.error('❌ [CONFIRM] sin token ni action_link')
       return NextResponse.json(
         { message: 'Si el email existe, recibirás un enlace de confirmación' },
         { status: 200 }
@@ -56,7 +67,7 @@ export async function POST(request: NextRequest) {
     try {
       await ServerEmailService.sendAccountConfirmationEmail(
         email.trim().toLowerCase(),
-        actionLink
+        confirmUrl
       )
       console.log(`✅ [CONFIRM] Email de confirmación enviado a: ${email}`)
     } catch (mailErr) {

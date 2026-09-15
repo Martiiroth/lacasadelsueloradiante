@@ -46,6 +46,45 @@ export async function GET(request: NextRequest) {
     redirectTo 
   })
 
+  // Si recibimos token_hash (enlace propio de recovery/confirmación), verificar OTP
+  const tokenHash = searchParams.get('token_hash')
+  if (tokenHash && (type === 'recovery' || type === 'magiclink' || type === 'signup' || type === 'email')) {
+    console.log('ℹ️ Callback con token_hash, verificando OTP', { type })
+    try {
+      const supabase = await createClient()
+      const otpType = (type === 'magiclink' ? 'magiclink' : type === 'signup' ? 'signup' : type === 'email' ? 'email' : 'recovery') as
+        | 'recovery'
+        | 'magiclink'
+        | 'signup'
+        | 'email'
+      const { error: otpError } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: otpType,
+      })
+
+      if (otpError) {
+        console.error('❌ Error verifyOtp:', otpError)
+        const errorUrl = new URL('/auth/error', baseUrl)
+        errorUrl.searchParams.set('message', otpError.message || 'Enlace inválido o expirado')
+        return NextResponse.redirect(errorUrl.toString())
+      }
+
+      if (type === 'recovery') {
+        const resetUrl = new URL('/auth/reset-password', baseUrl)
+        resetUrl.searchParams.set('type', 'recovery')
+        resetUrl.searchParams.set('session', 'active')
+        return NextResponse.redirect(resetUrl.toString())
+      }
+
+      return NextResponse.redirect(new URL('/dashboard', baseUrl).toString())
+    } catch (err) {
+      console.error('❌ Error en verifyOtp token_hash:', err)
+      const errorUrl = new URL('/auth/error', baseUrl)
+      errorUrl.searchParams.set('message', 'Error al procesar el enlace')
+      return NextResponse.redirect(errorUrl.toString())
+    }
+  }
+
   // Si recibimos un 'code', intercambiarlo por una sesión válida con Supabase
   if (code) {
     console.log('ℹ️ Callback received code param, exchanging for session', { code })

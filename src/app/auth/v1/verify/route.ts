@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
   console.log('🔍 AUTH/V1/VERIFY - URL completa:', request.url)
   console.log('🔍 AUTH/V1/VERIFY - Parámetros:', { token, type, redirectTo })
   
-  // Usar siempre el dominio de producción
-  const baseUrl = 'https://lacasadelsueloradiante.es'
+  // Usar siempre el dominio de la app (www)
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://www.lacasadelsueloradiante.es').replace(/\/$/, '')
   
   // Si es recovery, redirigir directamente a reset password
   if (type === 'recovery' && token) {

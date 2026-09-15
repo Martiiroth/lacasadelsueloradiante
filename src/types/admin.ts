@@ -85,6 +85,11 @@ export interface AdminStats {
   pending_orders: number
   completed_orders: number
   orders_this_month: number
+  /** Desglose accionable */
+  orders_pending: number
+  orders_confirmed: number
+  orders_processing: number
+  orders_shipped: number
   
   // Financiero
   total_revenue_cents: number

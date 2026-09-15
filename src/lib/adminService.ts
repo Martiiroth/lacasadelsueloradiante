@@ -169,6 +169,11 @@ export class AdminService {
         new Date(o.created_at) >= startOfMonth
       ).length || 0
 
+      const pendingOnly = ordersData.data?.filter((o: any) => o.status === 'pending').length || 0
+      const confirmedOnly = ordersData.data?.filter((o: any) => o.status === 'confirmed').length || 0
+      const processingOnly = ordersData.data?.filter((o: any) => o.status === 'processing').length || 0
+      const shippedOnly = ordersData.data?.filter((o: any) => o.status === 'shipped').length || 0
+
       // Calcular estadísticas financieras
       const totalRevenue = revenueData.data?.reduce((sum: number, order: any) => 
         sum + (order.total_cents || 0), 0
@@ -187,6 +192,10 @@ export class AdminService {
         pending_orders: pendingOrders,
         completed_orders: completedOrders,
         orders_this_month: ordersThisMonth,
+        orders_pending: pendingOnly,
+        orders_confirmed: confirmedOnly,
+        orders_processing: processingOnly,
+        orders_shipped: shippedOnly,
         total_revenue_cents: totalRevenue,
         revenue_this_month_cents: revenueThisMonth,
         average_order_value_cents: averageOrderValue
@@ -201,6 +210,10 @@ export class AdminService {
         pending_orders: 0,
         completed_orders: 0,
         orders_this_month: 0,
+        orders_pending: 0,
+        orders_confirmed: 0,
+        orders_processing: 0,
+        orders_shipped: 0,
         total_revenue_cents: 0,
         revenue_this_month_cents: 0,
         average_order_value_cents: 0

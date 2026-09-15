@@ -726,8 +726,52 @@ class ServerEmailService {
       return true
     } catch (error) {
       console.error('❌ Error enviando notificación de nuevo registro:', error)
-      return false
+      if (error instanceof Error) throw error
+      throw new Error(String(error))
     }
+  }
+
+  /** Email transaccional genérico (confirmación de cuenta, etc.) */
+  static async sendHtmlEmail(opts: {
+    to: string
+    subject: string
+    html: string
+    text?: string
+  }): Promise<boolean> {
+    const transporter = getTransporter()
+    const fromAddress = process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER || 'consultas@lacasadelsueloradiante.es'
+    const fromName = process.env.EMAIL_FROM_NAME || 'La Casa del Suelo Radiante'
+    await transporter.sendMail({
+      from: { name: fromName, address: fromAddress },
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.text,
+    })
+    return true
+  }
+
+  static async sendAccountConfirmationEmail(email: string, confirmUrl: string): Promise<boolean> {
+    const company = process.env.EMAIL_FROM_NAME || 'La Casa del Suelo Radiante'
+    const html = `
+      <!DOCTYPE html>
+      <html lang="es"><head><meta charset="UTF-8"><title>Confirma tu cuenta</title></head>
+      <body style="font-family:Arial,sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;">
+        <h2>Bienvenido a ${company}</h2>
+        <p>Gracias por registrarte. Pulsa el botón para confirmar tu cuenta:</p>
+        <p style="margin:28px 0;">
+          <a href="${confirmUrl}" style="background:#2563eb;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;">
+            Confirmar cuenta
+          </a>
+        </p>
+        <p style="font-size:13px;color:#666;">Si el botón no funciona, copia este enlace:<br/>${confirmUrl}</p>
+      </body></html>`
+    return this.sendHtmlEmail({
+      to: email,
+      subject: `Confirma tu cuenta - ${company}`,
+      html,
+      text: `Confirma tu cuenta en ${company}: ${confirmUrl}`,
+    })
   }
 }
 

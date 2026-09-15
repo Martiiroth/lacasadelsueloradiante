@@ -604,7 +604,7 @@ export class AdminService {
 
       console.log('Client record created successfully with role:', defaultRole?.id || 'none')
 
-      // Enviar notificación de nuevo registro al admin
+      // Enviar notificación de nuevo registro al admin (solo SMTP de la app)
       try {
         const registrationData = {
           clientName: `${data.first_name} ${data.last_name}`,
@@ -621,14 +621,14 @@ export class AdminService {
           registrationDate: new Date().toISOString(),
           registrationSource: 'admin' as const
         }
-        
-        const ServerEmailService = (await import('./emailService.server')).default
-        const emailSent = await ServerEmailService.sendNewRegistrationNotification(registrationData)
-        
-        if (emailSent) {
+
+        if (typeof window === 'undefined') {
+          const ServerEmailService = (await import('./emailService.server')).default
+          await ServerEmailService.sendNewRegistrationNotification(registrationData)
           console.log('✅ Notificación de nuevo cliente enviada al admin')
         } else {
-          console.log('⚠️ No se pudo enviar la notificación de nuevo cliente')
+          const EmailService = (await import('./emailService')).default
+          await EmailService.sendNewRegistrationNotification(registrationData)
         }
       } catch (emailError) {
         console.error('Error enviando notificación de nuevo cliente por email:', emailError)

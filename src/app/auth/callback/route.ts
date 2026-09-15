@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     (redirectTo && redirectTo.includes('lacasadelsueloradiante.es'))
 
   const baseUrl = shouldForceProduction
-    ? 'https://lacasadelsueloradiante.es'
+    ? (process.env.NEXT_PUBLIC_APP_URL || 'https://www.lacasadelsueloradiante.es')
     : request.nextUrl.origin
   
   // Log completo de todos los parámetros para debugging
@@ -64,13 +64,17 @@ export async function GET(request: NextRequest) {
       }
       
       console.log('✅ Código intercambiado correctamente, sesión establecida')
-      
-      // Redirigir a reset password - la sesión ya está establecida
-      const resetUrl = new URL('/auth/reset-password', baseUrl)
-      resetUrl.searchParams.set('type', 'recovery')
-      resetUrl.searchParams.set('session', 'active')
-      
-      return NextResponse.redirect(resetUrl.toString())
+
+      // Recovery → reset password; magiclink / signup / email → dashboard
+      if (type === 'recovery') {
+        const resetUrl = new URL('/auth/reset-password', baseUrl)
+        resetUrl.searchParams.set('type', 'recovery')
+        resetUrl.searchParams.set('session', 'active')
+        return NextResponse.redirect(resetUrl.toString())
+      }
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || baseUrl
+      return NextResponse.redirect(new URL('/dashboard', appUrl).toString())
       
     } catch (err) {
       console.error('❌ Error en intercambio de código:', err)

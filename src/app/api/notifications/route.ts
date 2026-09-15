@@ -57,35 +57,44 @@ export async function POST(request: NextRequest) {
 
     let result = false
 
-    switch (action) {
-      case 'send_order_notification':
-        console.log('📧 Sending order status notification...')
-        console.log('📧 Order data for email:', {
-          orderId: orderData.orderId,
-          status: orderData.status,
-          clientEmail: orderData.clientEmail
-        })
-        result = await ServerEmailService.sendOrderStatusNotification(orderData)
-        console.log('📧 Email service result:', result)
-        break
-      case 'send_new_order_notification':
-        console.log('📧 Sending new order notification...')
-        result = await ServerEmailService.sendNewOrderNotification(orderData)
-        break
-      case 'verify_configuration':
-        console.log('📧 Verifying email configuration...')
-        result = await ServerEmailService.verifyEmailConfiguration()
-        break
-      case 'send_new_registration_notification':
-        console.log('📧 Sending new registration notification...')
-        result = await ServerEmailService.sendNewRegistrationNotification(registrationData)
-        break
-      default:
-        console.error('❌ Invalid action:', action)
-        return NextResponse.json(
-          { success: false, message: 'Acción no válida' },
-          { status: 400 }
-        )
+    try {
+      switch (action) {
+        case 'send_order_notification':
+          console.log('📧 Sending order status notification...')
+          console.log('📧 Order data for email:', {
+            orderId: orderData.orderId,
+            status: orderData.status,
+            clientEmail: orderData.clientEmail
+          })
+          result = await ServerEmailService.sendOrderStatusNotification(orderData)
+          console.log('📧 Email service result:', result)
+          break
+        case 'send_new_order_notification':
+          console.log('📧 Sending new order notification...')
+          result = await ServerEmailService.sendNewOrderNotification(orderData)
+          break
+        case 'verify_configuration':
+          console.log('📧 Verifying email configuration...')
+          result = await ServerEmailService.verifyEmailConfiguration()
+          break
+        case 'send_new_registration_notification':
+          console.log('📧 Sending new registration notification...')
+          result = await ServerEmailService.sendNewRegistrationNotification(registrationData)
+          break
+        default:
+          console.error('❌ Invalid action:', action)
+          return NextResponse.json(
+            { success: false, message: 'Acción no válida' },
+            { status: 400 }
+          )
+      }
+    } catch (mailError) {
+      const details = mailError instanceof Error ? mailError.message : String(mailError)
+      console.error('❌ Notifications API - SMTP error:', details)
+      return NextResponse.json(
+        { success: false, message: 'Error enviando email', error: details },
+        { status: 500 }
+      )
     }
 
     console.log('📧 Notifications API - Result:', result)

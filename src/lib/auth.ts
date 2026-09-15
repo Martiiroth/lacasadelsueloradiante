@@ -115,6 +115,17 @@ export class AuthService {
               console.error('Error enviando notificación de registro por email:', emailError)
               // No fallar el registro si el email falla
             }
+
+            // Confirmación de cuenta vía SMTP de la app (no GoTrue)
+            try {
+              await fetch('/api/send-confirmation-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: registerData.email }),
+              })
+            } catch (confirmErr) {
+              console.error('Error enviando email de confirmación:', confirmErr)
+            }
           }
         } catch (error) {
           console.error('Error creating client record:', error)
@@ -296,14 +307,18 @@ export class AuthService {
     })
   }
 
-  // Reset password
+  // Reset password (SMTP de la app vía API)
   static async resetPassword(email: string) {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const response = await fetch('/api/send-reset-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
       })
-
-      if (error) throw error
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(result.details || result.error || 'Error al enviar el correo de recuperación')
+      }
       return { error: null }
     } catch (error: any) {
       return { error: error.message }

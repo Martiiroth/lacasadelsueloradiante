@@ -11,7 +11,7 @@ RUN npm install -g pnpm
 RUN npm install sharp
 
 # Instalar dependencias basadas en el gestor de paquetes preferido
-COPY package.json pnpm-lock.yaml* .npmrc ./
+COPY package.json pnpm-lock.yaml* .npmrc pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Reconstruir el código fuente solo cuando sea necesario

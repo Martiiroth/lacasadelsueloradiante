@@ -1,0 +1,8 @@
+packages:
+  - '.'
+
+# Permitir scripts de build de dependencias nativas (necesario en Docker / CI)
+allowBuilds:
+  sharp: true
+  core-js: true
+  unrs-resolver: true

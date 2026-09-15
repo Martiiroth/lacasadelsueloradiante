@@ -116,30 +116,9 @@ const nextConfig = {
     return config
   },
   
-  // Variables de entorno para el runtime del servidor
-  env: {
-    // Variables de email necesarias en el servidor
-    EMAIL_USER: process.env.EMAIL_USER,
-    EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
-    EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME,
-    EMAIL_FROM_ADDRESS: process.env.EMAIL_FROM_ADDRESS,
-    EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
-    EMAIL_ADMIN_ADDRESS: process.env.EMAIL_ADMIN_ADDRESS,
-    
-    // Variables de Supabase para el servidor
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-    
-    // Variables de autenticación
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
-    
-    // Variables de negocio
-    BUSINESS_NAME: process.env.BUSINESS_NAME,
-    BUSINESS_EMAIL: process.env.BUSINESS_EMAIL,
-    BUSINESS_PHONE: process.env.BUSINESS_PHONE,
-    BUSINESS_ADDRESS: process.env.BUSINESS_ADDRESS,
-    BUSINESS_CIF: process.env.BUSINESS_CIF,
-  },
+  // No usar `env` aquí para secretos (EMAIL_PASSWORD, SUPABASE_SERVICE_ROLE_KEY, etc.):
+  // Next los incrusta en el build y la app ignora el .env del runtime del contenedor.
+  // El servidor lee process.env en runtime vía docker-compose `environment`.
 
   // Headers de seguridad y caché
   async headers() {

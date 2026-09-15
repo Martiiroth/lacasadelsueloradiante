@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        setError(result.error || 'Error al enviar el correo de recuperación')
+        setError(result.details || result.error || 'Error al enviar el correo de recuperación')
       } else {
         setMessage(result.message)
         setEmailSent(true)

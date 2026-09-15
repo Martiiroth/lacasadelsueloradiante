@@ -30,6 +30,9 @@ export class PasswordResetEmailService {
       port: config.port,
       secure: config.secure,
       auth: config.auth,
+      tls: {
+        rejectUnauthorized: false,
+      },
     })
 
     // Inicializar Supabase para operaciones de DB
@@ -94,7 +97,7 @@ export class PasswordResetEmailService {
     const { email, resetUrl, companyName = 'La Casa del Suelo Radiante' } = data
 
     const mailOptions = {
-      from: `"${companyName}" <${process.env.EMAIL_FROM || process.env.EMAIL_FROM_ADDRESS}>`,
+      from: `"${companyName}" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER || 'consultas@lacasadelsueloradiante.es'}>`,
       to: email,
       subject: `Recuperar contraseña - ${companyName}`,
       html: this.generateResetEmailTemplate(resetUrl, companyName),
@@ -205,18 +208,29 @@ let passwordResetService: PasswordResetEmailService | null = null
 
 export function getPasswordResetService(): PasswordResetEmailService {
   if (!passwordResetService) {
+    const host = process.env.EMAIL_HOST || 'lacasadelsueloradiante.es'
+    const port = parseInt(process.env.EMAIL_PORT || '465', 10)
+    const secure =
+      process.env.EMAIL_SECURE !== undefined
+        ? process.env.EMAIL_SECURE === 'true'
+        : port === 465
+
     const config: EmailConfig = {
-      host: process.env.EMAIL_HOST || 'mail.lacasadelsueloradiante.es',
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: process.env.EMAIL_SECURE === 'true',
+      host,
+      port,
+      secure,
       auth: {
         user: process.env.EMAIL_USER || '',
         pass: process.env.EMAIL_PASSWORD || '',
-      }
+      },
     }
-    
+
+    if (!config.auth.user || !config.auth.pass) {
+      throw new Error('EMAIL_USER y EMAIL_PASSWORD son obligatorios para el reset de contraseña')
+    }
+
     passwordResetService = new PasswordResetEmailService(config)
   }
-  
+
   return passwordResetService
 }

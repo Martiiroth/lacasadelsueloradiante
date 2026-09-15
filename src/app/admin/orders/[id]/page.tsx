@@ -22,16 +22,25 @@ import {
   EnvelopeIcon
 } from '@heroicons/react/24/outline'
 import DeliverOrderButton from '@/components/admin/DeliverOrderButton'
+import { useAdminToast } from '@/components/admin/AdminToast'
+import {
+  getOrderStatusLabel,
+  getOrderStatusColor,
+  getStatusFlowIndex,
+  ORDER_STATUS_FLOW,
+} from '@/lib/adminOrderStatus'
 
 export default function AdminOrderDetail() {
   const params = useParams()
   const router = useRouter()
+  const { success, error: toastError } = useAdminToast()
   const [order, setOrder] = useState<AdminOrder | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updating, setUpdating] = useState(false)
   const [resendingEmail, setResendingEmail] = useState(false)
   const [showEmailMenu, setShowEmailMenu] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const orderId = params.id as string
 
@@ -69,18 +78,19 @@ export default function AdminOrderDetail() {
     
     try {
       setUpdating(true)
-      const success = await AdminService.updateOrderStatus(order.id, {
+      const ok = await AdminService.updateOrderStatus(order.id, {
         status: newStatus as any
       })
       
-      if (success) {
+      if (ok) {
         setOrder({ ...order, status: newStatus as any })
+        success(`Estado actualizado a ${getOrderStatusLabel(newStatus)}`)
       } else {
-        alert('Error al actualizar el estado del pedido')
+        toastError('Error al actualizar el estado del pedido')
       }
     } catch (err) {
       console.error('Error updating order status:', err)
-      alert('Error al actualizar el estado del pedido')
+      toastError('Error al actualizar el estado del pedido')
     } finally {
       setUpdating(false)
     }
@@ -88,47 +98,39 @@ export default function AdminOrderDetail() {
 
   const deleteOrder = async () => {
     if (!order) return
-    
-    if (!confirm('¿Estás seguro de que quieres eliminar este pedido? Esta acción no se puede deshacer.')) {
-      return
-    }
-    
     try {
-      const success = await AdminService.deleteOrder(order.id)
-      
-      if (success) {
-        alert('Pedido eliminado correctamente')
+      const ok = await AdminService.deleteOrder(order.id)
+      if (ok) {
+        success('Pedido eliminado')
         router.push('/admin/orders')
       } else {
-        alert('Error al eliminar el pedido')
+        toastError('Error al eliminar el pedido')
       }
     } catch (err) {
       console.error('Error deleting order:', err)
-      alert('Error al eliminar el pedido')
+      toastError('Error al eliminar el pedido')
     }
   }
 
   const handleGenerateDeliveryNote = () => {
     if (!order) return
-    
     try {
       generateDeliveryNote(order)
+      success('Albarán generado')
     } catch (error) {
       console.error('Error generating delivery note:', error)
-      alert('Error al generar el albarán')
+      toastError('Error al generar el albarán')
     }
   }
 
   const handleGenerateProforma = async () => {
     if (!order) return
-    
     try {
-      // Abrir la proforma en una nueva ventana/descargarla
       const proformaUrl = `/api/proforma/${order.id}?download=true`
       window.open(proformaUrl, '_blank')
     } catch (error) {
       console.error('Error generating proforma:', error)
-      alert('Error al generar la proforma')
+      toastError('Error al generar la proforma')
     }
   }
 
@@ -148,16 +150,13 @@ export default function AdminOrderDetail() {
         body: JSON.stringify({ recipients })
       })
 
-      // Leer respuesta como texto primero para manejar errores
       const responseText = await response.text()
       let result
       
       try {
         result = JSON.parse(responseText)
       } catch (parseError) {
-        // Si la respuesta no es JSON válido, crear un objeto de error
         console.error('Error parsing response:', parseError)
-        console.error('Response text:', responseText)
         throw new Error(`Error del servidor (${response.status}): ${responseText || response.statusText}`)
       }
 
@@ -170,41 +169,17 @@ export default function AdminOrderDetail() {
         const recipientText = recipients === 'client' ? 'al cliente' : 
                              recipients === 'admin' ? 'al administrador' : 
                              'al cliente y administrador'
-        alert(`Correo reenviado exitosamente ${recipientText}`)
+        success(`Correo enviado ${recipientText}`)
       } else {
-        alert(`Error al reenviar el correo: ${result.error || result.message || 'Error desconocido'}`)
+        toastError(result.error || result.message || 'Error al reenviar el correo')
       }
     } catch (err) {
       console.error('Error resending email:', err)
       const errorMessage = err instanceof Error ? err.message : 'Error desconocido al reenviar el correo'
-      alert(`Error al reenviar el correo: ${errorMessage}`)
+      toastError(errorMessage)
     } finally {
       setResendingEmail(false)
     }
-  }
-
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      'pending': 'Pendiente',
-      'confirmed': 'Confirmado',
-      'processing': 'Procesando',
-      'shipped': 'Enviado',
-      'delivered': 'Entregado',
-      'cancelled': 'Cancelado'
-    }
-    return labels[status] || status
-  }
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      'pending': 'bg-yellow-100 text-yellow-800',
-      'confirmed': 'bg-blue-100 text-blue-800',
-      'processing': 'bg-purple-100 text-purple-800',
-      'shipped': 'bg-indigo-100 text-indigo-800',
-      'delivered': 'bg-green-100 text-green-800',
-      'cancelled': 'bg-red-100 text-red-800'
-    }
-    return colors[status] || 'bg-gray-100 text-gray-800'
   }
 
   if (loading) {
@@ -242,24 +217,23 @@ export default function AdminOrderDetail() {
   }
 
   return (
-    <AdminLayout>
+    <AdminLayout activeSection="orders">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center">
               <button
-                onClick={() => router.back()}
-                className="mr-4 p-2 text-gray-400 hover:text-gray-600"
+                onClick={() => router.push('/admin/orders')}
+                className="mr-4 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-slate-100"
               >
                 <ArrowLeftIcon className="h-5 w-5" />
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                  <ShoppingBagIcon className="h-8 w-8 mr-3 text-indigo-600" />
-                  Pedido #{order.id.slice(-8)}
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center">
+                  Pedido <span className="ml-2 font-mono text-red-700">#{order.id.slice(-8)}</span>
                 </h1>
-                <p className="mt-2 text-gray-600">
+                <p className="mt-2 text-gray-600 text-sm">
                   Creado el {new Date(order.created_at).toLocaleDateString('es-ES', {
                     year: 'numeric',
                     month: 'long',
@@ -270,20 +244,20 @@ export default function AdminOrderDetail() {
                 </p>
               </div>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleGenerateDeliveryNote}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
                 <DocumentArrowDownIcon className="h-4 w-4 mr-2" />
-                Generar Albarán
+                Albarán
               </button>
               <button
                 onClick={handleGenerateProforma}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
                 <DocumentTextIcon className="h-4 w-4 mr-2" />
-                Generar Proforma
+                Proforma
               </button>
               <DeliverOrderButton
                 orderId={order.id}
@@ -291,21 +265,21 @@ export default function AdminOrderDetail() {
                 onStatusUpdate={(newStatus, message) => {
                   setOrder({ ...order, status: newStatus as any })
                   if (message) {
-                    alert(message)
+                    success(message)
                   }
                 }}
                 disabled={updating}
               />
               <button
                 onClick={() => router.push(`/admin/orders/${order.id}/edit`)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
                 <PencilIcon className="h-4 w-4 mr-2" />
                 Editar
               </button>
               <button
-                onClick={deleteOrder}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                onClick={() => setConfirmDelete(true)}
+                className="inline-flex items-center px-3 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
               >
                 <TrashIcon className="h-4 w-4 mr-2" />
                 Eliminar
@@ -319,22 +293,49 @@ export default function AdminOrderDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Order Status */}
             <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                 <h3 className="text-lg font-medium text-gray-900 flex items-center">
                   <TagIcon className="h-5 w-5 mr-2 text-gray-400" />
                   Estado del Pedido
                 </h3>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ring-1 ring-inset ${getOrderStatusColor(order.status)}`}>
+                  {getOrderStatusLabel(order.status)}
+                </span>
               </div>
               <div className="px-6 py-4">
-                <div className="flex items-center justify-between mb-4">
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                    {getStatusLabel(order.status)}
-                  </span>
+                {order.status !== 'cancelled' && (
+                  <ol className="mb-5 flex justify-between gap-1">
+                    {ORDER_STATUS_FLOW.map((step, i) => {
+                      const idx = getStatusFlowIndex(order.status)
+                      const done = idx >= i
+                      const current = idx === i
+                      return (
+                        <li key={step} className="flex flex-1 flex-col items-center text-center">
+                          <span
+                            className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${
+                              done
+                                ? current
+                                  ? 'bg-red-600 text-white ring-4 ring-red-100'
+                                  : 'bg-emerald-600 text-white'
+                                : 'bg-slate-100 text-slate-400'
+                            }`}
+                          >
+                            {i + 1}
+                          </span>
+                          <span className={`mt-1 text-[10px] font-medium ${current ? 'text-red-700' : done ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {getOrderStatusLabel(step)}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                )}
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
                   <select
                     value={order.status}
                     onChange={(e) => updateStatus(e.target.value)}
                     disabled={updating}
-                    className="ml-4 block w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    className="block w-48 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-sm"
                   >
                     <option value="pending">Pendiente</option>
                     <option value="confirmed">Confirmado</option>
@@ -343,19 +344,14 @@ export default function AdminOrderDetail() {
                     <option value="delivered">Entregado</option>
                     <option value="cancelled">Cancelado</option>
                   </select>
-                </div>
-                <div className="flex justify-end relative">
                   <div className="relative inline-block text-left">
                     <button
                       onClick={() => setShowEmailMenu(!showEmailMenu)}
                       disabled={resendingEmail}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                     >
                       <EnvelopeIcon className="h-4 w-4 mr-2" />
-                      {resendingEmail ? 'Reenviando...' : 'Reenviar Correo'}
-                      <svg className="ml-2 -mr-1 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
+                      {resendingEmail ? 'Enviando…' : 'Reenviar Correo'}
                     </button>
                     
                     {showEmailMenu && (
@@ -368,24 +364,24 @@ export default function AdminOrderDetail() {
                           <div className="py-1" role="menu">
                             <button
                               onClick={() => handleResendEmail('both')}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                               role="menuitem"
                             >
-                              📧 Enviar a Cliente y Admin
+                              Cliente y Admin
                             </button>
                             <button
                               onClick={() => handleResendEmail('client')}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                               role="menuitem"
                             >
-                              👤 Enviar solo al Cliente
+                              Solo Cliente
                             </button>
                             <button
                               onClick={() => handleResendEmail('admin')}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                               role="menuitem"
                             >
-                              🏢 Enviar solo al Admin
+                              Solo Admin
                             </button>
                           </div>
                         </div>
@@ -1149,6 +1145,36 @@ export default function AdminOrderDetail() {
           </div>
         </div>
       </div>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-slate-900">Eliminar pedido</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Esta acción no se puede deshacer. ¿Eliminar el pedido #{order.id.slice(-8)}?
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmDelete(false)
+                  deleteOrder()
+                }}
+                className="rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   )
 }

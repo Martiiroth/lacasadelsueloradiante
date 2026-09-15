@@ -9,7 +9,6 @@ import {
   CubeIcon,
   FolderIcon,
   TicketIcon,
-  Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
   PlusIcon,
@@ -17,6 +16,7 @@ import {
   PhotoIcon
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../../contexts/AuthContext'
+import { AdminToastProvider } from './AdminToast'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -28,6 +28,7 @@ interface NavItem {
   label: string
   href: string
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  group?: string
 }
 
 const navItems: NavItem[] = [
@@ -35,63 +36,65 @@ const navItems: NavItem[] = [
     id: 'overview',
     label: 'Panel General',
     href: '/admin',
-    icon: ChartBarIcon
-  },
-  {
-    id: 'clients',
-    label: 'Clientes',
-    href: '/admin/clients',
-    icon: UsersIcon
+    icon: ChartBarIcon,
+    group: 'Inicio',
   },
   {
     id: 'orders',
     label: 'Pedidos',
     href: '/admin/orders',
-    icon: ShoppingBagIcon
+    icon: ShoppingBagIcon,
+    group: 'Ventas',
   },
   {
-    id: 'create-order',
-    label: 'Nuevo Pedido',
-    href: '/admin/orders/create',
-    icon: PlusIcon
+    id: 'clients',
+    label: 'Clientes',
+    href: '/admin/clients',
+    icon: UsersIcon,
+    group: 'Ventas',
   },
   {
     id: 'invoices',
     label: 'Facturas',
     href: '/admin/invoices',
-    icon: DocumentTextIcon
+    icon: DocumentTextIcon,
+    group: 'Ventas',
   },
   {
     id: 'products',
     label: 'Productos',
     href: '/admin/products',
-    icon: CubeIcon
+    icon: CubeIcon,
+    group: 'Catálogo',
   },
   {
     id: 'categories',
     label: 'Categorías',
     href: '/admin/categories',
-    icon: FolderIcon
+    icon: FolderIcon,
+    group: 'Catálogo',
   },
   {
     id: 'brands',
     label: 'Marcas',
     href: '/admin/brands',
-    icon: BuildingStorefrontIcon
+    icon: BuildingStorefrontIcon,
+    group: 'Catálogo',
   },
   {
     id: 'coupons',
     label: 'Cupones',
     href: '/admin/coupons',
-    icon: TicketIcon
+    icon: TicketIcon,
+    group: 'Marketing',
   },
   {
     id: 'carousel',
     label: 'Carrusel Home',
     href: '/admin/carousel',
-    icon: PhotoIcon
+    icon: PhotoIcon,
+    group: 'Marketing',
   },
-
 ]
 
 export default function AdminLayout({ children, activeSection = 'overview' }: AdminLayoutProps) {
@@ -131,9 +134,10 @@ export default function AdminLayout({ children, activeSection = 'overview' }: Ad
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <AdminToastProvider>
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo/Brand */}
@@ -204,86 +208,83 @@ export default function AdminLayout({ children, activeSection = 'overview' }: Ad
             </div>
             
             {/* Desktop sidebar navigation */}
-            <nav className="hidden lg:block space-y-1">
-              {navItems.map((item) => {
-                const isActive = activeSection === item.id
-                const Icon = item.icon
-
+            <nav className="hidden lg:block space-y-4">
+              {(['Inicio', 'Ventas', 'Catálogo', 'Marketing'] as const).map((group) => {
+                const items = navItems.filter((i) => i.group === group)
+                if (items.length === 0) return null
                 return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    className={`
-                      group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
-                      ${isActive 
-                        ? 'bg-red-50 border-r-2 border-red-500 text-red-700' 
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    <Icon 
-                      className={`
-                        flex-shrink-0 mr-3 h-5 w-5
-                        ${isActive ? 'text-red-500' : 'text-gray-400 group-hover:text-gray-500'}
-                      `} 
-                    />
-                    {item.label}
-                  </Link>
+                  <div key={group}>
+                    <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      {group}
+                    </p>
+                    <div className="space-y-0.5">
+                      {items.map((item) => {
+                        const isActive = activeSection === item.id
+                        const Icon = item.icon
+                        return (
+                          <Link
+                            key={item.id}
+                            href={item.href}
+                            className={`
+                              group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors
+                              ${isActive
+                                ? 'bg-red-50 border-r-2 border-red-500 text-red-700'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                              }
+                            `}
+                          >
+                            <Icon
+                              className={`
+                                flex-shrink-0 mr-3 h-5 w-5
+                                ${isActive ? 'text-red-500' : 'text-slate-400 group-hover:text-slate-500'}
+                              `}
+                            />
+                            {item.label}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  </div>
                 )
               })}
             </nav>
 
-            {/* Quick Stats - Hidden on mobile */}
-            <div className="hidden lg:block mt-8 p-4 bg-white rounded-lg border border-gray-200">
-              <h3 className="text-sm font-medium text-gray-900 mb-3">Acceso Rápido</h3>
+            {/* Acceso rápido */}
+            <div className="hidden lg:block mt-8 p-4 bg-white rounded-lg border border-slate-200">
+              <h3 className="text-sm font-medium text-slate-900 mb-3">Acceso rápido</h3>
               <div className="space-y-2">
-                <Link 
-                  href="/admin/clients?filter=new"
-                  className="block text-sm text-red-600 hover:text-red-500"
+                <Link
+                  href="/admin/orders/create"
+                  className="flex items-center text-sm font-medium text-red-600 hover:text-red-500"
                 >
-                  Clientes Nuevos
+                  <PlusIcon className="mr-1.5 h-4 w-4" />
+                  Nuevo pedido
                 </Link>
-                <Link 
+                <Link
                   href="/admin/orders?status=pending"
                   className="block text-sm text-red-600 hover:text-red-500"
                 >
-                  Pedidos Pendientes
+                  Pedidos pendientes
                 </Link>
-
-                <Link 
-                  href="/admin/products?stock=low"
+                <Link
+                  href="/admin/clients/create"
                   className="block text-sm text-red-600 hover:text-red-500"
                 >
-                  Stock Bajo
+                  Nuevo cliente
                 </Link>
-              </div>
-            </div>
-
-            {/* Admin Tools */}
-            <div className="mt-6 p-4 bg-red-50 rounded-lg border border-red-200">
-              <h3 className="text-sm font-medium text-red-900 mb-3">Herramientas Admin</h3>
-              <div className="space-y-2">
-                <button className="block w-full text-left text-sm text-red-700 hover:text-red-600">
-                  Exportar Datos
-                </button>
-                <button className="block w-full text-left text-sm text-red-700 hover:text-red-600">
-                  Backup BD
-                </button>
-                <button className="block w-full text-left text-sm text-red-700 hover:text-red-600">
-                  Logs del Sistema
-                </button>
               </div>
             </div>
           </div>
 
           {/* Main Content */}
           <div className="lg:col-span-4">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[400px] lg:min-h-[600px] p-4 lg:p-6">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 min-h-[400px] lg:min-h-[600px] p-4 lg:p-6">
               {children}
             </div>
           </div>
         </div>
       </div>
     </div>
+    </AdminToastProvider>
   )
 }
